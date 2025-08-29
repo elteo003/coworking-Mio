@@ -5,7 +5,7 @@ const { authenticateToken } = require('./middleware/auth');
 const app = express();
 const PORT = config.server.port;
 
-// Middleware CORS per permettere richieste dal frontend
+// Middleware CORS per permettere richieste dal frontend e dai test
 app.use(cors({
   origin: function (origin, callback) {
     // Lista degli origin permessi
@@ -17,13 +17,17 @@ app.use(cors({
       'https://coworking-mio-1-backend.onrender.com'
     ];
 
-    // Permetti richieste senza origin (es. Postman, mobile apps)
-    if (!origin) return callback(null, true);
+    // Permetti richieste senza origin (es. Postman, mobile apps, test Node.js)
+    if (!origin) {
+      console.log('✅ CORS: Permessa richiesta senza origin (test/Postman)');
+      return callback(null, true);
+    }
 
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('✅ CORS: Origin permesso:', origin);
       callback(null, true);
     } else {
-      console.log('CORS blocked origin:', origin);
+      console.log('❌ CORS: Origin bloccato:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -37,15 +41,18 @@ app.options('*', cors());
 
 // Middleware per loggare le richieste CORS
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'}`);
-  console.log(`CORS Headers - Origin: ${req.headers.origin}, Referer: ${req.headers.referer}`);
-  console.log(`CORS Allowed Origins: ${JSON.stringify([
-    'http://localhost:3000',
-    'http://localhost:8000',
-    'http://127.0.0.1:5500',
-    'https://coworking-mio-1.onrender.com',
-    'https://coworking-mio-1-backend.onrender.com'
-  ])}`);
+  const origin = req.headers.origin || 'No origin';
+  const referer = req.headers.referer || 'No referer';
+  
+  console.log(`🌐 ${req.method} ${req.path} - Origin: ${origin}`);
+  console.log(`📋 CORS Headers - Origin: ${origin}, Referer: ${referer}`);
+  
+  // Log più dettagliato per debug
+  if (req.method === 'POST' || req.method === 'PUT') {
+    console.log(`📝 Content-Type: ${req.headers['content-type'] || 'Not specified'}`);
+    console.log(`📏 Content-Length: ${req.headers['content-length'] || 'Not specified'}`);
+  }
+  
   next();
 });
 

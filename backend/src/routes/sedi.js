@@ -30,6 +30,22 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// GET /api/sedi/:id/spazi - Spazi di una sede specifica
+router.get('/:id/spazi', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query(
+            'SELECT * FROM spazio WHERE id_sede = $1 ORDER BY nome',
+            [id]
+        );
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Errore nel recupero degli spazi della sede:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
+});
+
 module.exports = router;
 
 

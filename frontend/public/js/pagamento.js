@@ -15,21 +15,38 @@ let pagamentoCompletato = false;
 // Inizializzazione della pagina per produzione
 $(document).ready(async function () {
     console.log('🚀 pagamento.js - Inizializzazione per PRODUZIONE (CON STRIPE)');
+    console.log('🔍 Test debug semplice');
+    console.log('🔍 Test CONFIG.API_BASE:', typeof CONFIG.API_BASE);
+    console.log('🔍 Test CONFIG:', typeof CONFIG);
+    console.log('🔍 Test window.CONFIG.API_BASE:', typeof window.CONFIG.API_BASE);
+    console.log('🔍 Test window.CONFIG:', typeof window.CONFIG);
 
     // Inizializza la navbar universale se disponibile
     if (typeof window.initializeNavbar === 'function') {
         window.initializeNavbar();
     }
+    
+    console.log('🔍 Dopo initializeNavbar');
 
     try {
+        console.log('🔍 Inizio blocco try');
         // Verifica se abbiamo parametri URL per la prenotazione
         const urlParams = new URLSearchParams(window.location.search);
-        const prenotazioneId = urlParams.get('prenotazione');
+        const prenotazioneId = urlParams.get('prenotazione') || urlParams.get('id_prenotazione');
+        
+        console.log('🔍 Debug parametri URL:');
+        console.log('URL completo:', window.location.href);
+        console.log('Parametri URL:', window.location.search);
+        console.log('prenotazioneId trovato:', prenotazioneId);
+        console.log('urlParams.get("prenotazione"):', urlParams.get('prenotazione'));
+        console.log('urlParams.get("id_prenotazione"):', urlParams.get('id_prenotazione'));
         
         if (prenotazioneId) {
+            console.log('✅ ID prenotazione trovato, carico dati...');
             // Carica i dati reali della prenotazione dal database
             await loadPrenotazioneData(prenotazioneId);
         } else {
+            console.log('❌ ID prenotazione mancante nei parametri URL');
             // Fallback: mostra errore se non c'è ID prenotazione
             showError('ID prenotazione mancante. Torna alla dashboard e riprova.');
             return;
@@ -51,9 +68,12 @@ $(document).ready(async function () {
 async function loadPrenotazioneData(prenotazioneId) {
     try {
         console.log('📊 Carico dati prenotazione:', prenotazioneId);
+        console.log('🔍 CONFIG.API_BASE:', CONFIG.API_BASE);
+        console.log('🔍 URL completa API:', `${CONFIG.API_BASE}/prenotazioni/${prenotazioneId}`);
+        console.log('🔍 Token presente:', !!localStorage.getItem('token'));
         
         // Chiamata API per ottenere i dati della prenotazione
-        const response = await fetch(`${API_BASE_URL}/prenotazioni/${prenotazioneId}`, {
+        const response = await fetch(`${CONFIG.API_BASE}/prenotazioni/${prenotazioneId}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -66,10 +86,26 @@ async function loadPrenotazioneData(prenotazioneId) {
         }
 
         const data = await response.json();
-        prenotazioneData = data.prenotazione;
+        console.log('📊 Response completa API:', data);
+        console.log('📊 Struttura data:', Object.keys(data));
+        
+        // Controlla se i dati sono in data.prenotazione o direttamente in data
+        if (data.prenotazione) {
+            prenotazioneData = data.prenotazione;
+            console.log('📊 Dati estratti da data.prenotazione:', prenotazioneData);
+        } else {
+            prenotazioneData = data;
+            console.log('📊 Dati estratti direttamente da data:', prenotazioneData);
+        }
         
         // Popola i dettagli della prenotazione
         populatePrenotazioneDetails();
+        
+        // Carica e precompila i dati utente
+        await loadAndPopulateUserData();
+        
+        // Aggiungi CSS per campi precompilati
+        addPrefilledFieldsCSS();
         
         console.log('✅ Dati prenotazione caricati:', prenotazioneData);
         
@@ -91,7 +127,7 @@ async function initializeStripe() {
         }
 
         // Ottieni la chiave pubblica Stripe dal backend
-        const response = await fetch(`${API_BASE_URL}/config/stripe-key`, {
+        const response = await fetch(`${CONFIG.API_BASE}/config/stripe-key`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -155,7 +191,14 @@ async function initializeStripe() {
 // Popola i dettagli della prenotazione
 function populatePrenotazioneDetails() {
     const data = prenotazioneData;
-    if (!data) return;
+    console.log('🔍 populatePrenotazioneDetails chiamata');
+    console.log('🔍 prenotazioneData:', prenotazioneData);
+    console.log('🔍 data:', data);
+    
+    if (!data) {
+        console.log('❌ Nessun dato prenotazione disponibile');
+        return;
+    }
 
     console.log('populatePrenotazioneDetails - Dati prenotazione:', data);
 
@@ -182,9 +225,21 @@ function populatePrenotazioneDetails() {
     });
 
     // Aggiorna l'interfaccia
+    console.log('🔍 Popolo campo sede:', data.nome_sede);
     document.getElementById('sede-prenotazione').textContent = data.nome_sede || 'Caricamento...';
+    
+    console.log('🔍 Popolo campo spazio:', data.nome_spazio);
     document.getElementById('spazio-prenotazione').textContent = data.nome_spazio || 'Caricamento...';
+    
+    console.log('🔍 Popolo campo data inizio:', dataFormattata, 'dalle', orarioInizio);
     document.getElementById('data-inizio-prenotazione').textContent = `${dataFormattata} dalle ${orarioInizio}`;
+    
+    console.log('🔍 Popolo campo data fine:', dataFine.toLocaleDateString('it-IT', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    }), 'alle', orarioFine);
     document.getElementById('data-fine-prenotazione').textContent = `${dataFine.toLocaleDateString('it-IT', {
         weekday: 'long',
         year: 'numeric',
@@ -192,25 +247,181 @@ function populatePrenotazioneDetails() {
         day: 'numeric'
     })} alle ${orarioFine}`;
     
+    // Usa durata_ore dal database se disponibile, altrimenti calcola
+    let durataOre;
+    if (data.durata_ore && !isNaN(data.durata_ore)) {
+        durataOre = data.durata_ore;
+        console.log('🔍 Durata ore dal database:', durataOre);
+    } else {
+        // Fallback: calcola dalle date
+        const durataMs = dataFine.getTime() - dataInizio.getTime();
+        durataOre = Math.round(durataMs / (1000 * 60 * 60));
+        console.log('🔍 Durata ore calcolata dalle date:', durataOre);
+    }
+    
     // Formatta la durata
     let durataText = '';
-    if (data.durata_ore >= 1) {
-        const ore = Math.floor(data.durata_ore);
-        const minuti = Math.round((data.durata_ore - ore) * 60);
+    if (durataOre >= 1) {
+        const ore = Math.floor(durataOre);
+        const minuti = Math.round((durataOre - ore) * 60);
         if (minuti > 0) {
             durataText = `${ore}h ${minuti}m`;
         } else {
             durataText = `${ore}h`;
         }
     } else {
-        const minuti = Math.round(data.durata_ore * 60);
+        const minuti = Math.round(durataOre * 60);
         durataText = `${minuti}m`;
     }
 
+    console.log('🔍 Popolo campo durata:', durataText);
     document.getElementById('durata-prenotazione').textContent = durataText;
-    document.getElementById('totale-prenotazione').textContent = `€${data.importo ? data.importo.toFixed(2) : '0.00'}`;
+    
+    // Calcola il totale usando la stessa logica della dashboard (€10/ora)
+    const prezzoOrario = 10.00; // Stesso prezzo della dashboard
+    const totale = durataOre * prezzoOrario;
+    
+    console.log('🔍 Popolo campo totale:', totale, '€ (durata:', durataOre, 'ore ×', prezzoOrario, '€/ora)');
+    document.getElementById('totale-prenotazione').textContent = `€${totale.toFixed(2)}`;
+    
+    // Salva il totale nei dati per usarlo nel pagamento
+    prenotazioneData.importo = totale;
 
     console.log('✅ Dettagli prenotazione popolati');
+}
+
+// Carica e precompila i dati utente nel form di pagamento
+async function loadAndPopulateUserData() {
+    try {
+        console.log('👤 Carico dati utente per precompilazione form...');
+        
+        // Estrai i dati utente dal token JWT
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.log('⚠️ Nessun token trovato, form non precompilato');
+            return;
+        }
+        
+        // Decodifica il token JWT (parte payload)
+        const tokenParts = token.split('.');
+        if (tokenParts.length !== 3) {
+            console.log('⚠️ Token JWT non valido, form non precompilato');
+            return;
+        }
+        
+        // Decodifica la parte payload (seconda parte)
+        const payload = JSON.parse(atob(tokenParts[1]));
+        console.log('🔍 Dati utente estratti dal token:', payload);
+        
+        // Precompila i campi del form
+        populateUserFormFields(payload);
+        
+        console.log('✅ Form precompilato con dati utente');
+        
+    } catch (error) {
+        console.error('❌ Errore caricamento dati utente:', error);
+        console.log('⚠️ Form non precompilato a causa di errore');
+    }
+}
+
+// Precompila i campi del form con i dati utente
+function populateUserFormFields(userData) {
+    console.log('🔍 Precompilo form con dati utente:', userData);
+    
+    // Campi da precompilare (sempre disponibili dal token JWT)
+    const fieldsToPopulate = {
+        'cardholder-name': (userData.nome || '') + ' ' + (userData.cognome || ''),
+        'cardholder-email': userData.email || ''
+    };
+    
+    // Rimuovi spazi doppi se nome o cognome mancano
+    if (fieldsToPopulate['cardholder-name']) {
+        fieldsToPopulate['cardholder-name'] = fieldsToPopulate['cardholder-name'].trim();
+    }
+    
+    // Aggiungi campi opzionali se disponibili nel token o database utente
+    if (userData.telefono) {
+        fieldsToPopulate['billing-phone'] = userData.telefono;
+    }
+    if (userData.indirizzo) {
+        fieldsToPopulate['billing-address'] = userData.indirizzo;
+    }
+    if (userData.citta) {
+        fieldsToPopulate['billing-city'] = userData.citta;
+    }
+    if (userData.provincia) {
+        fieldsToPopulate['billing-province'] = userData.provincia;
+    }
+    if (userData.cap) {
+        fieldsToPopulate['billing-zip'] = userData.cap;
+    }
+    
+    // Precompila ogni campo se esiste
+    Object.entries(fieldsToPopulate).forEach(([fieldId, value]) => {
+        const field = document.getElementById(fieldId);
+        if (field && value) {
+            console.log(`🔍 Precompilo campo ${fieldId}:`, value);
+            field.value = value;
+            
+            // Aggiungi classe per indicare che è precompilato
+            field.classList.add('pre-filled');
+            
+            // Aggiungi indicatore visivo al label
+            const label = document.querySelector(`label[for="${fieldId}"]`);
+            if (label && !label.querySelector('.pre-filled-indicator')) {
+                const indicator = document.createElement('span');
+                indicator.className = 'pre-filled-indicator';
+                indicator.innerHTML = '<i class="fas fa-check-circle"></i>';
+                indicator.title = 'Campo precompilato dai tuoi dati';
+                label.appendChild(indicator);
+            }
+            
+            // Trigger evento input per attivare validazione
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+            console.log(`⚠️ Campo ${fieldId} non trovato o valore mancante`);
+        }
+    });
+    
+    // Log dei campi trovati e non trovati
+    console.log('🔍 Riepilogo precompilazione:');
+    Object.keys(fieldsToPopulate).forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            console.log(`✅ Campo ${fieldId}: trovato e precompilato`);
+        } else {
+            console.log(`❌ Campo ${fieldId}: non trovato nel DOM`);
+        }
+    });
+}
+
+// Aggiungi CSS per evidenziare i campi precompilati
+function addPrefilledFieldsCSS() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .pre-filled {
+            background-color: #f8f9fa !important;
+            border-left: 4px solid #28a745 !important;
+        }
+        
+        .pre-filled:focus {
+            background-color: #ffffff !important;
+            border-left: 4px solid #007bff !important;
+        }
+        
+        .pre-filled::placeholder {
+            color: #6c757d !important;
+            opacity: 0.6;
+        }
+        
+        .form-label .pre-filled-indicator {
+            color: #28a745;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+    `;
+    document.head.appendChild(style);
+    console.log('🎨 CSS per campi precompilati aggiunto');
 }
 
 // Configura gli event listener
@@ -378,9 +589,14 @@ async function handlePaymentSubmit(event) {
     payButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Elaborazione...';
 
     try {
-        // Per ora simulo il pagamento con i campi manuali
-        // Quando Stripe sarà pronto, sostituiremo questa parte
+        // Simulo il pagamento con i campi manuali
         console.log('💳 Simulo pagamento con campi manuali...');
+        console.log('💳 Dati prenotazione per pagamento:', {
+            id: prenotazioneData.id_prenotazione,
+            importo: prenotazioneData.importo,
+            spazio: prenotazioneData.nome_spazio,
+            sede: prenotazioneData.nome_sede
+        });
         
         // Simula elaborazione pagamento
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -389,7 +605,8 @@ async function handlePaymentSubmit(event) {
         const simulatedPayment = {
             id: 'sim_' + Date.now(),
             status: 'succeeded',
-            method: 'carta_credito_manuale'
+            method: 'carta_credito_manuale',
+            amount: prenotazioneData.importo
         };
 
         // Gestisci il successo del pagamento
@@ -408,7 +625,7 @@ async function handlePaymentSubmit(event) {
 // Crea l'intent di pagamento
 async function createPaymentIntent() {
     try {
-        const response = await fetch(`${API_BASE_URL}/pagamenti/create-intent`, {
+        const response = await fetch(`${CONFIG.API_BASE}/pagamenti/create-intent`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -511,11 +728,15 @@ async function handlePaymentSuccess(paymentIntent) {
         // Imposta il flag che il pagamento è stato completato
         pagamentoCompletato = true;
 
-        // Per ora salvo solo localmente (quando il backend sarà pronto, salveremo nel database)
-        console.log('💾 Pagamento salvato localmente:', paymentIntent);
+        // Salva il pagamento nel database
+        console.log('💾 Salvo pagamento nel database...');
+        console.log('💾 Dati pagamento da salvare:', {
+            id_prenotazione: prenotazioneData.id_prenotazione,
+            payment_intent_id: paymentIntent.id,
+            method: 'carta_credito'
+        });
         
-        // TODO: Quando il backend sarà pronto, decommentare questa riga:
-        // await savePaymentToDatabase(paymentIntent);
+        await savePaymentToDatabase(paymentIntent);
 
         // Mostra la pagina di ringraziamento
         showThankYouPage();
@@ -531,30 +752,80 @@ async function handlePaymentSuccess(paymentIntent) {
 // Salva il pagamento nel database
 async function savePaymentToDatabase(paymentIntent) {
     try {
-        const response = await fetch(`${API_BASE_URL}/pagamenti/confirm`, {
+        console.log('💾 Invio dati pagamento al backend:', {
+            id_prenotazione: prenotazioneData.id_prenotazione,
+            payment_intent_id: paymentIntent.id,
+            method: 'carta_credito'
+        });
+
+        const response = await fetch(`${CONFIG.API_BASE}/pagamenti/confirm`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                prenotazione_id: prenotazioneData.id_prenotazione,
+                id_prenotazione: prenotazioneData.id_prenotazione,
                 payment_intent_id: paymentIntent.id,
-                importo: prenotazioneData.importo,
-                metodo_pagamento: 'carta_credito',
-                stato: 'completato'
+                method: 'carta_credito'
             })
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.message || 'Errore salvataggio pagamento');
+            console.error('❌ Errore backend:', errorData);
+            
+            // Gestisci specificamente l'errore di duplicato (sia da 400 che da 500)
+            if (errorData.error && (
+                errorData.error.includes('duplicate key value violates unique constraint') ||
+                errorData.error.includes('duplicate key value violates unique constraint "unique_id_prenotazione"')
+            )) {
+                console.log('⚠️ Pagamento già esistente per questa prenotazione, aggiorno solo lo stato');
+                
+                // Aggiorna solo lo stato della prenotazione a 'pagato'
+                await updatePrenotazioneStatus();
+                return;
+            }
+            
+            throw new Error(errorData.error || errorData.message || 'Errore salvataggio pagamento');
         }
 
-        console.log('✅ Pagamento salvato nel database');
+        const result = await response.json();
+        console.log('✅ Pagamento salvato nel database:', result);
 
     } catch (error) {
         console.error('Errore salvataggio pagamento:', error);
+        throw error;
+    }
+}
+
+// Aggiorna solo lo stato della prenotazione a 'pagato'
+async function updatePrenotazioneStatus() {
+    try {
+        console.log('🔄 Aggiorno stato prenotazione a pagato...');
+        
+        const response = await fetch(`${CONFIG.API_BASE}/prenotazioni/${prenotazioneData.id_prenotazione}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                stato: 'pagato'
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('❌ Errore aggiornamento stato:', errorData);
+            throw new Error('Errore aggiornamento stato prenotazione');
+        }
+
+        const result = await response.json();
+        console.log('✅ Stato prenotazione aggiornato:', result);
+        
+    } catch (error) {
+        console.error('Errore aggiornamento stato prenotazione:', error);
         throw error;
     }
 }

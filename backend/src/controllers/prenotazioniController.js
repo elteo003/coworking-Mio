@@ -129,13 +129,21 @@ exports.creaPrenotazione = async (req, res) => {
     // perché uno spazio può avere prenotazioni per alcuni orari ma essere disponibile per altri
     // Lo stato viene gestito dalle singole prenotazioni
 
-    // Inserimento prenotazione con scadenza slot
+    // Calcola la durata in ore
+    const dataInizio = new Date(data_inizio);
+    const dataFine = new Date(data_fine);
+    const durataMs = dataFine.getTime() - dataInizio.getTime();
+    const durataOre = Math.round(durataMs / (1000 * 60 * 60));
+    
+    console.log('🔍 Durata prenotazione calcolata:', durataOre, 'ore');
+    
+    // Inserimento prenotazione con scadenza slot e durata
     const scadenzaSlot = new Date(Date.now() + 15 * 60 * 1000); // 15 minuti da ora
 
     const result = await pool.query(
-      `INSERT INTO Prenotazione (id_utente, id_spazio, data_inizio, data_fine, stato, scadenza_slot)
-       VALUES ($1, $2, $3, $4, 'in attesa', $5) RETURNING id_prenotazione`,
-      [id_utente, id_spazio, data_inizio, data_fine, scadenzaSlot]
+      `INSERT INTO Prenotazione (id_utente, id_spazio, data_inizio, data_fine, stato, scadenza_slot, durata_ore)
+       VALUES ($1, $2, $3, $4, 'in attesa', $5, $6) RETURNING id_prenotazione`,
+      [id_utente, id_spazio, data_inizio, data_fine, scadenzaSlot, durataOre]
     );
 
     // Ottieni informazioni sulla sede per le notifiche SSE
@@ -222,11 +230,22 @@ exports.getPrenotazioni = async (req, res) => {
 // Ottiene i dettagli di una singola prenotazione
 exports.getPrenotazioneById = async (req, res) => {
   const { id } = req.params;
+  
+  console.log('🔍 getPrenotazioneById chiamata');
+  console.log('🔍 Parametri ricevuti:', req.params);
+  console.log('🔍 ID prenotazione ricevuto:', id);
+  console.log('🔍 Tipo ID:', typeof id);
+  console.log('🔍 Query string:', req.query);
+  console.log('🔍 URL completo:', req.url);
+  console.log('🔍 Headers:', req.headers);
 
   try {
     const result = await pool.query(
       `SELECT p.*, s.nome AS nome_spazio, se.nome AS nome_sede, 
-              u.nome AS nome_utente, u.cognome AS cognome_utente, u.email AS email_utente
+              u.nome AS nome_utente, u.cognome AS cognome_utente, u.email AS email_utente,
+              COALESCE(p.durata_ore, 
+                EXTRACT(EPOCH FROM (p.data_fine - p.data_inizio)) / 3600
+              ) AS durata_ore
        FROM Prenotazione p
        JOIN Spazio s ON p.id_spazio = s.id_spazio
        JOIN Sede se ON s.id_sede = se.id_sede
@@ -235,12 +254,17 @@ exports.getPrenotazioneById = async (req, res) => {
       [id]
     );
 
+    console.log('🔍 Risultato query:', result.rowCount, 'righe trovate');
+    
     if (result.rowCount === 0) {
+      console.log('❌ Prenotazione non trovata nel database');
       return res.status(404).json({ error: 'Prenotazione non trovata' });
     }
 
+    console.log('✅ Prenotazione trovata:', result.rows[0]);
     res.json(result.rows[0]);
   } catch (err) {
+    console.error('❌ Errore getPrenotazioneById:', err);
     res.status(500).json({ error: 'Errore server' });
   }
 };

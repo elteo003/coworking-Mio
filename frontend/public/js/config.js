@@ -15,6 +15,11 @@ const CONFIG = {
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6a2l1dm1oaWpoeHVxemR0bm16Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MjA5OTEsImV4cCI6MjA3MDQ5Njk5MX0.k2HuloheKebEfOXRYnvHq5smVzNZlnQAWNHZzetKxeY'
 };
 
+// Definisci API_BASE_URL per compatibilità con i file esistenti
+console.log('🔍 Prima di definire API_BASE_URL');
+const API_BASE_URL = CONFIG.API_BASE;
+console.log('🔍 Dopo aver definito API_BASE_URL:', API_BASE_URL);
+
 // Debug: log della configurazione per verificare che sia caricata
 console.log('Configurazione caricata:', CONFIG);
 console.log('API_BASE:', CONFIG.API_BASE);

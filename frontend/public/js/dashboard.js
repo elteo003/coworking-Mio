@@ -500,7 +500,8 @@ function displayPrenotazioniUtente(prenotazioni) {
     const dataInizio = new Date(p.data_inizio).toLocaleString('it-IT');
     const dataFine = new Date(p.data_fine);
     const dataInizioObj = new Date(p.data_inizio);
-    const durataOre = Math.round((dataFine - dataInizioObj) / (1000 * 60 * 60));
+    // Usa durata_ore dal database se disponibile, altrimenti calcola
+    const durataOre = p.durata_ore || Math.round((dataFine - dataInizioObj) / (1000 * 60 * 60));
     const importo = durataOre * 10; // 10€/ora
 
     // Calcola tempo rimanente
@@ -768,7 +769,8 @@ function displayPrenotazioniScadute(prenotazioni) {
     const dataInizio = new Date(p.data_inizio).toLocaleString('it-IT');
     const dataFine = new Date(p.data_fine);
     const dataInizioObj = new Date(p.data_inizio);
-    const durataOre = Math.round((dataFine - dataInizioObj) / (1000 * 60 * 60));
+    // Usa durata_ore dal database se disponibile, altrimenti calcola
+    const durataOre = p.durata_ore || Math.round((dataFine - dataInizioObj) / (1000 * 60 * 60));
     const importo = durataOre * 10; // 10€/ora
 
     html += `
