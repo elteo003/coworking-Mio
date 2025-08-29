@@ -225,36 +225,15 @@
                                             </h5>
                                             
                                             <div class="form-group mb-3">
-                                                <label for="card-number" class="form-label">
+                                                <label for="card-element" class="form-label">
                                                     <i class="fas fa-credit-card me-2"></i>
-                                                    Numero Carta *
+                                                    Dati Carta *
                                                 </label>
-                                                <input type="text" id="card-number" class="form-control" 
-                                                       placeholder="4242 4242 4242 4242" maxlength="19" required>
-                                                <div class="form-text">Per i test usa: 4242 4242 4242 4242</div>
-                                            </div>
-
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="form-group">
-                                                        <label for="card-expiry" class="form-label">
-                                                            <i class="fas fa-calendar me-2"></i>
-                                                            Data Scadenza *
-                                                        </label>
-                                                        <input type="text" id="card-expiry" class="form-control" 
-                                                               placeholder="MM/AA" maxlength="5" required>
-                                                    </div>
+                                                <div id="card-element" class="form-control" style="min-height: 40px;">
+                                                    <!-- Stripe Elements si inserirà qui -->
                                                 </div>
-                                                <div class="col-md-6">
-                                                    <div class="form-group">
-                                                        <label for="card-cvc" class="form-label">
-                                                            <i class="fas fa-lock me-2"></i>
-                                                            Codice CVC *
-                                                        </label>
-                                                        <input type="text" id="card-cvc" class="form-control" 
-                                                               placeholder="123" maxlength="4" required>
-                                                    </div>
-                                                </div>
+                                                <div id="card-errors" class="text-danger mt-1 small" style="display: none;"></div>
+                                                <div class="form-text">Inserisci i dati della tua carta di credito</div>
                                             </div>
                                         </div>
 
@@ -280,7 +259,7 @@
                                 <div class="text-center mt-4">
                                     <small class="text-muted">
                                         <i class="fas fa-shield-alt me-1"></i>
-                                        I tuoi dati sono protetti da crittografia SSL
+                                        I tuoi dati sono protetti da crittografia SSL e gestiti da Stripe
                                     </small>
                                 </div>
                             </div>
