@@ -41,11 +41,13 @@ const getDashboardStats = async (req, res) => {
 
         // Query per fatturato giornaliero
         const fatturatoQuery = `
-            SELECT COALESCE(SUM(p.importo), 0) as fatturato_giorno
+            SELECT COALESCE(SUM(pa.importo), 0) as fatturato_giorno
             FROM prenotazione p
             JOIN spazio s ON p.id_spazio = s.id_spazio
+            JOIN pagamento pa ON p.id_prenotazione = pa.id_prenotazione
             WHERE DATE(p.data_inizio) = CURRENT_DATE
             AND p.stato = 'confermata'
+            AND pa.stato = 'pagato'
             ${sedeFilter}
         `;
 
@@ -60,7 +62,6 @@ const getDashboardStats = async (req, res) => {
             LEFT JOIN prenotazione p ON s.id_spazio = p.id_spazio 
                 AND CURRENT_DATE BETWEEN DATE(p.data_inizio) AND DATE(p.data_fine)
                 AND p.stato = 'confermata'
-            WHERE s.stato = 'attivo'
             ${sedeFilter}
         `;
 
@@ -139,7 +140,7 @@ const getDashboardCharts = async (req, res) => {
         // Query per occupazione per spazio - Semplificata senza generate_series
         const occupazioneQuery = `
             SELECT 
-                s.nome_spazio,
+                s.nome,
                 ROUND(
                     (COUNT(CASE WHEN p.id_prenotazione IS NOT NULL THEN 1 END) * 100.0 / 
                     GREATEST(COUNT(s.id_spazio), 1)), 2
@@ -148,9 +149,8 @@ const getDashboardCharts = async (req, res) => {
             LEFT JOIN prenotazione p ON s.id_spazio = p.id_spazio 
                 AND CURRENT_DATE BETWEEN DATE(p.data_inizio) AND DATE(p.data_fine)
                 AND p.stato = 'confermata'
-            WHERE s.stato = 'attivo'
             ${sedeFilter}
-            GROUP BY s.id_spazio, s.nome_spazio
+            GROUP BY s.id_spazio, s.nome
             ORDER BY occupazione DESC
         `;
 
@@ -169,7 +169,7 @@ const getDashboardCharts = async (req, res) => {
                 data: prenotazioniResult.rows.map(row => parseInt(row.count))
             },
             occupazione: {
-                labels: occupazioneResult.rows.map(row => row.nome_spazio),
+                labels: occupazioneResult.rows.map(row => row.nome),
                 data: occupazioneResult.rows.map(row => parseFloat(row.occupazione))
             }
         };
@@ -210,7 +210,7 @@ const getDashboardActivity = async (req, res) => {
         const activityQuery = `
             SELECT 
                 'prenotazione' as tipo,
-                CONCAT('Nuova prenotazione per ', s.nome_spazio) as descrizione,
+                CONCAT('Nuova prenotazione per ', s.nome) as descrizione,
                 p.data_creazione as timestamp
             FROM prenotazione p
             JOIN spazio s ON p.id_spazio = s.id_spazio
@@ -220,21 +220,13 @@ const getDashboardActivity = async (req, res) => {
             UNION ALL
             
             SELECT 
-                'utente' as tipo,
-                CONCAT('Nuovo utente: ', u.nome, ' ', u.cognome) as descrizione,
-                u.data_registrazione as timestamp
-            FROM utente u
-            WHERE u.data_registrazione >= CURRENT_DATE - INTERVAL '7 days'
-            
-            UNION ALL
-            
-            SELECT 
                 'pagamento' as tipo,
                 CONCAT('Pagamento completato per prenotazione #', p.id_prenotazione) as descrizione,
-                p.data_creazione as timestamp
+                pa.data_pagamento as timestamp
             FROM prenotazione p
             JOIN spazio s ON p.id_spazio = s.id_spazio
-            WHERE p.stato = 'confermata' AND p.importo > 0
+            JOIN pagamento pa ON p.id_prenotazione = pa.id_prenotazione
+            WHERE p.stato = 'confermata' AND pa.stato = 'pagato'
             ${sedeFilter}
             
             ORDER BY timestamp DESC

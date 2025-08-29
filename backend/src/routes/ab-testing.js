@@ -48,4 +48,36 @@ router.get('/results', async (req, res) => {
     }
 });
 
+// POST /api/ab-testing/goal - Registrazione goal per A/B test
+router.post('/goal', async (req, res) => {
+    try {
+        const { test_name, variant, goal_type, user_id, metadata } = req.body;
+
+        console.log('🎯 A/B Test Goal registrato:', {
+            test_name,
+            variant,
+            goal_type,
+            user_id,
+            metadata,
+            timestamp: new Date().toISOString()
+        });
+
+        // In un'implementazione reale, salveresti questi dati nel database
+        // Per ora, restituiamo solo una conferma
+        res.json({
+            success: true,
+            message: 'Goal registrato con successo',
+            test_name,
+            variant,
+            goal_type,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Errore nella registrazione goal:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
+});
+
 module.exports = router;
+
+
