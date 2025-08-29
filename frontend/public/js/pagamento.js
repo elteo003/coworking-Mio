@@ -1,7 +1,7 @@
-// Configurazione per PRODUZIONE - CON STRIPE
-// Versione completa per gestire pagamenti reali
+// Configurazione per PRODUZIONE - CON STRIPE (TEMPORANEA)
+// Versione ibrida: campi manuali + logica Stripe per il backend
 
-// Configurazione Stripe
+// Configurazione Stripe (per ora disabilitata)
 let stripe;
 let elements;
 let cardElement;
@@ -35,8 +35,11 @@ $(document).ready(async function () {
             return;
         }
 
-        // Inizializza Stripe
-        await initializeStripe();
+        // Inizializza Stripe (per ora disabilitato per test)
+        // await initializeStripe();
+        
+        // Configura gli event listener per i campi manuali
+        setupEventListeners();
         
     } catch (error) {
         console.error('Errore durante l\'inizializzazione:', error);
@@ -275,6 +278,46 @@ function setupInputValidation() {
         });
     }
 
+    // Validazione data scadenza
+    const cardExpiry = document.getElementById('card-expiry');
+    if (cardExpiry) {
+        cardExpiry.addEventListener('input', function() {
+            const value = this.value;
+            if (value.length === 2 && !value.includes('/')) {
+                this.value = value + '/';
+            }
+            const isValid = /^\d{2}\/\d{2}$/.test(value);
+            validateField(this, isValid, 'Formato: MM/AA');
+        });
+    }
+
+    // Validazione numero carta
+    const cardNumber = document.getElementById('card-number');
+    if (cardNumber) {
+        cardNumber.addEventListener('input', function() {
+            // Formatta il numero carta con spazi ogni 4 cifre
+            let value = this.value.replace(/\s/g, '');
+            if (value.length > 16) value = value.substring(0, 16);
+            
+            // Aggiungi spazi ogni 4 cifre
+            const formattedValue = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+            this.value = formattedValue;
+            
+            // Valida (almeno 13 cifre per una carta valida)
+            const isValid = value.length >= 13 && /^\d+$/.test(value);
+            validateField(this, isValid, 'Il numero carta deve contenere almeno 13 cifre');
+        });
+    }
+
+    // Validazione CVC
+    const cardCvc = document.getElementById('card-cvc');
+    if (cardCvc) {
+        cardCvc.addEventListener('input', function() {
+            const isValid = /^\d{3,4}$/.test(this.value);
+            validateField(this, isValid, 'Il CVC deve essere di 3-4 cifre');
+        });
+    }
+
     // Validazione termini e condizioni
     const termsAccept = document.getElementById('terms-accept');
     if (termsAccept) {
@@ -335,37 +378,22 @@ async function handlePaymentSubmit(event) {
     payButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Elaborazione...';
 
     try {
-        // Crea l'intent di pagamento
-        const paymentIntent = await createPaymentIntent();
-        console.log('Payment Intent creato:', paymentIntent);
-
-        // Conferma il pagamento con Stripe
-        const { error, paymentIntent: confirmedIntent } = await stripe.confirmCardPayment(
-            paymentIntent.client_secret,
-            {
-                payment_method: {
-                    card: cardElement,
-                    billing_details: {
-                        name: document.getElementById('cardholder-name').value,
-                        email: document.getElementById('cardholder-email').value,
-                        address: {
-                            line1: document.getElementById('billing-address').value,
-                            city: document.getElementById('billing-city').value,
-                            state: document.getElementById('billing-province').value,
-                            postal_code: document.getElementById('billing-zip').value,
-                            country: 'IT'
-                        }
-                    }
-                }
-            }
-        );
-
-        if (error) {
-            throw new Error(error.message);
-        }
+        // Per ora simulo il pagamento con i campi manuali
+        // Quando Stripe sarà pronto, sostituiremo questa parte
+        console.log('💳 Simulo pagamento con campi manuali...');
+        
+        // Simula elaborazione pagamento
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Simula successo pagamento
+        const simulatedPayment = {
+            id: 'sim_' + Date.now(),
+            status: 'succeeded',
+            method: 'carta_credito_manuale'
+        };
 
         // Gestisci il successo del pagamento
-        await handlePaymentSuccess(confirmedIntent);
+        await handlePaymentSuccess(simulatedPayment);
 
     } catch (error) {
         console.error('Errore pagamento:', error);
@@ -415,6 +443,9 @@ function validateAllFields() {
         'billing-city',
         'billing-province',
         'billing-zip',
+        'card-number',
+        'card-expiry',
+        'card-cvc',
         'terms-accept'
     ];
 
@@ -446,6 +477,16 @@ function validateAllFields() {
             case 'billing-zip':
                 isValid = field.value.length === 5 && /^\d+$/.test(field.value);
                 break;
+            case 'card-number':
+                const cardValue = field.value.replace(/\s/g, '');
+                isValid = cardValue.length >= 13 && /^\d+$/.test(cardValue);
+                break;
+            case 'card-expiry':
+                isValid = /^\d{2}\/\d{2}$/.test(field.value);
+                break;
+            case 'card-cvc':
+                isValid = /^\d{3,4}$/.test(field.value);
+                break;
             case 'terms-accept':
                 isValid = field.checked;
                 break;
@@ -470,8 +511,11 @@ async function handlePaymentSuccess(paymentIntent) {
         // Imposta il flag che il pagamento è stato completato
         pagamentoCompletato = true;
 
-        // Salva il pagamento nel database
-        await savePaymentToDatabase(paymentIntent);
+        // Per ora salvo solo localmente (quando il backend sarà pronto, salveremo nel database)
+        console.log('💾 Pagamento salvato localmente:', paymentIntent);
+        
+        // TODO: Quando il backend sarà pronto, decommentare questa riga:
+        // await savePaymentToDatabase(paymentIntent);
 
         // Mostra la pagina di ringraziamento
         showThankYouPage();
