@@ -497,7 +497,7 @@ div.time-slot.booked,
 .btn.btn-book:active {
     background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%) !important;
     color: white !important;
-    transform: scale(0.98) translateY(-2px) !important;
+    transform: translateY(-2px) !important;
 }
 
 .btn.btn-book:disabled {
