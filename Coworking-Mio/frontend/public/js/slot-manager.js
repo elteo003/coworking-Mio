@@ -1,406 +1,211 @@
-/**
- * Slot Manager - Gestione bottoni slot in tempo reale con SSE
- * Sistema di colori e stati per gli slot disponibili/occupati/prenotati
- */
-
 class SlotManager {
-    constructor() {
-        this.eventSource = null;
-        this.slotsStatus = new Map();
-        this.currentSede = null;
-        this.currentSpazio = null;
-        this.currentDate = null;
-        this.isConnected = false;
-        this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 5;
-        this.reconnectDelay = 2000;
+    constructor(containerId, apiBaseUrl, idSpazio, dataSelezionata, onSlotChangeCallback) {
+        this.container = document.getElementById(containerId);
+        this.apiBaseUrl = apiBaseUrl;
+        this.idSpazio = idSpazio;
+        this.dataSelezionata = dataSelezionata;
+        this.onSlotChangeCallback = onSlotChangeCallback;
+        this.selectedSlots = []; // Array per tenere traccia degli slot selezionati
+        this.init();
     }
 
-    // Inizializza il sistema SSE
-    init(sedeId, spazioId, date) {
-        this.currentSede = sedeId;
-        this.currentSpazio = spazioId;
-        this.currentDate = date;
-
-        console.log('🚀 SlotManager - Inizializzazione per:', { sedeId, spazioId, date });
-
-        // Controlla se l'utente è autenticato
-        const token = localStorage.getItem('token');
-
-        if (token) {
-            console.log('🔐 SlotManager - Utente autenticato, attivo modalità SSE');
-            // Carica stato iniziale degli slot
-            this.loadInitialSlotsStatus();
-            // Connessione SSE per aggiornamenti real-time
-            this.connectSSE();
-        } else {
-            console.log('👤 SlotManager - Utente non autenticato, carico stato slot senza SSE');
-            // Utenti non autenticati vedono lo stato reale degli slot
-            // ma non ricevono aggiornamenti real-time
-            this.loadInitialSlotsStatus();
-            // Gestisci utente non autenticato dopo caricamento stato
-            setTimeout(() => this.handleUnauthenticatedUser(), 100);
-        }
+    init() {
+        // NON aggiungere event listener per i click - il vecchio sistema li gestisce
+        // this.container.addEventListener('click', this.handleSlotClick.bind(this));
     }
 
-    // Carica stato iniziale degli slot
-    async loadInitialSlotsStatus() {
-        try {
-            // Ottieni il token di autenticazione
-            const token = localStorage.getItem('token');
-
-            let response;
-
-            if (token) {
-                // Utente autenticato: usa endpoint protetto
-                response = await fetch(`${window.CONFIG.API_BASE}/sse/slots-status/${this.currentSede}/${this.currentSpazio}/${this.currentDate}?token=${encodeURIComponent(token)}`, {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-            } else {
-                // Utente non autenticato: usa endpoint pubblico per stato slot
-                response = await fetch(`${window.CONFIG.API_BASE}/spazi/${this.currentSpazio}/disponibilita-slot/${this.currentDate}`, {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-            }
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log('📋 SlotManager - Risposta ricevuta:', data);
-
-                // Gestisci entrambi i formati di risposta
-                let slotsArray;
-                if (data.data && data.data.slots) {
-                    // Formato nuovo: { data: { slots: [...] } }
-                    slotsArray = data.data.slots;
-                } else if (Array.isArray(data.data)) {
-                    // Formato SSE: { data: [...] }
-                    slotsArray = data.data;
-                } else if (Array.isArray(data)) {
-                    // Formato diretto: [...]
-                    slotsArray = data;
-                } else {
-                    console.error('❌ SlotManager - Formato risposta non riconosciuto:', data);
-                    return;
-                }
-
-                this.updateSlotsFromStatus(slotsArray);
-                console.log('✅ SlotManager - Stato iniziale slot caricato:', slotsArray.length, 'slot');
-            } else {
-                console.error('❌ SlotManager - Errore caricamento stato iniziale:', response.status);
-            }
-        } catch (error) {
-            console.error('❌ SlotManager - Errore caricamento stato iniziale:', error);
-        }
-    }
-
-    // Connessione SSE
-    connectSSE() {
-        try {
-            // Ottieni il token di autenticazione
-            const token = localStorage.getItem('token');
-            if (!token) {
-                console.error('❌ SlotManager - Token di autenticazione mancante');
-                return;
-            }
-
-            // Crea URL con token nella query string per autenticazione SSE
-            const url = `${window.CONFIG.API_BASE}/sse/status-stream?token=${encodeURIComponent(token)}`;
-            console.log('🔗 SlotManager - Connessione SSE con URL:', url);
-
-            this.eventSource = new EventSource(url);
-
-            this.eventSource.onopen = () => {
-                console.log('🔗 SlotManager - Connessione SSE stabilita');
-                this.isConnected = true;
-                this.reconnectAttempts = 0;
-            };
-
-            this.eventSource.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    this.handleSSEMessage(data);
-                } catch (error) {
-                    console.error('❌ SlotManager - Errore parsing messaggio SSE:', error);
-                }
-            };
-
-            this.eventSource.onerror = (error) => {
-                console.error('❌ SlotManager - Errore connessione SSE:', error);
-                this.isConnected = false;
-                this.handleSSEError();
-            };
-
-        } catch (error) {
-            console.error('❌ SlotManager - Errore creazione connessione SSE:', error);
-        }
-    }
-
-    // Gestisce messaggi SSE
-    handleSSEMessage(data) {
-        switch (data.type) {
-            case 'connection':
-                console.log('🔗 SlotManager - Connessione SSE confermata:', data.message);
-                break;
-
-            case 'heartbeat':
-                // Heartbeat per mantenere connessione attiva
-                break;
-
-            case 'slot_update':
-                this.handleSlotUpdate(data);
-                break;
-
-            case 'slots_status_update':
-                this.updateSlotsFromStatus(data.slotsStatus);
-                break;
-
-            default:
-                console.log('📨 SlotManager - Messaggio SSE non gestito:', data.type);
-        }
-    }
-
-    // Gestisce aggiornamento singolo slot
-    handleSlotUpdate(data) {
-        const { slotId, status, data: slotData } = data;
-
-        console.log('🔄 SlotManager - Aggiornamento slot:', { slotId, status, slotData });
-
-        // Aggiorna stato locale
-        this.slotsStatus.set(slotId, {
-            status: status,
-            ...slotData
-        });
-
-        // Aggiorna bottone corrispondente
-        this.updateSlotButton(slotId, status, slotData);
-    }
-
-    // Aggiorna tutti gli slot da stato completo
-    updateSlotsFromStatus(slotsStatus) {
-        console.log('🔄 SlotManager - Aggiornamento completo slot:', slotsStatus.length, 'slot');
-        console.log('📋 Dettagli slot ricevuti:', slotsStatus);
-
-        // Pulisci stato precedente
-        this.slotsStatus.clear();
-
-        // Aggiorna stato locale
-        slotsStatus.forEach(slot => {
-            // Usa id_slot se presente, altrimenti usa l'indice
-            const slotId = slot.id_slot || slot.id || slot.orario;
-            if (slotId) {
-                this.slotsStatus.set(slotId, slot);
-                console.log(`📌 Slot ${slotId} mappato con status: ${slot.status}`);
-            } else {
-                console.warn('⚠️ Slot senza ID valido:', slot);
-            }
-        });
-
-        // Aggiorna tutti i bottoni
-        this.updateAllSlotButtons();
-    }
-
-    // Aggiorna tutti i bottoni degli slot
-    updateAllSlotButtons() {
-        console.log('🔄 SlotManager - Aggiornamento di tutti i bottoni');
-        console.log('📊 Stato slot corrente:', Array.from(this.slotsStatus.entries()));
-
-        this.slotsStatus.forEach((slot, slotId) => {
-            console.log(`🔄 Aggiornamento bottone per slot ${slotId}:`, slot);
-            this.updateSlotButton(slotId, slot.status, slot);
-        });
-    }
-
-    // Aggiorna singolo bottone slot
-    updateSlotButton(slotId, status, slotData = {}) {
-        console.log(`🎯 SlotManager - Aggiornamento bottone slot ${slotId} con status: ${status}`, slotData);
-
-        // Cerca il bottone per data-slot-id o per orario
-        let button = document.querySelector(`[data-slot-id="${slotId}"]`);
-        if (!button) {
-            // Prova a cercare per orario se slotId è un orario
-            button = document.querySelector(`[data-orario="${slotId}"]`);
-        }
-        if (!button) {
-            console.warn('⚠️ SlotManager - Bottone non trovato per slot:', slotId);
-            console.log('🔍 Cercando bottoni disponibili:', document.querySelectorAll('[data-slot-id], [data-orario]'));
+    async loadSlotAvailability() {
+        if (!this.idSpazio || !this.dataSelezionata) {
+            console.warn('ID Spazio o Data Selezionata non definiti per il caricamento della disponibilità.');
             return;
         }
 
-        // Rimuovi SOLO le classi Bootstrap, mantieni le nostre classi personalizzate
-        button.classList.remove('btn-success', 'btn-danger', 'btn-warning', 'btn-secondary', 'btn-outline-primary');
-        // NON rimuovere le nostre classi slot-* personalizzate!
+        // Formatta la data in locale per evitare problemi di timezone
+        const year = this.dataSelezionata.getFullYear();
+        const month = String(this.dataSelezionata.getMonth() + 1).padStart(2, '0');
+        const day = String(this.dataSelezionata.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`; // YYYY-MM-DD
+        const url = `${this.apiBaseUrl}/spazi/${this.idSpazio}/disponibilita-slot/${formattedDate}`;
 
-        // Applica classe e stato in base al status
-        switch (status) {
-            case 'available':
-                button.classList.add('slot-available');
-                button.disabled = false;
-                button.title = 'Slot disponibile';
-                break;
+        console.log('🔍 SlotManager - Chiamata API:', { idSpazio: this.idSpazio, data: formattedDate, url });
 
-            case 'booked':
-                button.classList.add('slot-booked');
-                button.disabled = true;
-                button.title = 'Slot prenotato';
-                break;
-
-            case 'occupied':
-                button.classList.add('slot-occupied');
-                button.disabled = true;
-                button.title = `Slot occupato (hold scade in ${slotData.hold_time_remaining || '?'} min)`;
-                break;
-
-            case 'past':
-                button.classList.add('slot-past');
-                button.disabled = true;
-                button.title = 'Orario passato';
-                break;
-
-            default:
-                button.classList.add('slot-available');
-                button.disabled = false;
-                button.title = 'Stato sconosciuto';
-        }
-
-        // Aggiungi animazione per cambi di stato
-        button.classList.add('slot-status-changed');
-        setTimeout(() => {
-            button.classList.remove('slot-status-changed');
-        }, 500);
-
-        console.log(`🔄 SlotManager - Bottone ${slotId} aggiornato a: ${status}`);
-    }
-
-    // Gestisce errori SSE
-    handleSSEError() {
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.reconnectAttempts++;
-            console.log(`🔄 SlotManager - Tentativo riconnessione ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
-
-            setTimeout(() => {
-                this.connectSSE();
-            }, this.reconnectDelay * this.reconnectAttempts);
-        } else {
-            console.error('❌ SlotManager - Riconnessione fallita, passaggio a polling');
-            this.fallbackToPolling();
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            console.log('📊 SlotManager - Risposta API:', data);
+            this.updateSlotUI(data.data.slots);
+        } catch (error) {
+            console.error('Errore nel caricamento della disponibilità degli slot:', error);
         }
     }
 
-    // Fallback a polling se SSE fallisce
-    fallbackToPolling() {
-        console.log('🔄 SlotManager - Attivazione fallback polling');
+    updateSlotUI(slotsData) {
+        console.log('🎨 SlotManager - Aggiornamento UI slot:', slotsData);
 
-        // Polling ogni 10 secondi
-        this.pollingInterval = setInterval(() => {
-            this.loadInitialSlotsStatus();
-        }, 10000);
-    }
+        slotsData.forEach(slot => {
+            const button = this.container.querySelector(`[data-orario="${slot.orario}"]`);
+            if (button) {
+                console.log(`🎨 Aggiornando slot ${slot.orario}: ${slot.status}`);
 
-    // Seleziona uno slot (cambia colore a blu)
-    selectSlot(slotId) {
-        const button = document.querySelector(`[data-slot-id="${slotId}"]`);
-        if (!button) return;
+                // Rimuovi tutte le classi di stato esistenti
+                button.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected');
 
-        // Rimuovi selezione precedente
-        document.querySelectorAll('.slot-selected').forEach(btn => {
-            btn.classList.remove('slot-selected');
-            btn.classList.add('slot-available');
-        });
+                // Aggiungi la classe di stato corretta
+                switch (slot.status) {
+                    case 'available':
+                        button.classList.add('slot-available');
+                        button.disabled = false;
+                        button.title = 'Slot disponibile';
+                        break;
+                    case 'booked':
+                        button.classList.add('slot-booked');
+                        button.disabled = true; // Non selezionabile
+                        button.title = slot.title || 'Slot prenotato';
+                        break;
+                    case 'occupied':
+                        button.classList.add('slot-occupied');
+                        button.disabled = true; // Non selezionabile
+                        button.title = slot.title || 'Slot occupato (in attesa pagamento)';
+                        break;
+                    case 'past':
+                        button.classList.add('slot-past');
+                        button.disabled = true; // Non selezionabile
+                        button.title = slot.title || 'Slot passato';
+                        break;
+                    default:
+                        button.classList.add('slot-available'); // Default
+                        button.disabled = false;
+                        button.title = 'Slot disponibile';
+                }
+                button.dataset.status = slot.status; // Salva lo stato nel dataset
 
-        // Seleziona nuovo slot
-        button.classList.remove('slot-available');
-        button.classList.add('slot-selected');
-        button.title = 'Slot selezionato';
-
-        console.log('✅ SlotManager - Slot selezionato:', slotId);
-    }
-
-    // Deseleziona uno slot
-    deselectSlot(slotId) {
-        const button = document.querySelector(`[data-slot-id="${slotId}"]`);
-        if (!button) return;
-
-        button.classList.remove('btn-primary', 'slot-selected');
-
-        // Ripristina stato originale
-        const slotStatus = this.slotsStatus.get(slotId);
-        if (slotStatus) {
-            this.updateSlotButton(slotId, slotStatus.status, slotStatus);
-        }
-
-        console.log('❌ SlotManager - Slot deselezionato:', slotId);
-    }
-
-    // Ottieni stato corrente di uno slot
-    getSlotStatus(slotId) {
-        return this.slotsStatus.get(slotId);
-    }
-
-    // Ottieni tutti gli slot disponibili
-    getAvailableSlots() {
-        const available = [];
-        this.slotsStatus.forEach((slot, slotId) => {
-            if (slot.status === 'available') {
-                available.push({ slotId, ...slot });
+                console.log(`✅ Slot ${slot.orario} aggiornato: classe = slot-${slot.status}`);
+            } else {
+                console.warn(`⚠️ Bottone non trovato per orario: ${slot.orario}`);
             }
         });
-        return available;
     }
 
-    // Ottieni tutti gli slot selezionati
-    getSelectedSlots() {
-        const selected = [];
-        document.querySelectorAll('.slot-selected').forEach(button => {
-            const slotId = button.getAttribute('data-slot-id');
-            if (slotId) {
-                selected.push(parseInt(slotId));
+    handleSlotClick(event) {
+        const button = event.target.closest('.slot-button');
+        if (!button || button.disabled || button.dataset.status === 'booked' || button.dataset.status === 'occupied' || button.dataset.status === 'past') {
+            return;
+        }
+
+        const orario = button.dataset.orario;
+        const slotId = button.dataset.slotId;
+
+        // Se è già selezionato, lo deseleziona
+        if (button.classList.contains('slot-selected')) {
+            this.resetSelection();
+            return;
+        }
+
+        // Se non ci sono slot selezionati, questo è l'inizio
+        if (this.selectedSlots.length === 0) {
+            this.selectedSlots.push({ orario, slotId });
+            button.classList.add('slot-selected');
+            button.classList.remove(`slot-${button.dataset.status}`);
+
+            // Mostra messaggio per selezionare la fine
+            this.showTimeSelectionMessage('Seleziona ora l\'orario di fine');
+
+            // Chiama il callback anche per il primo slot
+            if (this.onSlotChangeCallback) {
+                this.onSlotChangeCallback(this.selectedSlots);
+            }
+        } else if (this.selectedSlots.length === 1) {
+            // Questo è la fine
+            const orarioInizio = parseInt(this.selectedSlots[0].orario.split(':')[0]);
+            const orarioFine = parseInt(orario.split(':')[0]);
+
+            if (orarioFine <= orarioInizio) {
+                this.showError('L\'orario di fine deve essere successivo all\'orario di inizio');
+                return;
+            }
+
+            // Seleziona tutti gli slot tra inizio e fine
+            this.selectTimeRange(this.selectedSlots[0].orario, orario);
+
+            // Chiama il callback per aggiornare l'UI
+            if (this.onSlotChangeCallback) {
+                this.onSlotChangeCallback(this.selectedSlots);
+            }
+        }
+    }
+
+    selectTimeRange(orarioInizio, orarioFine) {
+        const startHour = parseInt(orarioInizio.split(':')[0]);
+        const endHour = parseInt(orarioFine.split(':')[0]);
+
+        // Seleziona tutti gli slot tra inizio e fine
+        for (let hour = startHour; hour <= endHour; hour++) {
+            const orario = `${String(hour).padStart(2, '0')}:00`;
+            const button = this.container.querySelector(`[data-orario="${orario}"]`);
+
+            if (button && !button.disabled && button.dataset.status !== 'booked' && button.dataset.status !== 'occupied' && button.dataset.status !== 'past') {
+                const slotId = button.dataset.slotId;
+
+                // Aggiungi solo se non è già selezionato
+                if (!this.selectedSlots.find(s => s.orario === orario)) {
+                    this.selectedSlots.push({ orario, slotId });
+                }
+
+                button.classList.add('slot-selected');
+                button.classList.remove(`slot-${button.dataset.status}`);
+            }
+        }
+
+        // Ordina gli slot selezionati
+        this.selectedSlots.sort((a, b) => a.orario.localeCompare(b.orario));
+    }
+
+    showTimeSelectionMessage(message) {
+        // Implementa la logica per mostrare il messaggio
+        console.log('💬 Messaggio:', message);
+    }
+
+    showError(message) {
+        // Implementa la logica per mostrare l'errore
+        console.error('❌ Errore:', message);
+    }
+
+    getSelectedTimeRange() {
+        if (this.selectedSlots.length === 0) {
+            return { start: null, end: null };
+        }
+        const start = this.selectedSlots[0].orario;
+        // La fine è l'inizio dell'ultimo slot selezionato + 1 ora
+        const lastSlotHour = parseInt(this.selectedSlots[this.selectedSlots.length - 1].orario.split(':')[0]);
+        const endHour = lastSlotHour + 1;
+        const end = `${String(endHour).padStart(2, '0')}:00`;
+        return { start, end };
+    }
+
+    resetSelection() {
+        this.selectedSlots = [];
+        this.container.querySelectorAll('.slot-button').forEach(button => {
+            button.classList.remove('slot-selected');
+            // Ripristina la classe di stato originale se presente nel dataset
+            if (button.dataset.status) {
+                button.classList.add(`slot-${button.dataset.status}`);
             }
         });
-        return selected;
+        if (this.onSlotChangeCallback) {
+            this.onSlotChangeCallback(this.selectedSlots);
+        }
     }
 
-    // Pulisci e chiudi connessioni
+    // Metodo per pulire l'istanza del SlotManager
     cleanup() {
-        if (this.eventSource) {
-            this.eventSource.close();
-            this.eventSource = null;
-        }
-
-        if (this.pollingInterval) {
-            clearInterval(this.pollingInterval);
-            this.pollingInterval = null;
-        }
-
-        this.isConnected = false;
-        console.log('🧹 SlotManager - Pulizia completata');
-    }
-
-    // Metodo per gestire utenti non autenticati
-    handleUnauthenticatedUser() {
-        console.log('👤 SlotManager - Gestione utente non autenticato');
-
-        // Per utenti non autenticati, disabilita la prenotazione
-        // ma mantieni la visualizzazione dello stato reale degli slot
-        const allButtons = document.querySelectorAll('[data-slot-id]');
-        allButtons.forEach(button => {
-            if (button.classList.contains('slot-available')) {
-                button.title = 'Slot disponibile (login richiesto per prenotazione)';
-            }
-        });
-    }
-
-    // Riconnetti manualmente
-    reconnect() {
-        console.log('🔄 SlotManager - Riconnessione manuale');
-        this.cleanup();
-        this.reconnectAttempts = 0;
-        this.connectSSE();
+        console.log('🧹 SlotManager - Pulizia istanza');
+        this.selectedSlots = [];
+        // Non c'è bisogno di rimuovere event listener perché non li aggiungiamo
     }
 }
 
-// Esporta per uso globale
+// Rendi SlotManager disponibile globalmente
 window.SlotManager = SlotManager;

@@ -1,5 +1,6 @@
 const pool = require('../db');
 const SSEController = require('./sseController');
+const TimerService = require('../services/timerService');
 
 // Verifica se uno spazio è disponibile in un intervallo
 exports.checkDisponibilita = async (req, res) => {
@@ -30,6 +31,19 @@ exports.checkDisponibilita = async (req, res) => {
     }
 
     console.log('✅ Date valide:', { dataInizio, dataFine });
+
+    // Controlla se la data di inizio è nel passato
+    const now = new Date();
+    if (dataInizio <= now) {
+      console.log('❌ Data nel passato:', { data_inizio, now });
+      return res.json({ disponibile: false, motivo: 'Data nel passato' });
+    }
+
+    // Controlla se la data di fine è prima della data di inizio
+    if (dataFine <= dataInizio) {
+      console.log('❌ Data fine prima di inizio:', { data_inizio, data_fine });
+      return res.json({ disponibile: false, motivo: 'Data fine prima di inizio' });
+    }
 
     // 1. Controlla lo stato dello spazio
     const spazioResult = await pool.query(
@@ -98,6 +112,37 @@ exports.creaPrenotazione = async (req, res) => {
   }
 
   try {
+    // Validazione date nel passato
+    const dataInizio = new Date(data_inizio);
+    const dataFine = new Date(data_fine);
+    const now = new Date();
+
+    // Controlla se le date sono valide
+    if (isNaN(dataInizio.getTime()) || isNaN(dataFine.getTime())) {
+      return res.status(400).json({ error: 'Date non valide' });
+    }
+
+    // Controlla se la data di inizio è nel passato
+    if (dataInizio <= now) {
+      return res.status(400).json({ error: 'Non è possibile prenotare nel passato' });
+    }
+
+    // Controlla se la data di fine è prima della data di inizio
+    if (dataFine <= dataInizio) {
+      return res.status(400).json({ error: 'La data di fine deve essere successiva alla data di inizio' });
+    }
+
+    // Controlla durata minima (1 ora)
+    const durataOre = (dataFine - dataInizio) / (1000 * 60 * 60);
+    if (durataOre < 1) {
+      return res.status(400).json({ error: 'Durata minima: 1 ora' });
+    }
+
+    // Controlla durata massima (12 ore)
+    if (durataOre > 12) {
+      return res.status(400).json({ error: 'Durata massima: 12 ore' });
+    }
+
     // Verifica che lo spazio esista
     const checkSlot = await pool.query(
       `SELECT id_spazio FROM Spazio WHERE id_spazio = $1`,
@@ -167,13 +212,19 @@ exports.creaPrenotazione = async (req, res) => {
       }
     }
 
-    // Nota: La liberazione automatica dello slot è gestita dal cron job scadenzeCron
-    // che controlla ogni 5 minuti le prenotazioni scadute
+    // Avvia timer automatico per la prenotazione in attesa
+    TimerService.startTimer(
+      result.rows[0].id_prenotazione,
+      id_spazio,
+      data_inizio,
+      data_fine
+    );
 
     res.status(201).json({
       message: 'Prenotazione creata',
       id_prenotazione: result.rows[0].id_prenotazione,
-      scadenza_slot: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+      scadenza_slot: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      timer_started: true
     });
 
   } catch (err) {
@@ -450,6 +501,9 @@ exports.cancellaPrenotazione = async (req, res) => {
       `UPDATE Prenotazione SET stato = 'cancellata' WHERE id_prenotazione = $1`,
       [id]
     );
+
+    // Cancella il timer automatico se attivo
+    TimerService.cancelTimer(id);
 
     // NOTA: Non aggiorniamo più lo stato generale dello spazio
     // perché uno spazio può avere prenotazioni per alcuni orari ma essere disponibile per altri

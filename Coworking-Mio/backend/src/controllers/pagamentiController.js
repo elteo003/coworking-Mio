@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const pool = require('../db');
 const Stripe = require('stripe');
+const TimerService = require('../services/timerService');
 
 // Calcolo importo mock: tariffa oraria base
 const BASE_RATE_EUR_PER_HOUR = 10;
@@ -368,6 +369,9 @@ exports.confirmGenericPayment = async (req, res) => {
       `UPDATE Prenotazione SET stato = 'confermata', data_pagamento = NOW() WHERE id_prenotazione = $1`,
       [id_prenotazione]
     );
+
+    // Cancella il timer automatico se attivo
+    TimerService.cancelTimer(id_prenotazione);
 
     res.json({
       message: 'Pagamento confermato',

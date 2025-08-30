@@ -12,6 +12,59 @@ let datePicker = null;
 // Nuovo Slot Manager per gestione real-time degli slot con SSE
 let slotManager = null;
 
+// Callback per gestire i cambiamenti di selezione degli slot
+function onSlotChange(selectedSlots) {
+    console.log('🎯 onSlotChange chiamato con slot selezionati:', selectedSlots);
+
+    if (selectedSlots.length === 1) {
+        // Solo inizio selezionato - mostra messaggio
+        const start = selectedSlots[0].orario;
+        window.selectedTimeInizio = start;
+        window.selectedTimeFine = null;
+
+        // Mostra messaggio per selezionare la fine
+        showTimeSelectionMessage('Seleziona ora l\'orario di fine');
+
+        // Disabilita il bottone Prenota Ora
+        const btnBook = document.getElementById('btnBook');
+        if (btnBook) {
+            btnBook.disabled = true;
+        }
+    } else if (selectedSlots.length > 1) {
+        // Range completo selezionato
+        const start = selectedSlots[0].orario;
+        const lastSlotHour = parseInt(selectedSlots[selectedSlots.length - 1].orario.split(':')[0]);
+        const endHour = lastSlotHour + 1;
+        const end = `${String(endHour).padStart(2, '0')}:00`;
+
+        // Aggiorna le variabili globali
+        window.selectedTimeInizio = start;
+        window.selectedTimeFine = end;
+
+        // Aggiorna il riepilogo
+        updateSummary(start, end, selectedSlots.length);
+
+        // Abilita il bottone Prenota Ora
+        const btnBook = document.getElementById('btnBook');
+        if (btnBook) {
+            btnBook.disabled = false;
+        }
+    } else {
+        // Nessun slot selezionato
+        window.selectedTimeInizio = null;
+        window.selectedTimeFine = null;
+
+        // Nascondi il riepilogo
+        hideSummary();
+
+        // Disabilita il bottone Prenota Ora
+        const btnBook = document.getElementById('btnBook');
+        if (btnBook) {
+            btnBook.disabled = true;
+        }
+    }
+}
+
 // Inizializza il nuovo Slot Manager
 function initializeSlotManager() {
     if (window.selectedSede && window.selectedSpazio && window.selectedDateInizio) {
@@ -26,7 +79,7 @@ function initializeSlotManager() {
         console.log('🚀 Inizializzazione nuovo Slot Manager per:', { sedeId, spazioId, date });
 
         // Pulisci istanza precedente se esiste
-        if (slotManager) {
+        if (slotManager && typeof slotManager.cleanup === 'function') {
             slotManager.cleanup();
         }
 
@@ -37,8 +90,16 @@ function initializeSlotManager() {
 
         // POI crea nuova istanza di SlotManager
         console.log('🚀 STEP 2: Creo SlotManager...');
-        slotManager = new window.SlotManager();
-        slotManager.init(sedeId, spazioId, date);
+        slotManager = new window.SlotManager(
+            'timeSlots',
+            window.CONFIG.API_BASE,
+            spazioId,
+            window.selectedDateInizio,
+            onSlotChange
+        );
+
+        // Carica la disponibilità degli slot
+        slotManager.loadSlotAvailability();
         console.log('✅ STEP 2 COMPLETATO: SlotManager inizializzato');
 
         return true;
@@ -623,10 +684,7 @@ async function selectTimeSlot(orario, slotElement) {
             s.classList.add('slot-available');
         });
 
-        // Seleziona il primo slot usando il nuovo SlotManager
-        if (slotManager) {
-            slotManager.selectSlot(slotElement.dataset.slotId);
-        }
+        // Il nuovo SlotManager gestisce automaticamente la selezione tramite event listener
 
         // Aggiungi la classe per lo slot selezionato
         slotElement.classList.remove('slot-available');
@@ -652,10 +710,7 @@ async function selectTimeSlot(orario, slotElement) {
             return;
         }
 
-        // Seleziona il secondo slot
-        if (slotManager) {
-            slotManager.selectSlot(slotElement.dataset.slotId);
-        }
+        // Il nuovo SlotManager gestisce automaticamente la selezione tramite event listener
 
         // Aggiungi la classe per lo slot selezionato
         slotElement.classList.remove('slot-available');
@@ -865,7 +920,7 @@ function showAuthModal() {
                                     <i class="fas fa-lock-open auth-icon"></i>
                                 </div>
                                 <div>
-                                    <h4 class="modal-title mb-0" id="authModalLabel">🔐 Autenticazione Richiesta</h4>
+                                    <h4 class="modal-title mb-0" id="authModalLabel">Autenticazione Richiesta</h4>
                                     <p class="auth-subtitle mb-0">Per completare la prenotazione devi effettuare il login o registrarti</p>
                                 </div>
                             </div>

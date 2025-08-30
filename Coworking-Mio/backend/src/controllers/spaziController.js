@@ -44,18 +44,18 @@ async function getDisponibilitaSlot(req, res) {
 
         console.log(`⏰ Orari apertura generati: ${orariApertura.length} slot`);
 
-        // Ottieni prenotazioni esistenti per questa data (query semplificata)
+        // Ottieni prenotazioni esistenti per questa data (query corretta)
         let prenotazioni = [];
         try {
             const prenotazioniQuery = `
                 SELECT 
-                    orario_inizio,
-                    orario_fine,
+                    data_inizio,
+                    data_fine,
                     stato
                 FROM Prenotazione 
                 WHERE id_spazio = $1 
                 AND DATE(data_inizio) = $2
-                AND stato IN ('confermata', 'in_attesa_pagamento')
+                AND stato IN ('confermata', 'in attesa')
             `;
 
             const prenotazioniResult = await pool.query(prenotazioniQuery, [id_spazio, data]);
@@ -86,12 +86,16 @@ async function getDisponibilitaSlot(req, res) {
 
             // Controlla se c'è una prenotazione per questo orario
             const prenotazione = prenotazioni.find(p => {
-                if (!p.orario_inizio || !p.orario_fine) return false;
+                if (!p.data_inizio || !p.data_fine) return false;
 
-                const prenotazioneInizio = parseInt(p.orario_inizio.split(':')[0]);
-                const prenotazioneFine = parseInt(p.orario_fine.split(':')[0]);
+                const prenotazioneInizio = new Date(p.data_inizio);
+                const prenotazioneFine = new Date(p.data_fine);
+                // CORREZIONE: Crea slotDateTime in ora locale, non UTC
+                const slotDateTime = new Date(data + 'T' + orario + ':00+02:00');
 
-                return orarioHour >= prenotazioneInizio && orarioHour < prenotazioneFine;
+                // Debug rimosso - confronto funzionante
+
+                return slotDateTime >= prenotazioneInizio && slotDateTime < prenotazioneFine;
             });
 
             if (prenotazione) {
@@ -102,7 +106,7 @@ async function getDisponibilitaSlot(req, res) {
                         status: 'booked',
                         title: 'Slot prenotato'
                     };
-                } else if (prenotazione.stato === 'in_attesa_pagamento') {
+                } else if (prenotazione.stato === 'in attesa') {
                     return {
                         id_slot: slotId,
                         orario: orario,
