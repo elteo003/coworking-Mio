@@ -56,9 +56,11 @@ async function checkAvailability(orarioInizio, orarioFine) {
 
     try {
         // Usa i dati del SlotManager con cache intelligente
-        if (window.slotManager && window.slotManager.slotsStatus) {
+        if (window.slotManager && window.slotManager.slotsStatus && window.slotManager.slotsStatus.length > 0) {
+            console.log('🔍 SlotManager disponibile con', window.slotManager.slotsStatus.length, 'slot');
             return await checkAvailabilityFromSlotManager(orarioInizio, orarioFine);
         } else {
+            console.log('⚠️ SlotManager non disponibile o vuoto, uso API con cache');
             return await checkAvailabilityFromAPI(orarioInizio, orarioFine);
         }
     } catch (error) {
@@ -70,6 +72,9 @@ async function checkAvailability(orarioInizio, orarioFine) {
 // Verifica disponibilità usando SlotManager (metodo preferito)
 async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
     console.log('🔍 Verifico disponibilità usando SlotManager');
+    
+    // Aspetta che il SlotManager sia completamente caricato
+    await waitForSlotManager();
     
     const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
     const orarioFineHour = parseInt(orarioFine.split(':')[0]);
@@ -90,6 +95,26 @@ async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
 
     console.log('✅ Tutti gli slot sono disponibili');
     return true;
+}
+
+// Funzione per aspettare che il SlotManager sia pronto
+async function waitForSlotManager(maxWait = 5000) {
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < maxWait) {
+        if (window.slotManager && 
+            window.slotManager.slotsStatus && 
+            window.slotManager.slotsStatus.length > 0) {
+            console.log('✅ SlotManager pronto con', window.slotManager.slotsStatus.length, 'slot');
+            return true;
+        }
+        
+        console.log('⏳ Attendo SlotManager...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    console.warn('⚠️ Timeout attesa SlotManager');
+    return false;
 }
 
 // Verifica disponibilità usando API con cache e retry
