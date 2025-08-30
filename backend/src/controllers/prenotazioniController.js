@@ -1,5 +1,6 @@
 const pool = require('../db');
 const SSEController = require('./sseController');
+const SlotTimerService = require('../services/slotTimerService');
 
 // Verifica se uno spazio è disponibile in un intervallo
 exports.checkDisponibilita = async (req, res) => {
@@ -134,9 +135,9 @@ exports.creaPrenotazione = async (req, res) => {
     const dataFine = new Date(data_fine);
     const durataMs = dataFine.getTime() - dataInizio.getTime();
     const durataOre = Math.round(durataMs / (1000 * 60 * 60));
-    
+
     console.log('🔍 Durata prenotazione calcolata:', durataOre, 'ore');
-    
+
     // Inserimento prenotazione con scadenza slot e durata
     const scadenzaSlot = new Date(Date.now() + 15 * 60 * 1000); // 15 minuti da ora
 
@@ -156,8 +157,18 @@ exports.creaPrenotazione = async (req, res) => {
       const { id_sede, id_spazio: spazioId } = sedeInfo.rows[0];
       const data = new Date(data_inizio).toISOString().split('T')[0]; // Solo la data
 
-      // Notifica tutti i client via SSE che lo slot è ora occupato
+      // Avvia timer per slot in attesa e notifica tutti i client
       try {
+        // Avvia timer per gestire scadenza automatica
+        SlotTimerService.startTimer(
+          result.rows[0].id_prenotazione,
+          id_spazio,
+          data_inizio,
+          data_fine,
+          id_sede
+        );
+        
+        // Notifica tutti i client via SSE che lo slot è ora occupato
         await SSEController.broadcastSlotUpdate(
           result.rows[0].id_prenotazione,
           'occupied',
@@ -230,7 +241,7 @@ exports.getPrenotazioni = async (req, res) => {
 // Ottiene i dettagli di una singola prenotazione
 exports.getPrenotazioneById = async (req, res) => {
   const { id } = req.params;
-  
+
   console.log('🔍 getPrenotazioneById chiamata');
   console.log('🔍 Parametri ricevuti:', req.params);
   console.log('🔍 ID prenotazione ricevuto:', id);
@@ -255,7 +266,7 @@ exports.getPrenotazioneById = async (req, res) => {
     );
 
     console.log('🔍 Risultato query:', result.rowCount, 'righe trovate');
-    
+
     if (result.rowCount === 0) {
       console.log('❌ Prenotazione non trovata nel database');
       return res.status(404).json({ error: 'Prenotazione non trovata' });
@@ -338,6 +349,9 @@ exports.confirmPrenotazione = async (req, res) => {
       `UPDATE Prenotazione SET stato = 'confermata', data_pagamento = NOW(), scadenza_slot = NULL WHERE id_prenotazione = $1`,
       [id_prenotazione]
     );
+
+    // Cancella timer per slot in attesa e notifica conferma
+    SlotTimerService.cancelTimer(id_prenotazione);
 
     // NOTA: Non aggiorniamo più lo stato generale dello spazio
     // perché uno spazio può avere prenotazioni per alcuni orari ma essere disponibile per altri

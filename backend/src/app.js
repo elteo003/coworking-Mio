@@ -120,6 +120,10 @@ app.use('/api/concorrenza', concorrenzaRoutes);
 const sseRoutes = require('./routes/sse');
 app.use('/api/sse', sseRoutes);
 
+// Route per notifiche slot real-time
+const slotNotificationsRoutes = require('./routes/slotNotifications');
+app.use('/api/slots', slotNotificationsRoutes);
+
 // Rotte per spazi (endpoint pubblici per disponibilità)
 const spaziRoutes = require('./routes/spazi');
 app.use('/api/spazi', spaziRoutes);
