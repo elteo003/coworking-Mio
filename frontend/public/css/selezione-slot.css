@@ -467,44 +467,74 @@ div.time-slot.booked,
 }
 
 .btn-back {
-    background: var(--gray-600);
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
     color: white;
     border: none;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .btn-back:hover {
-    background: var(--gray-700);
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
     color: white;
     transform: none;
+    box-shadow: var(--shadow-lg);
+}
+
+/* Effetto scintillante per il tasto torna indietro */
+.btn-back::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.8s ease;
+    z-index: 1;
+}
+
+.btn-back:hover::before {
+    left: 100%;
+}
+
+/* Assicurati che il testo sia sopra l'effetto scintillante */
+.btn-back span,
+.btn-back i {
+    position: relative;
+    z-index: 2;
 }
 
 .btn.btn-book {
-    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%) !important;
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
     color: white !important;
     border: none !important;
     position: relative !important;
     overflow: hidden !important;
     box-shadow: var(--shadow-md) !important;
     transition: all 0.3s ease !important;
+    font-weight: 600 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
 }
 
 .btn.btn-book:hover {
-    background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--secondary) 100%) !important;
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%) !important;
     color: white !important;
     transform: none !important;
     box-shadow: var(--shadow-lg) !important;
 }
 
 .btn.btn-book:active {
-    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%) !important;
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
     color: white !important;
     transform: none !important;
 }
 
-
-
 .btn.btn-book:disabled {
-    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%) !important;
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
     color: white !important;
     cursor: not-allowed !important;
     transform: none !important;
@@ -520,7 +550,7 @@ div.time-slot.booked,
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     transition: left 0.8s ease;
     z-index: 1;
 }
@@ -535,7 +565,8 @@ div.time-slot.booked,
 }
 
 /* Assicurati che il testo sia sopra l'effetto scintillante */
-.btn.btn-book span {
+.btn.btn-book span,
+.btn.btn-book i {
     position: relative;
     z-index: 2;
 }
