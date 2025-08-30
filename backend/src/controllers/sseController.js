@@ -127,6 +127,11 @@ class SSEController {
                 const prenotazioniResult = await pool.query(prenotazioniQuery, [spazioId, data]);
                 prenotazioni = prenotazioniResult.rows;
                 console.log(`📋 Prenotazioni trovate: ${prenotazioni.length}`);
+                console.log(`🔍 Query: ${prenotazioniQuery}`);
+                console.log(`🔍 Parametri: spazioId=${spazioId}, data=${data}`);
+                if (prenotazioni.length > 0) {
+                    console.log(`📋 Dettagli prenotazioni:`, prenotazioni);
+                }
             } catch (queryError) {
                 console.warn('⚠️ Errore query prenotazioni, continuo senza:', queryError.message);
                 prenotazioni = [];
@@ -152,12 +157,19 @@ class SSEController {
 
                 // Controlla se c'è una prenotazione per questo orario
                 const prenotazione = prenotazioni.find(p => {
-                    if (!p.orario_inizio || !p.orario_fine) return false;
+                    if (!p.orario_inizio || !p.orario_fine) {
+                        console.log(`⚠️ Prenotazione senza orari:`, p);
+                        return false;
+                    }
 
                     const prenotazioneInizio = parseInt(p.orario_inizio);
                     const prenotazioneFine = parseInt(p.orario_fine);
 
-                    return orarioHour >= prenotazioneInizio && orarioHour < prenotazioneFine;
+                    const isOccupied = orarioHour >= prenotazioneInizio && orarioHour < prenotazioneFine;
+                    if (isOccupied) {
+                        console.log(`🔍 Slot ${orarioHour}:00 occupato da prenotazione ${prenotazioneInizio}:00-${prenotazioneFine}:00 (stato: ${p.stato})`);
+                    }
+                    return isOccupied;
                 });
 
                 if (prenotazione) {
