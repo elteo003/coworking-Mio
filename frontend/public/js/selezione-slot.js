@@ -50,89 +50,107 @@ function initializeSlotManager() {
     return false;
 }
 
-// Funzione helper per verificare disponibilità di uno slot
+// Funzione helper per verificare disponibilità di uno slot (OTTIMIZZATA)
 async function checkAvailability(orarioInizio, orarioFine) {
     console.log('🔍 checkAvailability chiamato per:', { orarioInizio, orarioFine });
 
     try {
-        // Usa i dati del SlotManager invece di fare una nuova richiesta
-        console.log('🔍 SlotManager disponibile?', !!window.slotManager);
-        console.log('🔍 slotsStatus disponibile?', !!(window.slotManager && window.slotManager.slotsStatus));
-        
+        // Usa i dati del SlotManager con cache intelligente
         if (window.slotManager && window.slotManager.slotsStatus) {
-            const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
-            const orarioFineHour = parseInt(orarioFine.split(':')[0]);
-
-            console.log('🔍 Verifico disponibilità usando SlotManager:', window.slotManager.slotsStatus);
-            console.log('🔍 Intervallo da verificare:', orarioInizioHour, 'a', orarioFineHour);
-
-            // Controlla se tutti gli slot nell'intervallo sono disponibili
-            for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
-                const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
-                const slot = window.slotManager.slotsStatus.find(s => s.orario === orarioSlot);
-
-                if (!slot || slot.status !== 'available') {
-                    console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
-                    return false;
-                }
-            }
-
-            console.log('✅ Tutti gli slot sono disponibili');
-            return true;
+            return await checkAvailabilityFromSlotManager(orarioInizio, orarioFine);
         } else {
-            console.warn('⚠️ SlotManager non disponibile, fallback a richiesta API');
-            
-            // Fallback alla richiesta API originale
-            const formatDate = (date) => {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            };
-
-            const dataSelezionata = formatDate(window.selectedDateInizio);
-            console.log('📅 Data per verifica disponibilità:', dataSelezionata);
-
-            const response = await fetch(`${window.CONFIG.API_BASE}/spazi/${window.selectedSpazio.id_spazio}/disponibilita-slot/${dataSelezionata}`, {
-                headers: getAuthHeaders()
-            });
-
-            if (response.ok) {
-                const disponibilita = await response.json();
-                console.log('📋 Disponibilità per lo spazio:', disponibilita);
-
-                // Verifica se gli slot selezionati sono disponibili
-                if (disponibilita.success && disponibilita.data && disponibilita.data.slots) {
-                    const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
-                    const orarioFineHour = parseInt(orarioFine.split(':')[0]);
-
-                    console.log('🔍 Verifico disponibilità slot:', disponibilita.data.slots);
-
-                    // Controlla se tutti gli slot nell'intervallo sono disponibili
-                    for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
-                        const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
-                        const slot = disponibilita.data.slots.find(s => s.orario === orarioSlot);
-
-                        if (!slot || slot.status !== 'available') {
-                            console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
-                            return false;
-                        }
-                    }
-
-                    console.log('✅ Tutti gli slot sono disponibili');
-                    return true;
-                }
-
-                return false;
-            } else {
-                console.error('❌ Errore API disponibilità:', response.status, response.statusText);
-                return false;
-            }
+            return await checkAvailabilityFromAPI(orarioInizio, orarioFine);
         }
     } catch (error) {
         console.error('❌ Errore verifica disponibilità:', error);
         return false;
     }
+}
+
+// Verifica disponibilità usando SlotManager (metodo preferito)
+async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
+    console.log('🔍 Verifico disponibilità usando SlotManager');
+    
+    const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
+    const orarioFineHour = parseInt(orarioFine.split(':')[0]);
+
+    console.log('🔍 Intervallo da verificare:', orarioInizioHour, 'a', orarioFineHour);
+    console.log('🔍 SlotManager slotsStatus:', window.slotManager.slotsStatus);
+
+    // Controlla se tutti gli slot nell'intervallo sono disponibili
+    for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
+        const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
+        const slot = window.slotManager.slotsStatus.find(s => s.orario === orarioSlot);
+
+        if (!slot || slot.status !== 'available') {
+            console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
+            return false;
+        }
+    }
+
+    console.log('✅ Tutti gli slot sono disponibili');
+    return true;
+}
+
+// Verifica disponibilità usando API con cache e retry
+async function checkAvailabilityFromAPI(orarioInizio, orarioFine) {
+    console.warn('⚠️ SlotManager non disponibile, uso API con cache');
+    
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const dataSelezionata = formatDate(window.selectedDateInizio);
+    const cacheKey = `disponibilita_${window.selectedSpazio.id_spazio}_${dataSelezionata}`;
+    
+    console.log('📅 Data per verifica disponibilità:', dataSelezionata);
+    console.log('🗝️ Cache key:', cacheKey);
+
+    // Usa cache manager per evitare richieste duplicate
+    const disponibilita = await window.CacheManager.get(cacheKey, async () => {
+        console.log('🌐 Fetching disponibilità da API...');
+        
+        return await window.ErrorHandler.withRetry(async () => {
+            const response = await fetch(`${window.CONFIG.API_BASE}/spazi/${window.selectedSpazio.id_spazio}/disponibilita-slot/${dataSelezionata}`, {
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('📋 Disponibilità ricevuta da API:', data);
+            return data;
+        }, { operation: 'check_availability' });
+    }, 10000); // Cache per 10 secondi
+
+    // Verifica se gli slot selezionati sono disponibili
+    if (disponibilita.success && disponibilita.data && disponibilita.data.slots) {
+        const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
+        const orarioFineHour = parseInt(orarioFine.split(':')[0]);
+
+        console.log('🔍 Verifico disponibilità slot:', disponibilita.data.slots);
+
+        // Controlla se tutti gli slot nell'intervallo sono disponibili
+        for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
+            const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
+            const slot = disponibilita.data.slots.find(s => s.orario === orarioSlot);
+
+            if (!slot || slot.status !== 'available') {
+                console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
+                return false;
+            }
+        }
+
+        console.log('✅ Tutti gli slot sono disponibili');
+        return true;
+    }
+
+    return false;
 }
 
 // Inizializzazione della pagina
@@ -464,7 +482,7 @@ function setupEventListeners() {
                     return `${year}-${month}-${day}`;
                 };
 
-                // Crea la prenotazione nel database
+                // Crea la prenotazione nel database con retry automatico
                 const prenotazioneData = {
                     id_spazio: window.selectedSpazio.id_spazio,
                     data_inizio: new Date(`${formatDate(window.selectedDateInizio)}T${window.selectedTimeInizio}:00`).toISOString(),
@@ -473,29 +491,59 @@ function setupEventListeners() {
 
                 console.log('📝 Dati prenotazione:', prenotazioneData);
 
-                const response = await fetch(`${CONFIG.API_BASE}/prenotazioni`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify(prenotazioneData)
-                });
+                // Usa ErrorHandler per retry automatico
+                const result = await window.ErrorHandler.withRetry(async () => {
+                    const response = await fetch(`${CONFIG.API_BASE}/prenotazioni`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(prenotazioneData)
+                    });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`Errore creazione prenotazione: ${errorData.error || response.status}`);
-                }
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ error: 'Errore sconosciuto' }));
+                        const error = new Error(`Errore creazione prenotazione: ${errorData.error || response.status}`);
+                        error.status = response.status;
+                        throw error;
+                    }
 
-                const result = await response.json();
+                    return await response.json();
+                }, { operation: 'create_prenotazione' });
+
                 console.log('✅ Prenotazione creata:', result);
+                
+                // Invalida cache per aggiornare disponibilità
+                const dataSelezionata = formatDate(window.selectedDateInizio);
+                window.CacheManager.invalidatePattern(`disponibilita_${window.selectedSpazio.id_spazio}_${dataSelezionata}`);
 
                 // Reindirizza alla pagina di pagamento con l'ID della prenotazione
                 window.location.href = `/pagamento.html?id_prenotazione=${result.id_prenotazione}`;
 
             } catch (error) {
                 console.error('❌ Errore creazione prenotazione:', error);
-                showError(`Errore durante la creazione della prenotazione: ${error.message}`);
+                
+                // Usa ErrorHandler per gestione intelligente degli errori
+                const errorInfo = await window.ErrorHandler.handlePrenotazioneError(error, {
+                    operation: 'create_prenotazione',
+                    prenotazioneData: prenotazioneData
+                });
+                
+                // Mostra messaggio specifico in base al tipo di errore
+                if (errorInfo.type === 'auth') {
+                    showError('Sessione scaduta. Effettua nuovamente il login per completare la prenotazione.');
+                    // Opzionalmente reindirizza al login
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 2000);
+                } else if (errorInfo.type === 'validation') {
+                    showError(`Errore di validazione: ${errorInfo.message}`);
+                } else if (errorInfo.type === 'network') {
+                    showError('Problema di connessione. Verifica la tua connessione internet e riprova.');
+                } else {
+                    showError(`Errore durante la creazione della prenotazione: ${errorInfo.message}`);
+                }
             }
         });
     }
