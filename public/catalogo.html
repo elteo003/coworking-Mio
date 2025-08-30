@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catalogo Sedi - CoWorkSpace</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/modern-design.css?v=20250830g">
+  <link rel="stylesheet" href="css/style.css?v=20250830j">
+  <link rel="stylesheet" href="css/catalog.css?v=20250830t">
+
+</head>
+
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">
+        <i class="fas fa-building me-2"></i>
+        CoworkSpace
+      </a>
+
+      <!-- Toggle button per mobile -->
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <!-- Navbar items -->
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="catalogo.html">Catalogo</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="eventi.html">Eventi</a>
+          </li>
+        </ul>
+
+        <!-- User area -->
+        <ul class="navbar-nav" id="navbarUserArea">
+          <li class="nav-item">
+            <a class="nav-link btn btn-outline-primary ms-2" href="selezione-slot.html">
+              <i class="fas fa-calendar-plus me-1"></i>
+              Prenota Ora
+            </a>
+          </li>
+          <li class="nav-item" id="authSection">
+            <a class="nav-link btn btn-primary ms-2" href="#" onclick="showLoginModal()">
+              <i class="fas fa-sign-in-alt me-1"></i>
+              Accedi
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <div class="row">
+      <div class="col-12">
+        <h1 class="h2 mb-3">Catalogo Sedi</h1>
+        <p class="lead text-muted mb-4">Scopri le nostre sedi di coworking e i loro spazi. Clicca su una sede per
+          esplorare i dettagli.</p>
+      </div>
+    </div>
+
+    <!-- Filtri -->
+    <div class="card filter-card mb-4">
+      <div class="card-body">
+        <form id="formFiltri">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label">Città</label>
+              <select class="form-select" id="filtroCitta">
+                <option value="">Tutte le città</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Servizi</label>
+              <select class="form-select" id="filtroServizi">
+                <option value="">Tutti i servizi</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Ricerca</label>
+              <input type="text" class="form-control" id="filtroRicerca" placeholder="Cerca per nome sede...">
+            </div>
+          </div>
+          <div class="row g-3 mt-2">
+            <div class="col-md-6">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="soloConSpazi">
+                <label class="form-check-label" for="soloConSpazi">
+                  Solo sedi con spazi disponibili
+                </label>
+              </div>
+            </div>
+            <div class="col-md-6 text-end">
+              <button type="submit" class="btn btn-primary" id="btnCerca">
+                <i class="fas fa-search me-2"></i>Cerca
+              </button>
+              <button type="button" class="btn btn-outline-secondary ms-2" id="btnReset">
+                <i class="fas fa-times me-2"></i>Reset
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="text-center py-5 d-none">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Caricamento...</span>
+      </div>
+      <p class="mt-3 text-muted">Caricamento sedi...</p>
+    </div>
+
+    <!-- Risultati -->
+    <div id="risultati" class="row g-4">
+      <!-- Le card delle sedi verranno inserite qui dinamicamente -->
+    </div>
+
+    <!-- Messaggio nessun risultato -->
+    <div id="nessunRisultato" class="text-center py-5 d-none">
+      <i class="fas fa-search fa-3x text-muted mb-3"></i>
+      <h4 class="text-muted">Nessuna sede trovata</h4>
+      <p class="text-muted">Prova a modificare i filtri di ricerca</p>
+    </div>
+  </div>
+
+  <!-- Modal Dettagli Sede -->
+  <div class="modal fade" id="modalSede" tabindex="-1" aria-labelledby="modalSedeLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-lg-down" style="max-width: 98vw !important; width: 98vw !important;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalSedeLabel">Dettagli Sede</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Nav tabs -->
+          <ul class="nav nav-tabs" id="sedeTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="panoramica-tab" data-bs-toggle="tab" data-bs-target="#panoramica"
+                type="button" role="tab" aria-controls="panoramica" aria-selected="true">
+                <i class="fas fa-images me-2"></i>Panoramica
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="spazi-tab" data-bs-toggle="tab" data-bs-target="#spazi" type="button"
+                role="tab" aria-controls="spazi" aria-selected="false">
+                <i class="fas fa-door-open me-2"></i>Spazi
+              </button>
+            </li>
+          </ul>
+
+          <!-- Tab content -->
+          <div class="tab-content" id="sedeTabContent">
+            <!-- Tab Panoramica -->
+            <div class="tab-pane fade show active" id="panoramica" role="tabpanel" aria-labelledby="panoramica-tab">
+              <div class="row mt-4">
+                <div class="col-md-8">
+                  <!-- Carosello Immersivo Sede -->
+                  <div id="caroselloSede">
+                    <!-- Carosello immersivo caricato dinamicamente -->
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="sede-info">
+                    <h4 id="sedeNome">Nome Sede</h4>
+                    <p class="text-muted mb-3" id="sedeIndirizzo">Indirizzo</p>
+                    <p id="sedeDescrizione">Descrizione</p>
+
+                    <h6 class="mt-4 mb-3">Servizi disponibili:</h6>
+                    <div id="sedeServizi" class="d-flex flex-wrap gap-2">
+                      <!-- Badge servizi dinamici -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab Spazi -->
+            <div class="tab-pane fade" id="spazi" role="tabpanel" aria-labelledby="spazi-tab">
+              <div class="row mt-4" id="listaSpazi">
+                <!-- Lista spazi dinamica -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+          <button type="button" class="btn btn-primary" id="btnPrenotaSede" style="display: none;">
+            <i class="fas fa-calendar-plus me-2"></i>Prenota Spazio
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Dettagli Spazio -->
+  <div class="modal fade" id="modalSpazio" tabindex="-1" aria-labelledby="modalSpazioLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-lg-down" style="max-width: 98vw !important; width: 98vw !important;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalSpazioLabel">Dettagli Spazio</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-8">
+              <!-- Carosello Immersivo Spazio -->
+              <div id="caroselloSpazio">
+                <!-- Carosello immersivo caricato dinamicamente -->
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="spazio-info">
+                <h4 id="spazioNome">Nome Spazio</h4>
+                <p class="text-muted mb-3" id="spazioSede">Sede</p>
+                <p id="spazioDescrizione">Descrizione</p>
+
+                <div class="row mb-3">
+                  <div class="col-6">
+                    <strong>Capacità:</strong><br>
+                    <span id="spazioCapacita">-</span> persone
+                  </div>
+                  <div class="col-6">
+                    <strong>Stato:</strong><br>
+                    <span id="spazioStato" class="badge">-</span>
+                  </div>
+                </div>
+
+                <h6 class="mt-4 mb-3">Amenities:</h6>
+                <div id="spazioAmenities" class="d-flex flex-wrap gap-2">
+                  <!-- Badge amenities dinamici -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+          <button type="button" class="btn btn-primary" id="btnPrenotaSpazio" style="display: none;">
+            <i class="fas fa-calendar-plus me-2"></i>Prenota questo spazio
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast per notifiche -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toastNotifica" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <i class="fas fa-info-circle text-primary me-2"></i>
+        <strong class="me-auto">CoWorkSpace</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body" id="toastMessage">
+        <!-- Messaggio dinamico -->
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+  <script src="js/config.js?v=20250830c"></script>
+  <script src="js/types.js?v=20250830c"></script>
+  <script src="js/api.local.js?v=20250830c"></script>
+  <script src="js/immersive-carousel.js?v=20250830h"></script>
+  <script src="js/app.catalog.js?v=20250830j"></script>
+  <script src="js/main.js"></script>
+  <script src="js/auth-modal.js"></script>
+  <script src="js/modern-ui.js?v=20250830i"></script>
+
+  <script>
+    // Forza le dimensioni del modal per il catalogo
+    document.addEventListener('DOMContentLoaded', function () {
+      console.log('Script modal caricato');
+
+      // Aspetta che jQuery sia disponibile
+      function waitForJQuery() {
+        if (typeof $ !== 'undefined') {
+          console.log('jQuery disponibile');
+
+          // Override delle dimensioni del modal quando si apre
+          $('#modalSede, #modalSpazio').on('show.bs.modal', function () {
+            console.log('Modal in apertura:', this.id);
+            const modalDialog = $(this).find('.modal-dialog');
+            console.log('Modal dialog trovato:', modalDialog.length);
+
+            // Aggiungi classe CSS per forzare le dimensioni
+            modalDialog.addClass('force-wide');
+            const modal = $(this);
+            modal.addClass('force-wide');
+
+            console.log('Classi CSS applicate al modal');
+
+            // Debug: verifica se le classi sono state applicate
+            setTimeout(() => {
+              console.log('Classi del modal dialog:', modalDialog[0].className);
+              console.log('Classi del modal:', modal[0].className);
+
+              const computedStyle = window.getComputedStyle(modalDialog[0]);
+              console.log('Larghezza effettiva dopo CSS:', computedStyle.width);
+              console.log('Max-width effettiva dopo CSS:', computedStyle.maxWidth);
+            }, 100);
+          });
+        } else {
+          console.log('jQuery non disponibile, riprovo...');
+          setTimeout(waitForJQuery, 100);
+        }
+      }
+
+      waitForJQuery();
+    });
+  </script>
+</body>
+
+</html>
