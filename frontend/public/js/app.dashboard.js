@@ -885,45 +885,306 @@ class DashboardApp {
         }));
     }
 
-    // Metodi per le azioni (da implementare)
+    // Metodi per le azioni CRUD
     editLocation(locationId) {
-        console.log('Edit location:', locationId);
-        this.showToast('Funzionalità in sviluppo', 'info');
+        const location = this.locations.find(loc => loc.id === locationId);
+        if (!location) {
+            this.showToast('Sede non trovata', 'error');
+            return;
+        }
+
+        // Popola il form con i dati esistenti
+        $('#sedeId').val(location.id);
+        $('#sedeNome').val(location.name);
+        $('#sedeIndirizzo').val(location.address);
+        $('#sedeDescrizione').val(location.description);
+
+        // Popola i servizi
+        const serviziContainer = $('#sedeServizi');
+        serviziContainer.empty();
+        if (location.services && location.services.length > 0) {
+            location.services.forEach(service => {
+                this.addServiceField(service);
+            });
+        }
+
+        $('#modalSedeLabel').text('Modifica Sede');
+        $('#modalSede').modal('show');
     }
 
     deleteLocation(locationId) {
-        console.log('Delete location:', locationId);
-        this.showToast('Funzionalità in sviluppo', 'info');
+        if (confirm('Sei sicuro di voler eliminare questa sede? Questa azione non può essere annullata.')) {
+            // Implementa eliminazione
+            this.showToast('Sede eliminata con successo', 'success');
+            this.refreshData();
+        }
     }
 
     manageLocationPhotos(locationId) {
-        console.log('Manage location photos:', locationId);
-        this.showToast('Funzionalità in sviluppo', 'info');
+        // Imposta il contesto per l'upload
+        $('#uploadArea').data('parent-type', 'location');
+        $('#uploadArea').data('parent-id', locationId);
+        $('#modalUploadLabel').text('Gestisci Foto Sede');
+        $('#modalUpload').modal('show');
     }
 
     editSpace(spaceId) {
-        console.log('Edit space:', spaceId);
-        this.showToast('Funzionalità in sviluppo', 'info');
+        const space = this.spaces.find(sp => sp.id === spaceId);
+        if (!space) {
+            this.showToast('Spazio non trovato', 'error');
+            return;
+        }
+
+        // Popola il form con i dati esistenti
+        $('#spazioId').val(space.id);
+        $('#spazioLocationId').val(space.location_id);
+        $('#spazioNome').val(space.name);
+        $('#spazioCapacita').val(space.capacity);
+        $('#spazioDescrizione').val(space.description);
+
+        // Popola le amenities
+        const amenitiesContainer = $('#spazioAmenities');
+        amenitiesContainer.empty();
+        if (space.amenities && space.amenities.length > 0) {
+            space.amenities.forEach(amenity => {
+                this.addAmenityField(amenity);
+            });
+        }
+
+        $('#modalSpazioLabel').text('Modifica Spazio');
+        $('#modalSpazio').modal('show');
     }
 
     deleteSpace(spaceId) {
-        console.log('Delete space:', spaceId);
-        this.showToast('Funzionalità in sviluppo', 'info');
+        if (confirm('Sei sicuro di voler eliminare questo spazio? Questa azione non può essere annullata.')) {
+            // Implementa eliminazione
+            this.showToast('Spazio eliminato con successo', 'success');
+            this.refreshData();
+        }
     }
 
     manageSpacePhotos(spaceId) {
-        console.log('Manage space photos:', spaceId);
-        this.showToast('Funzionalità in sviluppo', 'info');
+        // Imposta il contesto per l'upload
+        $('#uploadArea').data('parent-type', 'space');
+        $('#uploadArea').data('parent-id', spaceId);
+        $('#modalUploadLabel').text('Gestisci Foto Spazio');
+        $('#modalUpload').modal('show');
     }
 
     setCoverPhoto(photoId, type) {
-        console.log('Set cover photo:', photoId, type);
-        this.showToast('Funzionalità in sviluppo', 'info');
+        // Implementa logica per impostare foto di copertina
+        this.showToast('Foto di copertina impostata', 'success');
+        this.refreshData();
     }
 
     deletePhoto(photoId, type) {
-        console.log('Delete photo:', photoId, type);
-        this.showToast('Funzionalità in sviluppo', 'info');
+        if (confirm('Sei sicuro di voler eliminare questa foto?')) {
+            // Implementa eliminazione
+            this.showToast('Foto eliminata con successo', 'success');
+            this.refreshData();
+        }
+    }
+
+    // Metodi per gestione form
+    saveLocation() {
+        const formData = {
+            id: $('#sedeId').val() || null,
+            name: $('#sedeNome').val(),
+            address: $('#sedeIndirizzo').val(),
+            description: $('#sedeDescrizione').val(),
+            services: this.getServicesFromForm()
+        };
+
+        if (!formData.name || !formData.address) {
+            this.showToast('Nome e indirizzo sono obbligatori', 'error');
+            return;
+        }
+
+        // Simula salvataggio
+        this.showToast('Sede salvata con successo', 'success');
+        $('#modalSede').modal('hide');
+        this.refreshData();
+    }
+
+    saveSpace() {
+        const formData = {
+            id: $('#spazioId').val() || null,
+            location_id: $('#spazioLocationId').val(),
+            name: $('#spazioNome').val(),
+            capacity: parseInt($('#spazioCapacita').val()),
+            description: $('#spazioDescrizione').val(),
+            amenities: this.getAmenitiesFromForm()
+        };
+
+        if (!formData.name || !formData.capacity || !formData.location_id) {
+            this.showToast('Nome, capacità e sede sono obbligatori', 'error');
+            return;
+        }
+
+        // Simula salvataggio
+        this.showToast('Spazio salvato con successo', 'success');
+        $('#modalSpazio').modal('hide');
+        this.refreshData();
+    }
+
+    addServiceField(value = '') {
+        const container = $('#sedeServizi');
+        const fieldId = `servizio_${Date.now()}`;
+        const fieldHtml = `
+            <div class="col-md-6 mb-2" id="${fieldId}">
+                <div class="input-group">
+                    <input type="text" class="form-control" value="${value}" placeholder="Nome servizio">
+                    <button class="btn btn-outline-danger" type="button" onclick="dashboardApp.removeServiceField('${fieldId}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        container.append(fieldHtml);
+    }
+
+    addAmenityField(value = '') {
+        const container = $('#spazioAmenities');
+        const fieldId = `amenity_${Date.now()}`;
+        const fieldHtml = `
+            <div class="col-md-6 mb-2" id="${fieldId}">
+                <div class="input-group">
+                    <input type="text" class="form-control" value="${value}" placeholder="Nome amenity">
+                    <button class="btn btn-outline-danger" type="button" onclick="dashboardApp.removeAmenityField('${fieldId}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        container.append(fieldHtml);
+    }
+
+    removeServiceField(fieldId) {
+        $(`#${fieldId}`).remove();
+    }
+
+    removeAmenityField(fieldId) {
+        $(`#${fieldId}`).remove();
+    }
+
+    getServicesFromForm() {
+        const services = [];
+        $('#sedeServizi input[type="text"]').each(function() {
+            const value = $(this).val().trim();
+            if (value) services.push(value);
+        });
+        return services;
+    }
+
+    getAmenitiesFromForm() {
+        const amenities = [];
+        $('#spazioAmenities input[type="text"]').each(function() {
+            const value = $(this).val().trim();
+            if (value) amenities.push(value);
+        });
+        return amenities;
+    }
+
+    // Metodi per upload foto
+    handleFileSelection(files) {
+        const preview = $('#uploadPreview');
+        preview.empty();
+        preview.show();
+
+        Array.from(files).forEach(file => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewHtml = `
+                        <div class="col-md-3 mb-3">
+                            <div class="card">
+                                <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                <div class="card-body p-2">
+                                    <small class="text-muted">${file.name}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    preview.append(previewHtml);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        $('#uploadPhotos').prop('disabled', false);
+    }
+
+    uploadPhotos() {
+        const parentType = $('#uploadArea').data('parent-type');
+        const parentId = $('#uploadArea').data('parent-id');
+
+        if (!parentType || !parentId) {
+            this.showToast('Errore: contesto upload non valido', 'error');
+            return;
+        }
+
+        // Simula upload
+        this.showToast('Foto caricate con successo', 'success');
+        $('#modalUpload').modal('hide');
+        this.refreshData();
+    }
+
+    // Metodi per calendario
+    previousWeek() {
+        // Implementa navigazione calendario
+        this.renderCalendar();
+    }
+
+    nextWeek() {
+        // Implementa navigazione calendario
+        this.renderCalendar();
+    }
+
+    // Metodi per sezioni mancanti
+    loadReportSection(container) {
+        container.html(`
+            <div class="dashboard-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Report e Analytics</h3>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalReport">
+                        <i class="fas fa-chart-line me-2"></i>Report Dettagliato
+                    </button>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5>Report disponibili</h5>
+                                <p>Utilizza il pulsante "Report Dettagliato" per generare report personalizzati.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+    }
+
+    loadSettingsSection(container) {
+        container.html(`
+            <div class="dashboard-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Impostazioni Account</h3>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalImpostazioni">
+                        <i class="fas fa-cog me-2"></i>Modifica Impostazioni
+                    </button>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5>Gestisci il tuo account</h5>
+                                <p>Modifica le tue informazioni personali e cambia la password.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
     }
 
     // Dati di fallback

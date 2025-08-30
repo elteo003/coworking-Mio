@@ -8,6 +8,55 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="css/dashboard-responsabili.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .upload-area {
+      border: 2px dashed #dee2e6;
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: #0d6efd;
+      background-color: #f8f9fa;
+    }
+    .calendar-day {
+      min-height: 120px;
+      border: 1px solid #dee2e6;
+      padding: 0.5rem;
+      position: relative;
+    }
+    .calendar-day.today {
+      background-color: #e3f2fd;
+    }
+    .calendar-event {
+      font-size: 0.75rem;
+      padding: 0.25rem;
+      margin: 0.125rem 0;
+      border-radius: 4px;
+      background-color: #0d6efd;
+      color: white;
+    }
+    .calendar-event.booking {
+      background-color: #198754;
+    }
+    .calendar-event.occupation {
+      background-color: #dc3545;
+    }
+    .border-left-primary {
+      border-left: 4px solid #0d6efd !important;
+    }
+    .border-left-success {
+      border-left: 4px solid #198754 !important;
+    }
+    .border-left-info {
+      border-left: 4px solid #0dcaf0 !important;
+    }
+    .border-left-warning {
+      border-left: 4px solid #ffc107 !important;
+    }
+  </style>
 </head>
 
 <body>
@@ -209,6 +258,102 @@
         <!-- Other sections will be loaded dynamically -->
         <div id="dynamic-content"></div>
       </main>
+    </div>
+  </div>
+
+  <!-- Modal per report -->
+  <div class="modal fade" id="modalReport" tabindex="-1" aria-labelledby="modalReportLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalReportLabel">Report Dettagliato</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Filtri Report</h6>
+              <div class="mb-3">
+                <label for="reportDateFrom" class="form-label">Data Inizio</label>
+                <input type="date" class="form-control" id="reportDateFrom">
+              </div>
+              <div class="mb-3">
+                <label for="reportDateTo" class="form-label">Data Fine</label>
+                <input type="date" class="form-control" id="reportDateTo">
+              </div>
+              <div class="mb-3">
+                <label for="reportLocation" class="form-label">Sede</label>
+                <select class="form-select" id="reportLocation">
+                  <option value="">Tutte le sedi</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h6>Statistiche</h6>
+              <div id="reportStats">
+                <!-- Statistiche dinamiche -->
+              </div>
+            </div>
+          </div>
+          <div class="mt-4">
+            <canvas id="reportChart" width="400" height="200"></canvas>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+          <button type="button" class="btn btn-primary" id="exportReport">
+            <i class="fas fa-download me-1"></i>Esporta PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal per impostazioni -->
+  <div class="modal fade" id="modalImpostazioni" tabindex="-1" aria-labelledby="modalImpostazioniLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalImpostazioniLabel">Impostazioni Account</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formImpostazioni">
+            <div class="mb-3">
+              <label for="impostazioniNome" class="form-label">Nome Completo</label>
+              <input type="text" class="form-control" id="impostazioniNome" name="full_name">
+            </div>
+            <div class="mb-3">
+              <label for="impostazioniEmail" class="form-label">Email</label>
+              <input type="email" class="form-control" id="impostazioniEmail" name="email" readonly>
+            </div>
+            <div class="mb-3">
+              <label for="impostazioniRuolo" class="form-label">Ruolo</label>
+              <input type="text" class="form-control" id="impostazioniRuolo" readonly>
+            </div>
+            <hr>
+            <h6>Cambia Password</h6>
+            <div class="mb-3">
+              <label for="impostazioniPasswordVecchia" class="form-label">Password Attuale</label>
+              <input type="password" class="form-control" id="impostazioniPasswordVecchia">
+            </div>
+            <div class="mb-3">
+              <label for="impostazioniPasswordNuova" class="form-label">Nuova Password</label>
+              <input type="password" class="form-control" id="impostazioniPasswordNuova">
+            </div>
+            <div class="mb-3">
+              <label for="impostazioniPasswordConferma" class="form-label">Conferma Password</label>
+              <input type="password" class="form-control" id="impostazioniPasswordConferma">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="button" class="btn btn-primary" id="saveImpostazioni">
+            <i class="fas fa-save me-1"></i>Salva Modifiche
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
