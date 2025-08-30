@@ -56,11 +56,15 @@ async function checkAvailability(orarioInizio, orarioFine) {
 
     try {
         // Usa i dati del SlotManager invece di fare una nuova richiesta
+        console.log('🔍 SlotManager disponibile?', !!window.slotManager);
+        console.log('🔍 slotsStatus disponibile?', !!(window.slotManager && window.slotManager.slotsStatus));
+        
         if (window.slotManager && window.slotManager.slotsStatus) {
             const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
             const orarioFineHour = parseInt(orarioFine.split(':')[0]);
 
             console.log('🔍 Verifico disponibilità usando SlotManager:', window.slotManager.slotsStatus);
+            console.log('🔍 Intervallo da verificare:', orarioInizioHour, 'a', orarioFineHour);
 
             // Controlla se tutti gli slot nell'intervallo sono disponibili
             for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
