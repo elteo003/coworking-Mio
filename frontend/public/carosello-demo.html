@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carosello Immersivo - Demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .demo-container {
+            padding: 2rem 0;
+        }
+
+        .demo-section {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .demo-title {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .demo-description {
+            color: #666;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 0.5rem 0;
+            color: #555;
+        }
+
+        .feature-list li i {
+            color: #007bff;
+            margin-right: 0.5rem;
+        }
+
+        .controls-demo {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container demo-container">
+        <div class="row">
+            <div class="col-12">
+                <div class="demo-section">
+                    <h1 class="demo-title">
+                        <i class="fas fa-images me-3"></i>
+                        Carosello Immersivo Stile Rayneo
+                    </h1>
+                    <p class="demo-description">
+                        Un carosello moderno e immersivo con navigazione fluida, hover progressivo e supporto touch
+                        completo.
+                    </p>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="controls-demo">
+                                <h5><i class="fas fa-cogs me-2"></i>Controlli del Carosello</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="control-group">
+                                            <label>Autoplay:</label>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="autoplayToggle"
+                                                    checked>
+                                                <label class="form-check-label" for="autoplayToggle">Attivo</label>
+                                            </div>
+                                        </div>
+                                        <div class="control-group">
+                                            <label>Frecce:</label>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="arrowsToggle"
+                                                    checked>
+                                                <label class="form-check-label" for="arrowsToggle">Visibili</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="control-group">
+                                            <label>Dots:</label>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="dotsToggle" checked>
+                                                <label class="form-check-label" for="dotsToggle">Visibili</label>
+                                            </div>
+                                        </div>
+                                        <div class="control-group">
+                                            <label>Hover Progressivo:</label>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="hoverToggle"
+                                                    checked>
+                                                <label class="form-check-label" for="hoverToggle">Attivo</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-star me-2"></i>Caratteristiche</h5>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check"></i>Immagini a tutta larghezza</li>
+                                <li><i class="fas fa-check"></i>Object-fit: cover</li>
+                                <li><i class="fas fa-check"></i>Design cinematico</li>
+                                <li><i class="fas fa-check"></i>Navigazione con frecce</li>
+                                <li><i class="fas fa-check"></i>Supporto touch/swipe</li>
+                                <li><i class="fas fa-check"></i>Hover progressivo</li>
+                                <li><i class="fas fa-check"></i>Supporto tastiera</li>
+                                <li><i class="fas fa-check"></i>Responsive design</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carosello Demo 1: Sedi -->
+        <div class="row">
+            <div class="col-12">
+                <div class="demo-section">
+                    <h3 class="demo-title">Demo Sedi - Carosello Grande</h3>
+                    <p class="demo-description">Carosello per le sedi con immagini immersive e overlay informativi.</p>
+
+                    <div class="immersive-carousel" style="height: 500px;" data-autoplay="true"
+                        data-autoplay-delay="4000" data-show-arrows="true" data-show-dots="true"
+                        data-enable-hover="true" data-enable-keyboard="true" data-enable-touch="true">
+
+                        <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop"
+                            alt="Sede Milano Centro" data-title="Sede Milano Centro"
+                            data-description="Spazio moderno nel cuore di Milano con ambienti di lavoro contemporanei e servizi all'avanguardia"
+                            loading="lazy">
+
+                        <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&h=800&fit=crop"
+                            alt="Aree Comuni" data-title="Aree Comuni"
+                            data-description="Zone relax e networking per favorire la collaborazione e il benessere dei nostri membri"
+                            loading="lazy">
+
+                        <img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&h=800&fit=crop"
+                            alt="Spazi Moderni" data-title="Spazi Moderni"
+                            data-description="Ambienti di lavoro contemporanei e funzionali progettati per massimizzare la produttività"
+                            loading="lazy">
+
+                        <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200&h=800&fit=crop"
+                            alt="Tecnologia Avanzata" data-title="Tecnologia Avanzata"
+                            data-description="Infrastrutture tecnologiche all'avanguardia per supportare il lavoro moderno"
+                            loading="lazy">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carosello Demo 2: Spazi -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="demo-section">
+                    <h4 class="demo-title">Demo Spazi - Sala Riunioni</h4>
+                    <p class="demo-description">Carosello per spazi specifici con focus su dettagli e funzionalità.</p>
+
+                    <div class="immersive-carousel" style="height: 300px;" data-autoplay="true"
+                        data-autoplay-delay="3000" data-show-arrows="true" data-show-dots="true"
+                        data-enable-hover="true" data-enable-keyboard="true" data-enable-touch="true">
+
+                        <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=600&fit=crop"
+                            alt="Sala Riunioni A" data-title="Sala Riunioni A"
+                            data-description="Spazio per meeting e presentazioni con capienza fino a 12 persone"
+                            loading="lazy">
+
+                        <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&h=600&fit=crop"
+                            alt="Tecnologia Avanzata" data-title="Tecnologia Avanzata"
+                            data-description="Attrezzature per videoconferenze e presentazioni professionali"
+                            loading="lazy">
+
+                        <img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&h=600&fit=crop"
+                            alt="Ambiente Professionale" data-title="Ambiente Professionale"
+                            data-description="Design moderno e funzionale per massimizzare l'efficacia delle riunioni"
+                            loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="demo-section">
+                    <h4 class="demo-title">Demo Spazi - Postazione</h4>
+                    <p class="demo-description">Carosello per postazioni di lavoro individuali.</p>
+
+                    <div class="immersive-carousel" style="height: 300px;" data-autoplay="true"
+                        data-autoplay-delay="3500" data-show-arrows="true" data-show-dots="true"
+                        data-enable-hover="true" data-enable-keyboard="true" data-enable-touch="true">
+
+                        <img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&h=600&fit=crop"
+                            alt="Postazione Moderna" data-title="Postazione Moderna"
+                            data-description="Setup completo per il tuo lavoro quotidiano" loading="lazy">
+
+                        <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&h=600&fit=crop"
+                            alt="Area Condivisa" data-title="Area Condivisa"
+                            data-description="Ambiente dinamico e collaborativo per networking" loading="lazy">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Istruzioni -->
+        <div class="row">
+            <div class="col-12">
+                <div class="demo-section">
+                    <h3 class="demo-title">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Come Utilizzare il Carosello
+                    </h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-mouse-pointer me-2"></i>Desktop</h5>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-arrow-left"></i> Frecce per navigare</li>
+                                <li><i class="fas fa-circle"></i> Dots per saltare a slide specifiche</li>
+                                <li><i class="fas fa-hand-paper"></i> Hover progressivo: muovi il mouse</li>
+                                <li><i class="fas fa-keyboard"></i> Frecce tastiera per navigare</li>
+                                <li><i class="fas fa-hand-rock"></i> Drag con mouse per swipe</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-mobile-alt me-2"></i>Mobile</h5>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-hand-rock"></i> Swipe left/right per navigare</li>
+                                <li><i class="fas fa-circle"></i> Tap sui dots per saltare</li>
+                                <li><i class="fas fa-arrow-left"></i> Frecce sempre visibili</li>
+                                <li><i class="fas fa-touch"></i> Touch responsive</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-cog me-2"></i>Configurazione</h5>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-play"></i> Autoplay configurabile</li>
+                                <li><i class="fas fa-clock"></i> Delay personalizzabile</li>
+                                <li><i class="fas fa-toggle-on"></i> Controlli attivabili/disattivabili</li>
+                                <li><i class="fas fa-palette"></i> Stile completamente personalizzabile</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/immersive-carousel.js"></script>
+
+    <script>
+        // Demo controls
+        document.addEventListener('DOMContentLoaded', () => {
+            const carousels = document.querySelectorAll('.immersive-carousel');
+
+            // Toggle controls
+            document.getElementById('autoplayToggle').addEventListener('change', (e) => {
+                carousels.forEach(carousel => {
+                    const wrapper = carousel.querySelector('.immersive-carousel-wrapper');
+                    if (wrapper) {
+                        if (e.target.checked) {
+                            wrapper.dataset.autoplay = 'true';
+                        } else {
+                            wrapper.dataset.autoplay = 'false';
+                        }
+                    }
+                });
+            });
+
+            document.getElementById('arrowsToggle').addEventListener('change', (e) => {
+                carousels.forEach(carousel => {
+                    const arrows = carousel.querySelectorAll('.immersive-carousel-arrow');
+                    arrows.forEach(arrow => {
+                        arrow.style.display = e.target.checked ? 'flex' : 'none';
+                    });
+                });
+            });
+
+            document.getElementById('dotsToggle').addEventListener('change', (e) => {
+                carousels.forEach(carousel => {
+                    const dots = carousel.querySelector('.immersive-carousel-dots');
+                    if (dots) {
+                        dots.style.display = e.target.checked ? 'flex' : 'none';
+                    }
+                });
+            });
+
+            document.getElementById('hoverToggle').addEventListener('change', (e) => {
+                carousels.forEach(carousel => {
+                    const wrapper = carousel.querySelector('.immersive-carousel-wrapper');
+                    if (wrapper) {
+                        if (e.target.checked) {
+                            wrapper.classList.add('hover-enabled');
+                        } else {
+                            wrapper.classList.remove('hover-enabled');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

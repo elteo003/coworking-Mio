@@ -1,0 +1,48 @@
+{
+  "name": "coworkspace-app",
+  "version": "1.0.0",
+  "description": "Piattaforma di gestione coworking con catalogo illustrativo e dashboard gestori",
+  "main": "backend/src/app.js",
+  "scripts": {
+    "start": "node backend/src/app.js",
+    "dev": "nodemon backend/src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "coworking",
+    "booking",
+    "management",
+    "dashboard",
+    "express",
+    "supabase"
+  ],
+  "author": "CoWorkSpace Team",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/elteo003/coworking-Mio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/elteo003/coworking-Mio/issues"
+  },
+  "homepage": "https://github.com/elteo003/coworking-Mio#readme"
+}

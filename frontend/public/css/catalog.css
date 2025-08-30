@@ -1,0 +1,587 @@
+/**
+ * Stili per il catalogo sedi
+ * Design moderno e responsivo con Bootstrap 5
+ */
+
+/* Card sede */
+.location-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.location-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.location-card .card-img-top {
+    height: 200px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.location-card:hover .card-img-top {
+    transform: scale(1.05);
+}
+
+/* Modal extra large per catalogo - Specificità massima */
+html body .modal-dialog.modal-fullscreen-lg-down,
+html body .modal-dialog.modal-fullscreen-lg-down[style*="max-width"],
+html body .modal-dialog.modal-fullscreen-lg-down[style*="width"],
+html body .modal-dialog.modal-fullscreen-lg-down.force-wide,
+html body .modal-dialog.modal-fullscreen-lg-down.force-wide[style*="max-width"],
+html body .modal-dialog.modal-fullscreen-lg-down.force-wide[style*="width"] {
+    max-width: 98vw !important;
+    width: 98vw !important;
+    max-height: 90vh !important;
+    height: 90vh !important;
+    margin: 1vh auto !important;
+}
+
+/* Specificità ancora più alta per Bootstrap 5 */
+html body .modal-dialog.modal-fullscreen-lg-down.force-wide {
+    max-width: 98vw !important;
+    width: 98vw !important;
+    max-height: 90vh !important;
+    height: 90vh !important;
+    margin: 1vh auto !important;
+}
+
+/* Forza il modal container */
+html body .modal.force-wide {
+    padding-left: 1vw !important;
+    padding-right: 1vw !important;
+    padding-top: 1vh !important;
+    padding-bottom: 1vh !important;
+}
+
+body .modal-dialog.modal-fullscreen-lg-down .modal-content {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+body .modal-dialog.modal-fullscreen-lg-down .modal-body {
+    flex: 1 !important;
+    overflow-y: auto !important;
+}
+
+/* Carosello immersivo nei modal */
+body .modal-dialog.modal-fullscreen-lg-down .immersive-carousel {
+    height: 400px !important;
+}
+
+body .modal-dialog.modal-fullscreen-lg-down .immersive-carousel-image {
+    height: 400px !important;
+}
+
+/* Disabilita animazioni per card statiche nel catalogo */
+.filter-card,
+.filter-card:hover,
+.list-card,
+.list-card:hover,
+.static-card,
+.static-card:hover,
+.catalog-card,
+.catalog-card:hover,
+.catalog-card .card-body,
+.catalog-card .card-body:hover,
+.space-item.catalog-card,
+.space-item.catalog-card:hover {
+    transform: none !important;
+    transition: none !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+.location-card .card-body {
+    padding: 1.5rem;
+}
+
+.location-card .card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+
+.location-card .card-text {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.location-card .location-services {
+    margin-bottom: 1rem;
+}
+
+.location-card .service-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    margin: 0.125rem;
+}
+
+.location-card .btn-scopri {
+    width: 100%;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.location-card .btn-scopri:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+}
+
+/* Modal sede */
+.modal-xl {
+    max-width: 1200px;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.modal-header .btn-close {
+    filter: invert(1);
+}
+
+.modal-body {
+    padding: 0;
+}
+
+/* Nav tabs */
+.nav-tabs {
+    border-bottom: 2px solid #e9ecef;
+    padding: 0 1.5rem;
+    margin-top: 1rem;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 1rem 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: transparent;
+    color: #007bff;
+}
+
+.nav-tabs .nav-link.active {
+    color: #007bff;
+    background-color: transparent;
+    border-bottom: 3px solid #007bff;
+}
+
+/* Tab content */
+.tab-content {
+    padding: 1.5rem;
+}
+
+/* Carosello */
+.carousel {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.carousel-item img {
+    height: 400px;
+    object-fit: cover;
+    width: 100%;
+}
+
+.carousel-control-prev,
+.carousel-control-next {
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.carousel-control-prev {
+    left: 20px;
+}
+
+.carousel-control-next {
+    right: 20px;
+}
+
+.carousel-indicators {
+    bottom: 20px;
+}
+
+.carousel-indicators [data-bs-target] {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+    background: transparent;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.carousel-indicators .active {
+    background: white;
+    opacity: 1;
+}
+
+/* Info sede/spazio */
+.sede-info,
+.spazio-info {
+    padding: 1rem;
+}
+
+.sede-info h4,
+.spazio-info h4 {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.sede-info .text-muted,
+.spazio-info .text-muted {
+    font-size: 0.9rem;
+}
+
+.sede-info p,
+.spazio-info p {
+    line-height: 1.6;
+    color: #495057;
+}
+
+/* Badge servizi e amenities */
+.service-badge,
+.amenity-badge {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+/* Lista spazi */
+.space-item {
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.space-item:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.space-item .space-header {
+    display: flex;
+    justify-content: between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.space-item .space-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.space-item .space-capacity {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.space-item .space-description {
+    color: #495057;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.space-item .space-amenities {
+    margin-bottom: 1rem;
+}
+
+.space-item .space-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.space-item .btn-dettagli {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.space-item .btn-dettagli:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* Status badge */
+.status-badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.status-badge.available {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.occupied {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-badge.booked {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* Filtri */
+.card {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+}
+
+.form-control,
+.form-select {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+}
+
+.btn-outline-secondary {
+    border: 2px solid #6c757d;
+    color: #6c757d;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-secondary:hover {
+    background: #6c757d;
+    border-color: #6c757d;
+    transform: translateY(-2px);
+}
+
+/* Loading */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Toast */
+.toast {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.toast-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+}
+
+.toast-header .btn-close {
+    filter: invert(1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .modal-xl {
+        max-width: 95%;
+        margin: 1rem;
+    }
+
+    .carousel-item img {
+        height: 250px;
+    }
+
+    .carousel-control-prev,
+    .carousel-control-next {
+        width: 40px;
+        height: 40px;
+    }
+
+    .carousel-control-prev {
+        left: 10px;
+    }
+
+    .carousel-control-next {
+        right: 10px;
+    }
+
+    .space-item {
+        padding: 1rem;
+    }
+
+    .location-card .card-body {
+        padding: 1rem;
+    }
+
+    .tab-content {
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .carousel-item img {
+        height: 200px;
+    }
+
+    .modal-xl {
+        max-width: 100%;
+        margin: 0.5rem;
+    }
+
+    .nav-tabs {
+        padding: 0 1rem;
+    }
+
+    .nav-tabs .nav-link {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Animazioni */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.location-card {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.location-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.location-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.location-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.location-card:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+/* Focus trap per accessibilità */
+.modal:focus {
+    outline: none;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .location-card {
+        border: 2px solid #000;
+    }
+
+    .btn-primary {
+        background: #000;
+        border: 2px solid #000;
+    }
+
+    .btn-primary:hover {
+        background: #333;
+        border-color: #333;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+
+    .location-card,
+    .carousel-item img,
+    .btn-primary,
+    .btn-outline-secondary,
+    .carousel-control-prev,
+    .carousel-control-next,
+    .space-item {
+        transition: none;
+        animation: none;
+    }
+
+    .location-card:hover {
+        transform: none;
+    }
+}

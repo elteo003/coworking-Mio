@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento - CoworkSpace</title>
+    <meta name="description" content="Completa il pagamento per la tua prenotazione di coworking">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Stylesheets -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/modern-design.css">
+
+
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+    <!-- Stripe -->
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="fas fa-building me-2"></i>
+                CoworkSpace
+            </a>
+
+
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="selezione-slot.html">Prenota</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link user-info-display" id="userInfo"></span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="handleLogout()">
+                            <i class="fas fa-sign-out-alt me-1"></i>
+                            Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content">
+        <!-- Page Header -->
+        <section class="py-5 bg-light">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8 text-center">
+                        <div class="mb-4">
+                            <a href="dashboard.html" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Torna alla Dashboard
+                            </a>
+                        </div>
+                        <h1 class="mb-3">Completa il Pagamento</h1>
+                        <p class="lead text-muted">Finalizza la tua prenotazione con un pagamento sicuro</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Payment Content -->
+        <section class="py-5">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-body">
+                                <!-- Payment Header -->
+                                <div class="text-center mb-4">
+                                    <i class="fas fa-credit-card fa-3x text-primary mb-3"></i>
+                                    <h3>Dettagli Pagamento</h3>
+                                    <p class="text-muted">Inserisci i dati della tua carta per completare la
+                                        prenotazione</p>
+                                </div>
+
+                                <!-- Payment Details -->
+                                <div class="payment-details mb-4">
+                                    <h4 class="mb-3">
+                                        <i class="fas fa-info-circle me-2 text-info"></i>
+                                        Riepilogo Prenotazione
+                                    </h4>
+                                    <div id="prenotazioneDetails" class="bg-light p-3 rounded border">
+                                        <!-- Dettagli prenotazione dinamici -->
+                                        <div
+                                            class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                            <span class="fw-medium text-secondary">Sede:</span>
+                                            <span class="fw-semibold text-dark"
+                                                id="sede-prenotazione">Caricamento...</span>
+                                        </div>
+                                        <div
+                                            class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                            <span class="fw-medium text-secondary">Spazio:</span>
+                                            <span class="fw-semibold text-dark"
+                                                id="spazio-prenotazione">Caricamento...</span>
+                                        </div>
+                                        <div
+                                            class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                            <span class="fw-medium text-secondary">Data Inizio:</span>
+                                            <span class="fw-semibold text-dark"
+                                                id="data-inizio-prenotazione">Caricamento...</span>
+                                        </div>
+                                        <div
+                                            class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                            <span class="fw-medium text-secondary">Data Fine:</span>
+                                            <span class="fw-semibold text-dark"
+                                                id="data-fine-prenotazione">Caricamento...</span>
+                                        </div>
+                                        <div
+                                            class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                            <span class="fw-medium text-secondary">Durata:</span>
+                                            <span class="fw-semibold text-dark"
+                                                id="durata-prenotazione">Caricamento...</span>
+                                        </div>
+                                        <div
+                                            class="d-flex justify-content-between align-items-center py-2 border-bottom-0">
+                                            <span class="fw-medium text-secondary">Totale:</span>
+                                            <span class="fw-semibold text-primary fs-5"
+                                                id="totale-prenotazione">Caricamento...</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Payment Form -->
+                                <div class="bg-light p-4 rounded-3 border border-light">
+                                    <form id="payment-form">
+                                        <!-- Informazioni Personali -->
+                                        <div class="row mb-4">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="cardholder-name" class="form-label">
+                                                        <i class="fas fa-user me-2"></i>
+                                                        Nome e Cognome *
+                                                    </label>
+                                                    <input type="text" id="cardholder-name" class="form-control"
+                                                        placeholder="Mario Rossi" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="cardholder-email" class="form-label">
+                                                        <i class="fas fa-envelope me-2"></i>
+                                                        Email *
+                                                    </label>
+                                                    <input type="email" id="cardholder-email" class="form-control"
+                                                        placeholder="mario.rossi@email.com" required>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Indirizzo di Fatturazione -->
+                                        <div class="row mb-4">
+                                            <div class="col-12">
+                                                <div class="form-group">
+                                                    <label for="billing-address" class="form-label">
+                                                        <i class="fas fa-map-marker-alt me-2"></i>
+                                                        Indirizzo di Fatturazione *
+                                                    </label>
+                                                    <input type="text" id="billing-address" class="form-control"
+                                                        placeholder="Via Roma 123, Milano" required>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-4">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="billing-city" class="form-label">
+                                                        <i class="fas fa-city me-2"></i>
+                                                        Città *
+                                                    </label>
+                                                    <input type="text" id="billing-city" class="form-control"
+                                                        placeholder="Milano" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="billing-province" class="form-label">
+                                                        <i class="fas fa-map me-2"></i>
+                                                        Provincia *
+                                                    </label>
+                                                    <input type="text" id="billing-province" class="form-control"
+                                                        placeholder="MI" maxlength="2" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="billing-zip" class="form-label">
+                                                        <i class="fas fa-mail-bulk me-2"></i>
+                                                        CAP *
+                                                    </label>
+                                                    <input type="text" id="billing-zip" class="form-control"
+                                                        placeholder="20100" maxlength="5" required>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Dati Carta di Credito -->
+                                        <div class="bg-white p-3 rounded border mb-4">
+                                            <h5 class="mb-3">
+                                                <i class="fas fa-credit-card me-2 text-primary"></i>
+                                                Dati Carta di Credito
+                                            </h5>
+
+                                            <div class="form-group mb-3">
+                                                <label for="card-number" class="form-label">
+                                                    <i class="fas fa-credit-card me-2"></i>
+                                                    Numero Carta *
+                                                </label>
+                                                <input type="text" id="card-number" class="form-control"
+                                                    placeholder="4242 4242 4242 4242" maxlength="19" required>
+                                                <div class="form-text">Per i test usa: 4242 4242 4242 4242</div>
+                                            </div>
+
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="form-group">
+                                                        <label for="card-expiry" class="form-label">
+                                                            <i class="fas fa-calendar me-2"></i>
+                                                            Data Scadenza *
+                                                        </label>
+                                                        <input type="text" id="card-expiry" class="form-control"
+                                                            placeholder="MM/AA" maxlength="5" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-group">
+                                                        <label for="card-cvc" class="form-label">
+                                                            <i class="fas fa-lock me-2"></i>
+                                                            Codice CVC *
+                                                        </label>
+                                                        <input type="text" id="card-cvc" class="form-control"
+                                                            placeholder="123" maxlength="4" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Termini e Condizioni -->
+                                        <div class="form-check mb-4">
+                                            <input class="form-check-input" type="checkbox" id="terms-accept" required>
+                                            <label class="form-check-label" for="terms-accept">
+                                                Accetto i <a href="#" class="text-primary">Termini e Condizioni</a> e la
+                                                <a href="#" class="text-primary">Privacy Policy</a> *
+                                            </label>
+                                        </div>
+
+                                        <div class="d-grid">
+                                            <button type="submit" class="btn btn-primary btn-lg" id="pay-button">
+                                                <i class="fas fa-lock me-2"></i>
+                                                Paga in Sicurezza
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- Security Notice -->
+                                <div class="text-center mt-4">
+                                    <small class="text-muted">
+                                        <i class="fas fa-shield-alt me-1"></i>
+                                        I tuoi dati sono protetti da crittografia SSL e gestiti da Stripe
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay d-none">
+        <div class="loading-spinner"></div>
+        <p class="mt-3 text-muted">Elaborazione in corso...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/pagamento.js"></script>
+    <script src="js/modern-ui.js"></script>
+</body>
+
+</html>
