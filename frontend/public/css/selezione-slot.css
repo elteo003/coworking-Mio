@@ -509,7 +509,7 @@ div.time-slot.booked,
 }
 
 .btn.btn-book {
-    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%) !important;
     color: white !important;
     border: none !important;
     position: relative !important;
@@ -521,20 +521,20 @@ div.time-slot.booked,
 }
 
 .btn.btn-book:hover {
-    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%) !important;
+    background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--secondary) 100%) !important;
     color: white !important;
     transform: none !important;
     box-shadow: var(--shadow-lg) !important;
 }
 
 .btn.btn-book:active {
-    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%) !important;
     color: white !important;
     transform: none !important;
 }
 
 .btn.btn-book:disabled {
-    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%) !important;
     color: white !important;
     cursor: not-allowed !important;
     transform: none !important;
