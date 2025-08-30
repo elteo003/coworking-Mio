@@ -673,6 +673,7 @@ async function selectTimeSlot(orario, slotElement) {
         });
 
         hideSummary();
+        hideTimeSelectionMessage();
         return;
     }
 
@@ -746,6 +747,7 @@ async function selectTimeSlot(orario, slotElement) {
             // ✅ MOSTRA RIEPILOGO ANCHE PER UTENTI NON AUTENTICATI
             updateSummary();
             showSummary();
+            hideTimeSelectionMessage();
 
             // Mostra messaggio informativo
             showInfo('Orari selezionati! Effettua il login per completare la prenotazione.');
@@ -775,6 +777,7 @@ async function selectTimeSlot(orario, slotElement) {
 
         // Mostra il riepilogo
         showSummary();
+        hideTimeSelectionMessage();
     }
 }
 
@@ -800,6 +803,32 @@ function blockIntermediateSlots(orarioInizio, orarioFine) {
 function showTimeSelectionMessage(message) {
     // Implementa la logica per mostrare il messaggio
     console.log('💬 Messaggio:', message);
+    
+    // Crea o aggiorna il messaggio nell'UI
+    let messageElement = document.getElementById('timeSelectionMessage');
+    if (!messageElement) {
+        messageElement = document.createElement('div');
+        messageElement.id = 'timeSelectionMessage';
+        messageElement.className = 'alert alert-info mt-3';
+        messageElement.style.display = 'block';
+        
+        // Inserisci il messaggio dopo il container degli slot
+        const timeSlotsContainer = document.getElementById('timeSlots');
+        if (timeSlotsContainer) {
+            timeSlotsContainer.parentNode.insertBefore(messageElement, timeSlotsContainer.nextSibling);
+        }
+    }
+    
+    messageElement.innerHTML = `<i class="fas fa-info-circle me-2"></i>${message}`;
+    messageElement.style.display = 'block';
+}
+
+// Nasconde il messaggio di selezione orario
+function hideTimeSelectionMessage() {
+    const messageElement = document.getElementById('timeSelectionMessage');
+    if (messageElement) {
+        messageElement.style.display = 'none';
+    }
 }
 
 // Mostra errore
