@@ -43,20 +43,23 @@ app.options('*', cors());
 app.use((req, res, next) => {
   const origin = req.headers.origin || 'No origin';
   const referer = req.headers.referer || 'No referer';
-  
+
   console.log(`🌐 ${req.method} ${req.path} - Origin: ${origin}`);
   console.log(`📋 CORS Headers - Origin: ${origin}, Referer: ${referer}`);
-  
+
   // Log più dettagliato per debug
   if (req.method === 'POST' || req.method === 'PUT') {
     console.log(`📝 Content-Type: ${req.headers['content-type'] || 'Not specified'}`);
     console.log(`📏 Content-Length: ${req.headers['content-length'] || 'Not specified'}`);
   }
-  
+
   next();
 });
 
 app.use(express.json());
+
+// Servi file statici del frontend
+app.use(express.static('../../frontend/public'));
 
 // Connessione DB
 require('./db');
