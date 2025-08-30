@@ -115,13 +115,13 @@ class SSEController {
             try {
                 const prenotazioniQuery = `
                     SELECT 
-                        orario_inizio,
-                        orario_fine,
+                        EXTRACT(HOUR FROM data_inizio) as orario_inizio,
+                        EXTRACT(HOUR FROM data_fine) as orario_fine,
                         stato
                     FROM Prenotazione 
                     WHERE id_spazio = $1 
                     AND DATE(data_inizio) = $2
-                    AND stato IN ('confermata', 'in_attesa_pagamento')
+                    AND stato IN ('confermata', 'in attesa')
                 `;
 
                 const prenotazioniResult = await pool.query(prenotazioniQuery, [spazioId, data]);
@@ -154,8 +154,8 @@ class SSEController {
                 const prenotazione = prenotazioni.find(p => {
                     if (!p.orario_inizio || !p.orario_fine) return false;
 
-                    const prenotazioneInizio = parseInt(p.orario_inizio.split(':')[0]);
-                    const prenotazioneFine = parseInt(p.orario_fine.split(':')[0]);
+                    const prenotazioneInizio = parseInt(p.orario_inizio);
+                    const prenotazioneFine = parseInt(p.orario_fine);
 
                     return orarioHour >= prenotazioneInizio && orarioHour < prenotazioneFine;
                 });
@@ -168,7 +168,7 @@ class SSEController {
                             status: 'booked',
                             title: 'Slot prenotato'
                         };
-                    } else if (prenotazione.stato === 'in_attesa_pagamento') {
+                    } else if (prenotazione.stato === 'in attesa') {
                         return {
                             id_slot: slotId,
                             orario: orario,
