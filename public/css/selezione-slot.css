@@ -475,6 +475,7 @@ div.time-slot.booked,
 .btn-back:hover {
     background: var(--gray-700);
     color: white;
+    transform: none;
 }
 
 .btn.btn-book {
