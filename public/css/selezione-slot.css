@@ -501,18 +501,7 @@ div.time-slot.booked,
     transform: none !important;
 }
 
-/* Forza rimozione di qualsiasi animazione sui tasti principali */
-.btn.btn-book,
-.btn.btn-book:hover,
-.btn.btn-book:active,
-.btn.btn-book:focus,
-.btn-back,
-.btn-back:hover,
-.btn-back:active,
-.btn-back:focus {
-    transform: none !important;
-    transition: none !important;
-}
+
 
 .btn.btn-book:disabled {
     background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%) !important;

@@ -317,7 +317,6 @@ a:hover {
 
 .btn-primary:hover {
     background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
-    transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
 
@@ -329,7 +328,6 @@ a:hover {
 
 .btn-secondary:hover {
     background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--secondary) 100%);
-    transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
 
