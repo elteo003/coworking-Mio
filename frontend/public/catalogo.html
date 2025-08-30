@@ -4,9 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Catalogo Spazi - CoWorkSpace</title>
+  <title>Catalogo Sedi - CoWorkSpace</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/catalog.css">
 </head>
 
 <body>
@@ -31,69 +32,250 @@
   </nav>
 
   <div class="container py-4">
-    <h1 class="h3 mb-3">Catalogo spazi</h1>
+    <div class="row">
+      <div class="col-12">
+        <h1 class="h2 mb-3">Catalogo Sedi</h1>
+        <p class="lead text-muted mb-4">Scopri le nostre sedi di coworking e i loro spazi. Clicca su una sede per
+          esplorare i dettagli.</p>
+      </div>
+    </div>
 
     <!-- Filtri -->
     <div class="card mb-4">
       <div class="card-body">
         <form id="formFiltri">
           <div class="row g-3 align-items-end">
-            <div class="col-md-3">
+            <div class="col-md-4">
               <label class="form-label">Città</label>
               <select class="form-select" id="filtroCitta">
-                <option value="">Tutte</option>
+                <option value="">Tutte le città</option>
               </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label">Tipologia</label>
-              <select class="form-select" id="filtroTipologia">
-                <option value="">Tutte</option>
-                <option value="stanza privata">Stanza privata</option>
-                <option value="postazione">Postazione</option>
-                <option value="sala riunioni">Sala riunioni</option>
+            <div class="col-md-4">
+              <label class="form-label">Servizi</label>
+              <select class="form-select" id="filtroServizi">
+                <option value="">Tutti i servizi</option>
               </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label">Dal</label>
-              <input type="datetime-local" class="form-control" id="filtroDal">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Al</label>
-              <input type="datetime-local" class="form-control" id="filtroAl">
+            <div class="col-md-4">
+              <label class="form-label">Ricerca</label>
+              <input type="text" class="form-control" id="filtroRicerca" placeholder="Cerca per nome sede...">
             </div>
           </div>
           <div class="row g-3 mt-2">
             <div class="col-md-6">
-              <label class="form-label">Servizi</label>
-              <div id="filtroServizi" class="d-flex flex-wrap gap-3">
-                <!-- check dinamici -->
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="soloConSpazi">
+                <label class="form-check-label" for="soloConSpazi">
+                  Solo sedi con spazi disponibili
+                </label>
               </div>
             </div>
-            <div class="col-md-3 d-flex align-items-center">
-              <div class="form-check mt-4">
-                <input class="form-check-input" type="checkbox" id="soloDisponibili">
-                <label class="form-check-label" for="soloDisponibili">Solo disponibili</label>
-              </div>
-            </div>
-            <div class="col-md-3 text-end">
-              <button type="submit" class="btn btn-primary mt-3 w-100" id="btnCerca">Cerca</button>
+            <div class="col-md-6 text-end">
+              <button type="submit" class="btn btn-primary" id="btnCerca">
+                <i class="fas fa-search me-2"></i>Cerca
+              </button>
+              <button type="button" class="btn btn-outline-secondary ms-2" id="btnReset">
+                <i class="fas fa-times me-2"></i>Reset
+              </button>
             </div>
           </div>
         </form>
       </div>
     </div>
 
+    <!-- Loading -->
+    <div id="loading" class="text-center py-5 d-none">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Caricamento...</span>
+      </div>
+      <p class="mt-3 text-muted">Caricamento sedi...</p>
+    </div>
+
     <!-- Risultati -->
-    <div id="risultati" class="row g-3">
-      <!-- cards spazi -->
+    <div id="risultati" class="row g-4">
+      <!-- Le card delle sedi verranno inserite qui dinamicamente -->
+    </div>
+
+    <!-- Messaggio nessun risultato -->
+    <div id="nessunRisultato" class="text-center py-5 d-none">
+      <i class="fas fa-search fa-3x text-muted mb-3"></i>
+      <h4 class="text-muted">Nessuna sede trovata</h4>
+      <p class="text-muted">Prova a modificare i filtri di ricerca</p>
+    </div>
+  </div>
+
+  <!-- Modal Dettagli Sede -->
+  <div class="modal fade" id="modalSede" tabindex="-1" aria-labelledby="modalSedeLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalSedeLabel">Dettagli Sede</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Nav tabs -->
+          <ul class="nav nav-tabs" id="sedeTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="panoramica-tab" data-bs-toggle="tab" data-bs-target="#panoramica"
+                type="button" role="tab" aria-controls="panoramica" aria-selected="true">
+                <i class="fas fa-images me-2"></i>Panoramica
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="spazi-tab" data-bs-toggle="tab" data-bs-target="#spazi" type="button"
+                role="tab" aria-controls="spazi" aria-selected="false">
+                <i class="fas fa-door-open me-2"></i>Spazi
+              </button>
+            </li>
+          </ul>
+
+          <!-- Tab content -->
+          <div class="tab-content" id="sedeTabContent">
+            <!-- Tab Panoramica -->
+            <div class="tab-pane fade show active" id="panoramica" role="tabpanel" aria-labelledby="panoramica-tab">
+              <div class="row mt-4">
+                <div class="col-md-8">
+                  <!-- Carosello foto sede -->
+                  <div id="caroselloSede" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-indicators" id="indicatoriSede">
+                      <!-- Indicatori dinamici -->
+                    </div>
+                    <div class="carousel-inner" id="caroselloSedeInner">
+                      <!-- Immagini dinamiche -->
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#caroselloSede"
+                      data-bs-slide="prev">
+                      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                      <span class="visually-hidden">Precedente</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#caroselloSede"
+                      data-bs-slide="next">
+                      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                      <span class="visually-hidden">Successiva</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="sede-info">
+                    <h4 id="sedeNome">Nome Sede</h4>
+                    <p class="text-muted mb-3" id="sedeIndirizzo">Indirizzo</p>
+                    <p id="sedeDescrizione">Descrizione</p>
+
+                    <h6 class="mt-4 mb-3">Servizi disponibili:</h6>
+                    <div id="sedeServizi" class="d-flex flex-wrap gap-2">
+                      <!-- Badge servizi dinamici -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab Spazi -->
+            <div class="tab-pane fade" id="spazi" role="tabpanel" aria-labelledby="spazi-tab">
+              <div class="row mt-4" id="listaSpazi">
+                <!-- Lista spazi dinamica -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+          <button type="button" class="btn btn-primary" id="btnPrenotaSede" style="display: none;">
+            <i class="fas fa-calendar-plus me-2"></i>Prenota Spazio
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Dettagli Spazio -->
+  <div class="modal fade" id="modalSpazio" tabindex="-1" aria-labelledby="modalSpazioLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalSpazioLabel">Dettagli Spazio</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-8">
+              <!-- Carosello foto spazio -->
+              <div id="caroselloSpazio" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-indicators" id="indicatoriSpazio">
+                  <!-- Indicatori dinamici -->
+                </div>
+                <div class="carousel-inner" id="caroselloSpazioInner">
+                  <!-- Immagini dinamiche -->
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#caroselloSpazio"
+                  data-bs-slide="prev">
+                  <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Precedente</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#caroselloSpazio"
+                  data-bs-slide="next">
+                  <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Successiva</span>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="spazio-info">
+                <h4 id="spazioNome">Nome Spazio</h4>
+                <p class="text-muted mb-3" id="spazioSede">Sede</p>
+                <p id="spazioDescrizione">Descrizione</p>
+
+                <div class="row mb-3">
+                  <div class="col-6">
+                    <strong>Capacità:</strong><br>
+                    <span id="spazioCapacita">-</span> persone
+                  </div>
+                  <div class="col-6">
+                    <strong>Stato:</strong><br>
+                    <span id="spazioStato" class="badge">-</span>
+                  </div>
+                </div>
+
+                <h6 class="mt-4 mb-3">Amenities:</h6>
+                <div id="spazioAmenities" class="d-flex flex-wrap gap-2">
+                  <!-- Badge amenities dinamici -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+          <button type="button" class="btn btn-primary" id="btnPrenotaSpazio" style="display: none;">
+            <i class="fas fa-calendar-plus me-2"></i>Prenota questo spazio
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast per notifiche -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toastNotifica" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <i class="fas fa-info-circle text-primary me-2"></i>
+        <strong class="me-auto">CoWorkSpace</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body" id="toastMessage">
+        <!-- Messaggio dinamico -->
+      </div>
     </div>
   </div>
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
   <script src="js/config.js"></script>
-  <script src="js/main.js"></script>
-  <script src="js/catalogo.js"></script>
+  <script src="js/types.js"></script>
+  <script src="js/lib.supabase.js"></script>
+  <script src="js/app.catalog.js"></script>
 </body>
 
 </html>
