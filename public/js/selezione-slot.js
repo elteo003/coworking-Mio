@@ -56,6 +56,13 @@ async function checkAvailability(orarioInizio, orarioFine) {
 
     try {
         // Usa i dati del SlotManager con cache intelligente
+        console.log('🔍 Debug SlotManager:', {
+            exists: !!window.slotManager,
+            hasSlotsStatus: !!(window.slotManager && window.slotManager.slotsStatus),
+            slotsLength: window.slotManager?.slotsStatus?.length || 0,
+            slotsStatus: window.slotManager?.slotsStatus
+        });
+        
         if (window.slotManager && window.slotManager.slotsStatus && window.slotManager.slotsStatus.length > 0) {
             console.log('🔍 SlotManager disponibile con', window.slotManager.slotsStatus.length, 'slot');
             return await checkAvailabilityFromSlotManager(orarioInizio, orarioFine);
@@ -158,12 +165,15 @@ async function checkAvailabilityFromAPI(orarioInizio, orarioFine) {
         const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
         const orarioFineHour = parseInt(orarioFine.split(':')[0]);
 
-        console.log('🔍 Verifico disponibilità slot:', disponibilita.data.slots);
+        console.log('🔍 Verifico disponibilità slot da API:', disponibilita.data.slots);
+        console.log('🔍 Intervallo da verificare:', orarioInizioHour, 'a', orarioFineHour);
 
         // Controlla se tutti gli slot nell'intervallo sono disponibili
         for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
             const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
             const slot = disponibilita.data.slots.find(s => s.orario === orarioSlot);
+
+            console.log(`🔍 Controllo slot ${orarioSlot}:`, slot);
 
             if (!slot || slot.status !== 'available') {
                 console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
@@ -171,7 +181,7 @@ async function checkAvailabilityFromAPI(orarioInizio, orarioFine) {
             }
         }
 
-        console.log('✅ Tutti gli slot sono disponibili');
+        console.log('✅ Tutti gli slot sono disponibili (da API)');
         return true;
     }
 
@@ -552,7 +562,7 @@ function setupEventListeners() {
                 // Usa ErrorHandler per gestione intelligente degli errori
                 const errorInfo = await window.ErrorHandler.handlePrenotazioneError(error, {
                     operation: 'create_prenotazione',
-                    prenotazioneData: prenotazioneData
+                    prenotazioneData: prenotazioneData || { id_spazio: window.selectedSpazio?.id_spazio }
                 });
                 
                 // Mostra messaggio specifico in base al tipo di errore
