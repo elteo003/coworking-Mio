@@ -55,56 +55,80 @@ async function checkAvailability(orarioInizio, orarioFine) {
     console.log('🔍 checkAvailability chiamato per:', { orarioInizio, orarioFine });
 
     try {
-        // Formatta la data selezionata per l'API
-        const formatDate = (date) => {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        };
+        // Usa i dati del SlotManager invece di fare una nuova richiesta
+        if (window.slotManager && window.slotManager.slotsStatus) {
+            const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
+            const orarioFineHour = parseInt(orarioFine.split(':')[0]);
 
-        const dataSelezionata = formatDate(window.selectedDateInizio);
-        console.log('📅 Data per verifica disponibilità:', dataSelezionata);
+            console.log('🔍 Verifico disponibilità usando SlotManager:', window.slotManager.slotsStatus);
 
-        const response = await fetch(`${window.CONFIG.API_BASE}/spazi/${window.selectedSpazio.id_spazio}/disponibilita-slot/${dataSelezionata}`, {
-            headers: getAuthHeaders()
-        });
+            // Controlla se tutti gli slot nell'intervallo sono disponibili
+            for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
+                const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
+                const slot = window.slotManager.slotsStatus.find(s => s.orario === orarioSlot);
 
-        if (response.ok) {
-            const disponibilita = await response.json();
-            console.log('📋 Disponibilità per lo spazio:', disponibilita);
-
-            // Verifica se gli slot selezionati sono disponibili
-            if (disponibilita.success && disponibilita.data && disponibilita.data.slots) {
-                const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
-                const orarioFineHour = parseInt(orarioFine.split(':')[0]);
-
-                console.log('🔍 Verifico disponibilità slot:', disponibilita.data.slots);
-
-                // Controlla se tutti gli slot nell'intervallo sono disponibili
-                for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
-                    const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
-                    const slot = disponibilita.data.slots.find(s => s.orario === orarioSlot);
-
-                    if (!slot || slot.status !== 'available') {
-                        console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
-                        return false;
-                    }
+                if (!slot || slot.status !== 'available') {
+                    console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
+                    return false;
                 }
-
-                console.log('✅ Tutti gli slot sono disponibili');
-                return true;
             }
 
-            return false;
+            console.log('✅ Tutti gli slot sono disponibili');
+            return true;
         } else {
-            console.error('❌ Errore API disponibilità:', response.status, response.statusText);
+            console.warn('⚠️ SlotManager non disponibile, fallback a richiesta API');
+            
+            // Fallback alla richiesta API originale
+            const formatDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            const dataSelezionata = formatDate(window.selectedDateInizio);
+            console.log('📅 Data per verifica disponibilità:', dataSelezionata);
+
+            const response = await fetch(`${window.CONFIG.API_BASE}/spazi/${window.selectedSpazio.id_spazio}/disponibilita-slot/${dataSelezionata}`, {
+                headers: getAuthHeaders()
+            });
+
+            if (response.ok) {
+                const disponibilita = await response.json();
+                console.log('📋 Disponibilità per lo spazio:', disponibilita);
+
+                // Verifica se gli slot selezionati sono disponibili
+                if (disponibilita.success && disponibilita.data && disponibilita.data.slots) {
+                    const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
+                    const orarioFineHour = parseInt(orarioFine.split(':')[0]);
+
+                    console.log('🔍 Verifico disponibilità slot:', disponibilita.data.slots);
+
+                    // Controlla se tutti gli slot nell'intervallo sono disponibili
+                    for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
+                        const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
+                        const slot = disponibilita.data.slots.find(s => s.orario === orarioSlot);
+
+                        if (!slot || slot.status !== 'available') {
+                            console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
+                            return false;
+                        }
+                    }
+
+                    console.log('✅ Tutti gli slot sono disponibili');
+                    return true;
+                }
+
+                return false;
+            } else {
+                console.error('❌ Errore API disponibilità:', response.status, response.statusText);
+                return false;
+            }
         }
     } catch (error) {
         console.error('❌ Errore verifica disponibilità:', error);
+        return false;
     }
-
-    return false;
 }
 
 // Inizializzazione della pagina
