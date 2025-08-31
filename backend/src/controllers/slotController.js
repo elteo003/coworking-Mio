@@ -382,6 +382,93 @@ async function releaseSlot(req, res) {
 }
 
 /**
+ * Crea slot giornalieri per uno spazio
+ * POST /api/slots/create-daily
+ */
+async function createDailySlots(req, res) {
+    try {
+        const { idSpazio, date } = req.body;
+        const userId = req.user.id_utente;
+
+        if (!idSpazio || !date) {
+            return res.status(400).json({
+                success: false,
+                error: 'Parametri idSpazio e date richiesti'
+            });
+        }
+
+        // Verifica che lo spazio esista
+        const spazioQuery = 'SELECT id_spazio, nome FROM Spazio WHERE id_spazio = $1';
+        const spazioResult = await pool.query(spazioQuery, [idSpazio]);
+
+        if (spazioResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Spazio non trovato'
+            });
+        }
+
+        // Verifica se esistono già slot per questa data
+        const existingSlotsQuery = `
+            SELECT COUNT(*) as count 
+            FROM Prenotazione 
+            WHERE id_spazio = $1 
+            AND DATE(data_inizio) = $2
+        `;
+        const existingResult = await pool.query(existingSlotsQuery, [idSpazio, date]);
+
+        if (parseInt(existingResult.rows[0].count) > 0) {
+            return res.status(409).json({
+                success: false,
+                error: 'Slot per questa data già esistenti'
+            });
+        }
+
+        // Crea slot per ogni ora (9:00 - 17:00)
+        const slots = [];
+        for (let hour = 9; hour <= 17; hour++) {
+            const startTime = new Date(`${date}T${hour.toString().padStart(2, '0')}:00:00`);
+            const endTime = new Date(`${date}T${(hour + 1).toString().padStart(2, '0')}:00:00`);
+
+            // Inserisci slot nella tabella Prenotazione come "disponibile"
+            const result = await pool.query(`
+                INSERT INTO Prenotazione (id_utente, id_spazio, data_inizio, data_fine, stato)
+                VALUES ($1, $2, $3, $4, 'disponibile')
+                RETURNING id_prenotazione
+            `, [userId, idSpazio, startTime, endTime]);
+
+            slots.push({
+                id_prenotazione: result.rows[0].id_prenotazione,
+                orario: `${hour.toString().padStart(2, '0')}:00`,
+                start_time: startTime,
+                end_time: endTime
+            });
+        }
+
+        // Invalida cache Redis
+        await redisService.invalidateSlotsCache(null, idSpazio, date);
+
+        res.json({
+            success: true,
+            message: 'Slot giornalieri creati con successo',
+            data: {
+                idSpazio: parseInt(idSpazio),
+                date: date,
+                slotsCreated: slots.length,
+                slots: slots
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Errore nella creazione slot giornalieri:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Errore interno del server'
+        });
+    }
+}
+
+/**
  * Endpoint di test per il sistema slot
  * GET /api/slots/test
  */
