@@ -979,7 +979,7 @@ async function selectTimeSlot(orario, slotElement, event = null) {
 
 // Seleziona un singolo slot (VERSIONE SEMPLIFICATA)
 function selectSingleSlot(slotId, slotElement, orario) {
-    selectedSlots.add(slotId);
+    selectionState.allSelected.add(slotId);
     slotElement.classList.remove('slot-available');
     slotElement.classList.add('slot-selected');
     slotElement.title = 'Selezionato';
@@ -991,7 +991,7 @@ function selectSingleSlot(slotId, slotElement, orario) {
 
 // Deseleziona un slot (VERSIONE SEMPLIFICATA)
 function deselectSlot(slotId, slotElement) {
-    selectedSlots.delete(slotId);
+    selectionState.allSelected.delete(slotId);
     slotElement.classList.remove('slot-selected');
     slotElement.classList.add('slot-available');
     slotElement.title = 'Disponibile';
@@ -1012,7 +1012,7 @@ function selectSlotRange(startSlotId, endSlotId) {
     for (let slotId = minSlot; slotId <= maxSlot; slotId++) {
         const slotElement = document.querySelector(`[data-slot-id="${slotId}"]`);
         if (slotElement && !slotElement.disabled && slotElement.classList.contains('slot-available')) {
-            selectedSlots.add(slotId.toString());
+            selectionState.allSelected.add(slotId.toString());
             slotElement.classList.remove('slot-available');
             slotElement.classList.add('slot-selected');
             slotElement.title = 'Selezionato';
@@ -1076,7 +1076,7 @@ async function updateSelectionUI() {
 
     // Slot disponibili
     btnBook.disabled = false;
-    btnBook.textContent = `Prenota Ora (${selectedSlots.size} slot)`;
+    btnBook.textContent = `Prenota Ora (${selectionState.allSelected.size} slot)`;
     btnBook.className = 'btn btn-success';
     updateSummary();
     showSummary();
