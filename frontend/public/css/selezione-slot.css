@@ -53,20 +53,7 @@
     box-shadow: 0 3px 12px rgba(253, 126, 20, 0.5);
 }
 
-/* Slot occupato temporaneamente dall'utente corrente */
-.slot-button.slot-occupied-temp {
-    background-color: #fd7e14;
-    border-color: #e55100;
-    color: white;
-    box-shadow: 0 0 8px rgba(253, 126, 20, 0.4);
-}
-
-.slot-button.slot-occupied-temp:hover {
-    background-color: #e55100;
-    border-color: #cc4400;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(253, 126, 20, 0.5);
-}
+/* Classe slot-occupied-temp rimossa - ora tutti gli slot occupati usano slot-occupied */
 
 /* ===== GLOBAL SCROLLBAR REMOVAL ===== */
 body {
@@ -191,12 +178,12 @@ section::-webkit-scrollbar,
 }
 
 .slot-button.slot-occupied {
-    background: #ffc107;
+    background-color: #fd7e14;
     color: white;
-    border-color: #ffc107;
+    border-color: #e55100;
     cursor: not-allowed;
     opacity: 0.8;
-    animation: pulse-orange 2s infinite;
+    box-shadow: 0 0 8px rgba(253, 126, 20, 0.4);
 }
 
 .slot-button.slot-booked {
@@ -295,7 +282,7 @@ input.time-slot.occupied {
     border-color: var(--danger) !important;
 }
 
-/* CSS ULTRA SPECIFICO per slot occupati - DEVE ESSERE ROSSO */
+/* CSS ULTRA SPECIFICO per slot occupati - DEVE ESSERE ARANCIONE */
 .time-slot.occupied,
 .slot-button.slot-occupied,
 div.time-slot.occupied,
@@ -306,14 +293,13 @@ div.slot-button.slot-occupied,
 .slot-button.slot-occupied:focus,
 .time-slot.occupied:active,
 .slot-button.slot-occupied:active {
-    background-color: var(--danger) !important;
+    background-color: #fd7e14 !important;
     background-image: none !important;
     color: white !important;
-    border-color: var(--danger) !important;
+    border-color: #e55100 !important;
     cursor: not-allowed !important;
     opacity: 0.8 !important;
-    animation: pulse-red 2s infinite !important;
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3) !important;
+    box-shadow: 0 0 8px rgba(253, 126, 20, 0.4) !important;
 }
 
 /* CSS ULTRA SPECIFICO per slot prenotati - DEVE ESSERE ARANCIONE */
@@ -889,11 +875,12 @@ main {
 
 /* CSS per classi slot-button (nuovo sistema) */
 .slot-button.slot-occupied {
-    background-color: var(--warning) !important;
+    background-color: #fd7e14 !important;
     color: white !important;
-    border-color: var(--warning) !important;
+    border-color: #e55100 !important;
     cursor: not-allowed !important;
     opacity: 0.8 !important;
+    box-shadow: 0 0 8px rgba(253, 126, 20, 0.4) !important;
 }
 
 .slot-button.slot-booked {
