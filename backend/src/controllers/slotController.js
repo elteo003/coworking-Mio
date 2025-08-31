@@ -107,14 +107,15 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
 
         console.log(`⏰ Orari apertura generati: ${orariApertura.length} slot`);
 
-        // Query ottimizzata con controllo scadenza_slot
+        // Query ottimizzata con controllo scadenza_slot e ID utente
         const prenotazioniQuery = `
             SELECT 
                 EXTRACT(HOUR FROM data_inizio) as orario_inizio,
                 EXTRACT(HOUR FROM data_fine) as orario_fine,
                 stato,
                 scadenza_slot,
-                id_prenotazione
+                id_prenotazione,
+                id_utente
             FROM Prenotazione 
             WHERE id_spazio = $1 
             AND DATE(data_inizio) = $2
@@ -170,7 +171,8 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
                         title: `Slot occupato (${minutesLeft} min rimasti)`,
                         expires_at: prenotazione.scadenza_slot,
                         minutes_remaining: minutesLeft,
-                        prenotazione_id: prenotazione.id_prenotazione
+                        prenotazione_id: prenotazione.id_prenotazione,
+                        id_utente: prenotazione.id_utente
                     };
                 }
             }

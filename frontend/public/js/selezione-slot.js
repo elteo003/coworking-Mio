@@ -70,6 +70,20 @@ async function initializeSlotManager() {
     return false;
 }
 
+// Funzione per ottenere ID utente corrente
+function getCurrentUserId() {
+    try {
+        const user = localStorage.getItem('user');
+        if (user) {
+            const userData = JSON.parse(user);
+            return userData.id_utente;
+        }
+    } catch (error) {
+        console.error('❌ Errore nel recuperare ID utente:', error);
+    }
+    return null;
+}
+
 // Verifica disponibilità (NUOVO SISTEMA)
 async function checkAvailability(orarioInizio, orarioFine) {
     console.log('🔍 Verifica disponibilità:', { orarioInizio, orarioFine });
@@ -92,14 +106,34 @@ async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
     const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
     const orarioFineHour = parseInt(orarioFine.split(':')[0]);
 
+    // Ottieni ID utente corrente
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) {
+        console.warn('⚠️ Utente non autenticato, verifica disponibilità fallita');
+        return false;
+    }
+
     // Controlla se tutti gli slot nell'intervallo sono disponibili
     for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
         const slotId = hour - 8; // Converti orario in slot ID (9:00 = slot 1, 10:00 = slot 2, etc.)
         const slot = window.slotManager.slotsStatus.get(slotId);
 
-        if (!slot || slot.status !== 'available') {
+        if (!slot) {
             return false;
         }
+
+        // Slot disponibile
+        if (slot.status === 'available') {
+            continue;
+        }
+
+        // Slot occupato dall'utente corrente (considerato disponibile per prenotazione)
+        if (slot.status === 'occupied' && slot.id_utente === currentUserId) {
+            continue;
+        }
+
+        // Slot occupato da altri utenti o prenotato (non disponibile)
+        return false;
     }
     return true;
 }
