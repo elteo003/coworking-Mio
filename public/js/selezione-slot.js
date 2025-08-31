@@ -776,7 +776,7 @@ async function displayTimeSlots(disponibilita) {
         button.classList.remove('btn-danger', 'btn-warning', 'btn-secondary', 'btn-outline-primary', 'btn-success');
         button.classList.add('slot-available');
         button.disabled = false;
-        button.title = 'Clicca per selezionare orario inizio/fine';
+        button.title = 'Clicca per prenotare questo slot (1 ora)';
     });
 
     if (orariApertura.length === 0) {
@@ -784,7 +784,7 @@ async function displayTimeSlots(disponibilita) {
     }
 }
 
-// Seleziona uno slot temporale
+// Seleziona uno slot temporale (NUOVA LOGICA: selezione singola per intervallo di 1 ora)
 async function selectTimeSlot(orario, slotElement) {
     console.log('🎯 selectTimeSlot chiamata:', { orario, slotElement, classList: slotElement.classList.toString() });
 
@@ -802,7 +802,7 @@ async function selectTimeSlot(orario, slotElement) {
             // Ripristina la classe 'slot-available' per tutti gli slot
             slot.classList.add('slot-available');
             // Ripristina il titolo originale
-            slot.title = 'Clicca per selezionare orario inizio/fine';
+            slot.title = 'Clicca per prenotare questo slot (1 ora)';
         });
 
         hideSummary();
@@ -810,108 +810,82 @@ async function selectTimeSlot(orario, slotElement) {
         return;
     }
 
-    // Se è il primo orario selezionato
-    if (!window.selectedTimeInizio) {
-        // Rimuovi selezione precedente
-        document.querySelectorAll('.slot-selected').forEach(s => {
-            s.classList.remove('slot-selected');
-            s.classList.add('slot-available');
-        });
+    // NUOVA LOGICA: Un click seleziona automaticamente l'intervallo di 1 ora
+    console.log('🎯 Selezione singola slot per 1 ora:', orario);
+    
+    // Rimuovi selezione precedente
+    document.querySelectorAll('.slot-selected').forEach(s => {
+        s.classList.remove('slot-selected');
+        s.classList.add('slot-available');
+    });
 
-        // Seleziona il primo slot usando il nuovo SlotManager
-        if (window.slotManager) {
-            window.slotManager.selectSlot(slotElement.dataset.slotId);
-        }
+    // Seleziona il slot usando il nuovo SlotManager
+    if (window.slotManager) {
+        window.slotManager.selectSlot(slotElement.dataset.slotId);
+    }
 
-        // Aggiungi la classe per lo slot selezionato
-        slotElement.classList.remove('slot-available');
-        slotElement.classList.add('slot-selected');
+    // Aggiungi la classe per lo slot selezionato
+    slotElement.classList.remove('slot-available');
+    slotElement.classList.add('slot-selected');
 
-        window.selectedTimeInizio = orario;
-        window.selectedTimeFine = null;
+    // Imposta automaticamente l'intervallo di 1 ora
+    const orarioInizio = parseInt(orario.split(':')[0]);
+    const orarioFine = orarioInizio + 1;
+    
+    window.selectedTimeInizio = orario;
+    window.selectedTimeFine = `${orarioFine.toString().padStart(2, '0')}:00`;
 
-        console.log('⏰ Orario inizio selezionato:', window.selectedTimeInizio);
-        console.log('🎨 Slot selezionato, classi:', slotElement.classList.toString());
+    console.log('⏰ Slot selezionato:', window.selectedTimeInizio, '→', window.selectedTimeFine);
+    console.log('🎨 Slot selezionato, classi:', slotElement.classList.toString());
 
-        // Mostra messaggio per selezionare l'orario di fine
-        showTimeSelectionMessage('Seleziona ora l\'orario di fine');
+    // VERIFICA DISPONIBILITÀ FINALE PRIMA DI ABILITARE IL BOTTONE
+    console.log('🔍 Verifica disponibilità finale prima di abilitare il bottone...');
 
-    } else {
-        // È il secondo orario (fine)
-        // Verifica che sia successivo all'orario di inizio
-        const orarioInizio = parseInt(window.selectedTimeInizio.split(':')[0]);
-        const orarioFine = parseInt(orario.split(':')[0]);
+    // Controlla se l'utente è autenticato
+    const token = localStorage.getItem('token');
 
-        if (orarioFine <= orarioInizio) {
-            showError('L\'orario di fine deve essere successivo all\'orario di inizio');
-            return;
-        }
-
-        // Seleziona il secondo slot
-        if (slotManager) {
-            slotManager.selectSlot(slotElement.dataset.slotId);
-        }
-
-        // Aggiungi la classe per lo slot selezionato
-        slotElement.classList.remove('slot-available');
-        slotElement.classList.add('slot-selected');
-
-        window.selectedTimeFine = orario;
-
-        console.log('⏰ Orario fine selezionato:', window.selectedTimeFine);
-
-        // Blocca gli slot intermedi
-        blockIntermediateSlots(window.selectedTimeInizio, window.selectedTimeFine);
-
-        // VERIFICA DISPONIBILITÀ FINALE PRIMA DI ABILITARE IL BOTTONE
-        console.log('🔍 Verifica disponibilità finale prima di abilitare il bottone...');
-
-        // Controlla se l'utente è autenticato
-        const token = localStorage.getItem('token');
-
-        if (!token) {
-            // ✅ UTENTE NON AUTENTICATO: Stessa esperienza ma con modal di login
-            console.log('👤 Utente non autenticato, abilito bottone e mostro riepilogo');
-            document.getElementById('btnBook').disabled = false;
-            document.getElementById('btnBook').textContent = 'Prenota Ora (Login Richiesto)';
-            document.getElementById('btnBook').classList.remove('btn-secondary');
-            document.getElementById('btnBook').classList.add('btn-warning');
-
-            // ✅ MOSTRA RIEPILOGO ANCHE PER UTENTI NON AUTENTICATI
-            updateSummary();
-            showSummary();
-            hideTimeSelectionMessage();
-
-            // Mostra messaggio informativo
-            showInfo('Orari selezionati! Effettua il login per completare la prenotazione.');
-            return;
-        }
-
-        // Utente autenticato: verifica disponibilità
-        const disponibile = await checkAvailability(window.selectedTimeInizio, window.selectedTimeFine);
-
-        if (!disponibile) {
-            // Slot non disponibile, disabilita il bottone e mostra errore
-            document.getElementById('btnBook').disabled = true;
-            document.getElementById('btnBook').textContent = 'Slot Non Disponibile';
-            showError('🚫 Slot non disponibile per l\'orario selezionato');
-            return;
-        }
-
-        // ✅ SLOT DISPONIBILI - ABILITA IL BOTTONE!
-        console.log('✅ Slot disponibili, abilito bottone Prenota Ora');
+    if (!token) {
+        // ✅ UTENTE NON AUTENTICATO: Stessa esperienza ma con modal di login
+        console.log('👤 Utente non autenticato, abilito bottone e mostro riepilogo');
         document.getElementById('btnBook').disabled = false;
-        document.getElementById('btnBook').textContent = 'Prenota Ora';
-        document.getElementById('btnBook').classList.remove('btn-warning', 'btn-secondary');
-        document.getElementById('btnBook').classList.add('btn-book');
+        document.getElementById('btnBook').textContent = 'Prenota Ora (Login Richiesto)';
+        document.getElementById('btnBook').classList.remove('btn-secondary');
+        document.getElementById('btnBook').classList.add('btn-warning');
 
-        // Aggiorna il riepilogo
+        // ✅ MOSTRA RIEPILOGO ANCHE PER UTENTI NON AUTENTICATI
         updateSummary();
-
-        // Mostra il riepilogo
         showSummary();
         hideTimeSelectionMessage();
+
+        // Mostra messaggio informativo
+        showInfo('Slot selezionato! Effettua il login per completare la prenotazione.');
+        return;
     }
+
+    // Utente autenticato: verifica disponibilità
+    const disponibile = await checkAvailability(window.selectedTimeInizio, window.selectedTimeFine);
+
+    if (!disponibile) {
+        // Slot non disponibile, disabilita il bottone e mostra errore
+        document.getElementById('btnBook').disabled = true;
+        document.getElementById('btnBook').textContent = 'Slot Non Disponibile';
+        showError('🚫 Slot non disponibile per l\'orario selezionato');
+        return;
+    }
+
+    // ✅ SLOT DISPONIBILI - ABILITA IL BOTTONE!
+    console.log('✅ Slot disponibili, abilito bottone Prenota Ora');
+    document.getElementById('btnBook').disabled = false;
+    document.getElementById('btnBook').textContent = 'Prenota Ora';
+    document.getElementById('btnBook').classList.remove('btn-warning', 'btn-secondary');
+    document.getElementById('btnBook').classList.add('btn-book');
+
+    // Aggiorna il riepilogo
+    updateSummary();
+
+    // Mostra il riepilogo
+    showSummary();
+    hideTimeSelectionMessage();
 }
 
 // Blocca gli slot intermedi
@@ -987,8 +961,8 @@ function calculatePrice() {
     const orarioFine = parseInt(window.selectedTimeFine.split(':')[0]);
     const oreTotali = orarioFine - orarioInizio;
 
-    // Prezzo base per ora (€15/ora)
-    const prezzoPerOra = 15;
+    // Prezzo base per ora (€10/ora)
+    const prezzoPerOra = 10;
     const prezzoTotale = oreTotali * prezzoPerOra;
 
     console.log(`⏰ Ore calcolate: ${orarioInizio}:00 - ${orarioFine}:00 = ${oreTotali} ore`);
@@ -1011,7 +985,7 @@ function updateSummary() {
     if (summarySede) summarySede.textContent = window.selectedSede ? window.selectedSede.nome : '-';
     if (summaryStanza) summaryStanza.textContent = window.selectedSpazio ? window.selectedSpazio.nome : '-';
     if (summaryData) summaryData.textContent = window.selectedDateInizio ? window.selectedDateInizio.toLocaleDateString('it-IT') : '-';
-    if (summaryOrario) summaryOrario.textContent = window.selectedTimeInizio && window.selectedTimeFine ? `${window.selectedTimeInizio} - ${window.selectedTimeFine}` : '-';
+    if (summaryOrario) summaryOrario.textContent = window.selectedTimeInizio && window.selectedTimeFine ? `${window.selectedTimeInizio} - ${window.selectedTimeFine} (1 ora)` : '-';
 
     // Calcola il prezzo reale
     if (summaryPrezzo) {
