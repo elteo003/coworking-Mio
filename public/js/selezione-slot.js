@@ -24,7 +24,7 @@ function initializeSlotManager() {
         selectedSpazio: !!window.selectedSpazio,
         selectedDateInizio: !!window.selectedDateInizio
     });
-    
+
     if (window.selectedSede && window.selectedSpazio && window.selectedDateInizio) {
         const sedeId = window.selectedSede.id_sede;
         const spazioId = window.selectedSpazio.id_spazio;
@@ -40,7 +40,7 @@ function initializeSlotManager() {
         if (slotManager) {
             slotManager.cleanup();
         }
-        
+
         // Reset selezione slot
         clearAllSelections();
 
@@ -67,27 +67,15 @@ function initializeSlotManager() {
     return false;
 }
 
-// Funzione helper per verificare disponibilità di uno slot (OTTIMIZZATA)
+// Funzione unificata per verificare disponibilità (VERSIONE SEMPLIFICATA)
 async function checkAvailability(orarioInizio, orarioFine) {
-    console.log('🔍 checkAvailability chiamato per:', { orarioInizio, orarioFine });
+    console.log('🔍 Verifica disponibilità:', { orarioInizio, orarioFine });
 
     try {
-        // Usa i dati del SlotManager con cache intelligente
-        console.log('🔍 Debug SlotManager:', {
-            exists: !!window.slotManager,
-            hasSlotsStatus: !!(window.slotManager && window.slotManager.slotsStatus),
-            slotsLength: window.slotManager?.slotsStatus?.length || 0,
-            slotsStatus: window.slotManager?.slotsStatus
-        });
-        
-        // Aspetta che il SlotManager sia pronto
-        const slotManagerReady = await waitForSlotManager(3000);
-        
-        if (slotManagerReady && window.slotManager && window.slotManager.slotsStatus && window.slotManager.slotsStatus.length > 0) {
-            console.log('🔍 SlotManager disponibile con', window.slotManager.slotsStatus.length, 'slot');
+        // Usa SlotManager se disponibile, altrimenti API diretta
+        if (window.slotManager && window.slotManager.slotsStatus.size > 0) {
             return await checkAvailabilityFromSlotManager(orarioInizio, orarioFine);
         } else {
-            console.log('⚠️ SlotManager non disponibile o vuoto, uso API con cache');
             return await checkAvailabilityFromAPI(orarioInizio, orarioFine);
         }
     } catch (error) {
@@ -96,144 +84,61 @@ async function checkAvailability(orarioInizio, orarioFine) {
     }
 }
 
-// Verifica disponibilità usando SlotManager (metodo preferito)
+// Verifica disponibilità usando SlotManager (VERSIONE SEMPLIFICATA)
 async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
-    console.log('🔍 Verifico disponibilità usando SlotManager');
-    
-    // Aspetta che il SlotManager sia completamente caricato
-    await waitForSlotManager();
-    
     const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
     const orarioFineHour = parseInt(orarioFine.split(':')[0]);
 
-    console.log('🔍 Intervallo da verificare:', orarioInizioHour, 'a', orarioFineHour);
-    console.log('🔍 SlotManager slotsStatus:', window.slotManager.slotsStatus);
-
     // Controlla se tutti gli slot nell'intervallo sono disponibili
     for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
-        const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
-        
-        // Converti orario in slot ID (9:00 = slot 1, 10:00 = slot 2, etc.)
-        const slotId = hour - 8;
-        
-        // Cerca lo slot per ID
-        let slot = window.slotManager.slotsStatus.find(s => s.id_slot === slotId);
-        if (!slot) {
-            // Fallback: cerca per orario
-            slot = window.slotManager.slotsStatus.find(s => s.orario === orarioSlot);
-        }
+        const slotId = hour - 8; // Converti orario in slot ID (9:00 = slot 1, 10:00 = slot 2, etc.)
+        const slot = window.slotManager.slotsStatus.get(slotId);
 
-        if (!slot) {
-            console.log(`❌ Slot ${orarioSlot} (ID: ${slotId}) non trovato nel SlotManager`);
-            return false;
-        }
-
-        if (slot.status !== 'available') {
-            console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot.status);
+        if (!slot || slot.status !== 'available') {
             return false;
         }
     }
-
-    console.log('✅ Tutti gli slot sono disponibili (SlotManager)');
     return true;
 }
 
-// Funzione per aspettare che il SlotManager sia pronto
-async function waitForSlotManager(maxWait = 5000) {
-    const startTime = Date.now();
-    
-    while (Date.now() - startTime < maxWait) {
-        if (window.slotManager && 
-            window.slotManager.slotsStatus && 
-            window.slotManager.slotsStatus.length > 0) {
-            console.log('✅ SlotManager pronto con', window.slotManager.slotsStatus.length, 'slot');
-            return true;
-        }
-        
-        console.log('⏳ Attendo SlotManager...');
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    console.warn('⚠️ Timeout attesa SlotManager');
-    return false;
-}
+// Funzione rimossa: waitForSlotManager non più necessaria
 
-// Verifica disponibilità usando API con cache e retry
+// Verifica disponibilità usando API (VERSIONE SEMPLIFICATA)
 async function checkAvailabilityFromAPI(orarioInizio, orarioFine) {
-    console.warn('⚠️ SlotManager non disponibile, uso API con cache');
-    
-    const formatDate = (date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
+    try {
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
 
-    const dataSelezionata = formatDate(window.selectedDateInizio);
-    const cacheKey = `disponibilita_${window.selectedSpazio.id_spazio}_${dataSelezionata}`;
-    
-    console.log('📅 Data per verifica disponibilità:', dataSelezionata);
-    console.log('🗝️ Cache key:', cacheKey);
+        const dataSelezionata = formatDate(window.selectedDateInizio);
+        const response = await fetch(`${window.CONFIG.API_BASE}/spazi/${window.selectedSpazio.id_spazio}/disponibilita-slot/${dataSelezionata}`, {
+            headers: getAuthHeaders()
+        });
 
-    // Usa cache manager per evitare richieste duplicate
-    const disponibilita = await window.CacheManager.get(cacheKey, async () => {
-        console.log('🌐 Fetching disponibilità da API...');
-        
-        return await window.ErrorHandler.withRetry(async () => {
-            const response = await fetch(`${window.CONFIG.API_BASE}/spazi/${window.selectedSpazio.id_spazio}/disponibilita-slot/${dataSelezionata}`, {
-                headers: getAuthHeaders()
-            });
+        if (!response.ok) return false;
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+        const data = await response.json();
+        if (!data.success || !data.data?.slots) return false;
 
-            const data = await response.json();
-            console.log('📋 Disponibilità ricevuta da API:', data);
-            return data;
-        }, { operation: 'check_availability' });
-    }, 10000); // Cache per 10 secondi
-
-    // Verifica se gli slot selezionati sono disponibili
-    if (disponibilita.success && disponibilita.data && disponibilita.data.slots) {
+        // Verifica disponibilità per l'intervallo
         const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
         const orarioFineHour = parseInt(orarioFine.split(':')[0]);
 
-        console.log('🔍 Verifico disponibilità slot da API:', disponibilita.data.slots);
-        console.log('🔍 Intervallo da verificare:', orarioInizioHour, 'a', orarioFineHour);
-
-        // Controlla se tutti gli slot nell'intervallo sono disponibili
         for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
-            const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
-            
-            // Converti orario in slot ID (9:00 = slot 1, 10:00 = slot 2, etc.)
             const slotId = hour - 8;
-            
-            // Cerca lo slot per ID
-            let slot = disponibilita.data.slots.find(s => s.id_slot === slotId);
-            if (!slot) {
-                // Fallback: cerca per orario
-                slot = disponibilita.data.slots.find(s => s.orario === orarioSlot);
-            }
-
-            console.log(`🔍 Controllo slot ${orarioSlot} (ID: ${slotId}):`, slot);
-
-            if (!slot) {
-                console.log(`❌ Slot ${orarioSlot} (ID: ${slotId}) non trovato nei dati API`);
-                return false;
-            }
-
-            if (slot.status !== 'available') {
-                console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot.status);
+            const slot = data.data.slots.find(s => s.id_slot === slotId);
+            if (!slot || slot.status !== 'available') {
                 return false;
             }
         }
-
-        console.log('✅ Tutti gli slot sono disponibili (da API)');
         return true;
+    } catch (error) {
+        console.error('❌ Errore API disponibilità:', error);
+        return false;
     }
-
-    return false;
 }
 
 // Inizializzazione della pagina
@@ -605,7 +510,7 @@ function setupEventListeners() {
                 }, { operation: 'create_prenotazione' });
 
                 console.log('✅ Prenotazione creata:', result);
-                
+
                 // Invalida cache per aggiornare disponibilità
                 const dataSelezionata = formatDate(window.selectedDateInizio);
                 window.CacheManager.invalidatePattern(`disponibilita_${window.selectedSpazio.id_spazio}_${dataSelezionata}`);
@@ -615,13 +520,13 @@ function setupEventListeners() {
 
             } catch (error) {
                 console.error('❌ Errore creazione prenotazione:', error);
-                
+
                 // Usa ErrorHandler per gestione intelligente degli errori
                 const errorInfo = await window.ErrorHandler.handlePrenotazioneError(error, {
                     operation: 'create_prenotazione',
                     prenotazioneData: prenotazioneData || { id_spazio: window.selectedSpazio?.id_spazio }
                 });
-                
+
                 // Mostra messaggio specifico in base al tipo di errore
                 if (errorInfo.type === 'auth') {
                     showError('Sessione scaduta. Effettua nuovamente il login per completare la prenotazione.');
@@ -726,7 +631,7 @@ function createTimeSlots() {
     console.log('🎯 Container slot mostrato, slot creati:', timeSlotsContainer.children.length);
     console.log('🔍 Bottoni disponibili nel DOM:', document.querySelectorAll('[data-slot-id]').length);
     console.log('🔍 Bottoni disponibili nel DOM:', document.querySelectorAll('[data-slot-id]'));
-    
+
     // Mostra i controlli rapidi
     const quickControls = document.getElementById('quickControls');
     if (quickControls) {
@@ -798,7 +703,7 @@ async function displayTimeSlots(disponibilita) {
 
     if (orariApertura.length === 0) {
         timeSlotsContainer.innerHTML = '<p class="text-muted">Nessun orario disponibile per questa data</p>';
-        
+
         // Nascondi i controlli rapidi
         const quickControls = document.getElementById('quickControls');
         if (quickControls) {
@@ -807,20 +712,13 @@ async function displayTimeSlots(disponibilita) {
     }
 }
 
-// Seleziona uno slot temporale (LOGICA SEMPLIFICATA)
+// Seleziona uno slot temporale (VERSIONE SEMPLIFICATA)
 async function selectTimeSlot(orario, slotElement, event = null) {
-    console.log('🎯 selectTimeSlot chiamata:', { 
-        orario, 
-        slotElement, 
-        classList: slotElement.classList.toString()
-    });
-
     const slotId = slotElement.dataset.slotId;
     const isSelected = selectedSlots.has(slotId);
 
     // Se è già selezionato, lo deseleziona
     if (isSelected) {
-        console.log('🔄 Deseleziono slot:', orario);
         deselectSlot(slotId, slotElement);
         await updateSelectionUI();
         return;
@@ -828,7 +726,6 @@ async function selectTimeSlot(orario, slotElement, event = null) {
 
     // Se non c'è nessun slot selezionato, seleziona questo come inizio
     if (selectedSlots.size === 0) {
-        console.log('🎯 Primo slot selezionato (inizio):', orario);
         selectSingleSlot(slotId, slotElement, orario);
         lastSelectedSlot = slotId;
         await updateSelectionUI();
@@ -837,18 +734,14 @@ async function selectTimeSlot(orario, slotElement, event = null) {
 
     // Se c'è già un slot selezionato, questo diventa la fine dell'intervallo
     if (selectedSlots.size === 1) {
-        console.log('🎯 Secondo slot selezionato (fine):', orario);
-        
-        // Verifica che sia successivo al primo
         const firstSlot = parseInt(Array.from(selectedSlots)[0]);
         const secondSlot = parseInt(slotId);
-        
+
         if (secondSlot <= firstSlot) {
             showError('L\'orario di fine deve essere successivo all\'orario di inizio');
             return;
         }
-        
-        // Seleziona l'intervallo completo
+
         selectSlotRange(firstSlot.toString(), slotId);
         await updateSelectionUI();
         return;
@@ -856,7 +749,6 @@ async function selectTimeSlot(orario, slotElement, event = null) {
 
     // Se ci sono già 2+ slot selezionati, resetta e seleziona questo
     if (selectedSlots.size >= 2) {
-        console.log('🎯 Reset selezione e seleziono nuovo slot:', orario);
         clearAllSelections();
         selectSingleSlot(slotId, slotElement, orario);
         lastSelectedSlot = slotId;
@@ -864,98 +756,75 @@ async function selectTimeSlot(orario, slotElement, event = null) {
     }
 }
 
-// Seleziona un singolo slot
+// Seleziona un singolo slot (VERSIONE SEMPLIFICATA)
 function selectSingleSlot(slotId, slotElement, orario) {
-    console.log('✅ Seleziono slot singolo:', orario);
-    
     selectedSlots.add(slotId);
     slotElement.classList.remove('slot-available');
     slotElement.classList.add('slot-selected');
-    slotElement.title = 'Click per deselezionare';
-    
-    // Aggiorna SlotManager se disponibile
+    slotElement.title = 'Selezionato';
+
     if (window.slotManager) {
         window.slotManager.selectSlot(slotId);
     }
 }
 
-// Deseleziona un slot
+// Deseleziona un slot (VERSIONE SEMPLIFICATA)
 function deselectSlot(slotId, slotElement) {
-    console.log('❌ Deseleziono slot:', slotElement.textContent.trim());
-    
     selectedSlots.delete(slotId);
     slotElement.classList.remove('slot-selected');
     slotElement.classList.add('slot-available');
-    slotElement.title = 'Click per selezionare (1 ora)';
-    
-    // Aggiorna SlotManager se disponibile
+    slotElement.title = 'Disponibile';
+
     if (window.slotManager) {
         window.slotManager.deselectSlot(slotId);
     }
 }
 
-// Seleziona un intervallo di slot
+// Seleziona un intervallo di slot (VERSIONE SEMPLIFICATA)
 function selectSlotRange(startSlotId, endSlotId) {
-    console.log('🎯 Seleziono intervallo:', startSlotId, '→', endSlotId);
-    
     const startSlot = parseInt(startSlotId);
     const endSlot = parseInt(endSlotId);
     const minSlot = Math.min(startSlot, endSlot);
     const maxSlot = Math.max(startSlot, endSlot);
-    
+
     // Seleziona tutti gli slot disponibili nell'intervallo
     for (let slotId = minSlot; slotId <= maxSlot; slotId++) {
         const slotElement = document.querySelector(`[data-slot-id="${slotId}"]`);
         if (slotElement && !slotElement.disabled && slotElement.classList.contains('slot-available')) {
-            // Converti slot ID in orario (slot 1 = 09:00, slot 2 = 10:00, etc.)
-            const hour = slotId + 8;
-            const orario = `${hour.toString().padStart(2, '0')}:00`;
-            
-            // Seleziona lo slot
             selectedSlots.add(slotId.toString());
             slotElement.classList.remove('slot-available');
             slotElement.classList.add('slot-selected');
-            slotElement.title = 'Click per deselezionare';
-            
-            // Aggiorna SlotManager se disponibile
+            slotElement.title = 'Selezionato';
+
             if (window.slotManager) {
                 window.slotManager.selectSlot(slotId.toString());
             }
-            
-            console.log(`✅ Slot ${orario} (ID: ${slotId}) selezionato e reso blu`);
-        } else {
-            console.log(`⚠️ Slot ${slotId} non disponibile o già selezionato`);
         }
     }
 }
 
-// Aggiorna UI dopo selezione
+// Aggiorna UI dopo selezione (VERSIONE SEMPLIFICATA)
 async function updateSelectionUI() {
-    console.log('🔄 Aggiorno UI selezione, slot selezionati:', selectedSlots.size);
-    
+    const btnBook = document.getElementById('btnBook');
+
     if (selectedSlots.size === 0) {
-        // Nessuno slot selezionato
         hideSummary();
         hideTimeSelectionMessage();
-        document.getElementById('btnBook').disabled = true;
-        document.getElementById('btnBook').textContent = 'Seleziona uno slot';
+        btnBook.disabled = true;
+        btnBook.textContent = 'Seleziona uno slot';
         return;
     }
 
-    // Calcola intervallo di tempo basato sugli orari reali
+    // Calcola intervallo di tempo
     const sortedSlots = Array.from(selectedSlots).sort((a, b) => parseInt(a) - parseInt(b));
     const firstSlot = Math.min(...sortedSlots.map(s => parseInt(s)));
     const lastSlot = Math.max(...sortedSlots.map(s => parseInt(s)));
-    
-    // Converti slot ID in orari reali (slot 1 = 09:00, slot 2 = 10:00, etc.)
+
     const firstHour = firstSlot + 8; // slot 1 = 9:00, slot 2 = 10:00
     const lastHour = lastSlot + 9;   // slot 1 = 10:00, slot 2 = 11:00
-    
+
     window.selectedTimeInizio = `${firstHour.toString().padStart(2, '0')}:00`;
     window.selectedTimeFine = `${lastHour.toString().padStart(2, '0')}:00`;
-
-    console.log('⏰ Intervallo selezionato:', window.selectedTimeInizio, '→', window.selectedTimeFine);
-    console.log('📊 Slot selezionati:', selectedSlots.size, 'ore totali:', lastSlot - firstSlot + 1);
 
     // Mostra messaggio appropriato
     if (selectedSlots.size === 1) {
@@ -964,63 +833,51 @@ async function updateSelectionUI() {
         hideTimeSelectionMessage();
     }
 
-    // Controlla se l'utente è autenticato
+    // Controlla autenticazione
     const token = localStorage.getItem('token');
-
     if (!token) {
-        // Utente non autenticato
-        console.log('👤 Utente non autenticato, abilito bottone e mostro riepilogo');
-        document.getElementById('btnBook').disabled = false;
-        document.getElementById('btnBook').textContent = 'Prenota Ora (Login Richiesto)';
-        document.getElementById('btnBook').classList.remove('btn-secondary');
-        document.getElementById('btnBook').classList.add('btn-warning');
-
+        btnBook.disabled = false;
+        btnBook.textContent = 'Prenota Ora (Login Richiesto)';
+        btnBook.className = 'btn btn-warning';
         updateSummary();
         showSummary();
-        showInfo(`${selectedSlots.size} slot selezionati! Effettua il login per completare la prenotazione.`);
         return;
     }
 
-    // Utente autenticato: verifica disponibilità
+    // Verifica disponibilità per utenti autenticati
     const disponibile = await checkAvailability(window.selectedTimeInizio, window.selectedTimeFine);
-
     if (!disponibile) {
-        document.getElementById('btnBook').disabled = true;
-        document.getElementById('btnBook').textContent = 'Slot Non Disponibile';
-        showError('🚫 Alcuni slot non sono disponibili per l\'orario selezionato');
+        btnBook.disabled = true;
+        btnBook.textContent = 'Slot Non Disponibile';
+        btnBook.className = 'btn btn-danger';
         return;
     }
 
-    // Slot disponibili - abilita bottone
-    console.log('✅ Slot disponibili, abilito bottone Prenota Ora');
-    document.getElementById('btnBook').disabled = false;
-    document.getElementById('btnBook').textContent = `Prenota Ora (${selectedSlots.size} slot)`;
-    document.getElementById('btnBook').classList.remove('btn-warning', 'btn-secondary');
-    document.getElementById('btnBook').classList.add('btn-book');
-
+    // Slot disponibili
+    btnBook.disabled = false;
+    btnBook.textContent = `Prenota Ora (${selectedSlots.size} slot)`;
+    btnBook.className = 'btn btn-success';
     updateSummary();
     showSummary();
 }
 
-// Deseleziona tutti gli slot
+// Deseleziona tutti gli slot (VERSIONE SEMPLIFICATA)
 function clearAllSelections() {
-    console.log('🧹 Deseleziono tutti gli slot');
-    
     selectedSlots.clear();
     lastSelectedSlot = null;
-    
+
     document.querySelectorAll('.slot-button').forEach(slot => {
         if (slot.classList.contains('slot-selected')) {
             slot.classList.remove('slot-selected');
             slot.classList.add('slot-available');
-            slot.title = 'Click per selezionare (1 ora)';
+            slot.title = 'Disponibile';
         }
     });
-    
+
     updateSelectionUI();
 }
 
-// Undo ultima selezione
+// Undo ultima selezione (VERSIONE SEMPLIFICATA)
 function undoLastSelection() {
     if (selectedSlots.size > 0) {
         const lastSlot = Array.from(selectedSlots).pop();
@@ -1032,103 +889,61 @@ function undoLastSelection() {
     }
 }
 
-// Selezioni rapide preset
+// Selezioni rapide preset (VERSIONE SEMPLIFICATA)
 async function selectPreset(presetType) {
-    console.log('🎯 Selezione preset:', presetType);
-    
     clearAllSelections();
-    
+
     let startHour, endHour;
-    
+
     switch (presetType) {
-        case 'mattina':
-            startHour = 9;
-            endHour = 12;
-            break;
-        case 'pomeriggio':
-            startHour = 14;
-            endHour = 17;
-            break;
-        case 'giornata':
-            startHour = 9;
-            endHour = 17;
-            break;
-        case 'mezza-giornata':
-            startHour = 9;
-            endHour = 13;
-            break;
-        default:
-            return;
+        case 'mattina': startHour = 9; endHour = 12; break;
+        case 'pomeriggio': startHour = 14; endHour = 17; break;
+        case 'giornata': startHour = 9; endHour = 17; break;
+        case 'mezza-giornata': startHour = 9; endHour = 13; break;
+        default: return;
     }
-    
-    // Seleziona solo gli slot disponibili nel range
+
+    // Seleziona slot nel range
     for (let hour = startHour; hour <= endHour; hour++) {
-        // Converti orario in slot ID (9:00 = slot 1, 10:00 = slot 2, etc.)
         const slotId = hour - 8;
         const slotElement = document.querySelector(`[data-slot-id="${slotId}"]`);
-        
+
         if (slotElement && !slotElement.disabled && slotElement.classList.contains('slot-available')) {
-            const orario = `${hour.toString().padStart(2, '0')}:00`;
-            
-            // Seleziona lo slot
             selectedSlots.add(slotId.toString());
             slotElement.classList.remove('slot-available');
             slotElement.classList.add('slot-selected');
-            slotElement.title = 'Click per deselezionare';
-            
-            // Aggiorna SlotManager se disponibile
+            slotElement.title = 'Selezionato';
+
             if (window.slotManager) {
                 window.slotManager.selectSlot(slotId.toString());
             }
         }
     }
-    
+
     await updateSelectionUI();
 }
 
-// Blocca gli slot intermedi
-function blockIntermediateSlots(orarioInizio, orarioFine) {
-    const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
-    const orarioFineHour = parseInt(orarioFine.split(':')[0]);
+// Funzione rimossa: blockIntermediateSlots non più necessaria
 
-    document.querySelectorAll('.slot-button').forEach(slot => {
-        const orario = slot.textContent.trim();
-        const orarioHour = parseInt(orario.split(':')[0]);
-
-        if (orarioHour > orarioInizioHour && orarioHour < orarioFineHour) {
-            slot.classList.remove('slot-available', 'slot-selected');
-            slot.classList.add('slot-intermediate');
-            slot.disabled = true;
-            slot.title = 'Orario intermedio selezionato';
-        }
-    });
-}
-
-// Mostra messaggio per selezione orario
+// Mostra messaggio per selezione orario (VERSIONE SEMPLIFICATA)
 function showTimeSelectionMessage(message) {
-    // Implementa la logica per mostrare il messaggio
-    console.log('💬 Messaggio:', message);
-    
-    // Crea o aggiorna il messaggio nell'UI
     let messageElement = document.getElementById('timeSelectionMessage');
     if (!messageElement) {
         messageElement = document.createElement('div');
         messageElement.id = 'timeSelectionMessage';
         messageElement.className = 'alert alert-info mt-3';
-        messageElement.style.display = 'block';
-        
-        // Inserisci il messaggio dopo il container degli slot
+
         const timeSlotsContainer = document.getElementById('timeSlots');
         if (timeSlotsContainer) {
             timeSlotsContainer.parentNode.insertBefore(messageElement, timeSlotsContainer.nextSibling);
         }
     }
-    
+
     messageElement.innerHTML = `<i class="fas fa-info-circle me-2"></i>${message}`;
     messageElement.style.display = 'block';
 }
 
-// Nasconde il messaggio di selezione orario
+// Nasconde il messaggio di selezione orario (VERSIONE SEMPLIFICATA)
 function hideTimeSelectionMessage() {
     const messageElement = document.getElementById('timeSelectionMessage');
     if (messageElement) {
@@ -1136,39 +951,34 @@ function hideTimeSelectionMessage() {
     }
 }
 
-// Mostra errore
+// Mostra errore (VERSIONE SEMPLIFICATA)
 function showError(message) {
-    // Implementa la logica per mostrare l'errore
     console.error('❌ Errore:', message);
-}
-
-// Mostra messaggio informativo
-function showInfo(message) {
-    // Implementa la logica per mostrare il messaggio informativo
-    console.log('ℹ️ Info:', message);
-}
-
-// Calcola il prezzo della prenotazione
-function calculatePrice() {
-    if (selectedSlots.size === 0) {
-        return 0;
+    if (typeof window.showAlert === 'function') {
+        window.showAlert(message, 'error');
+    } else {
+        alert('Errore: ' + message);
     }
-
-    // Prezzo base per ora (€10/ora)
-    const prezzoPerOra = 10;
-    const prezzoTotale = selectedSlots.size * prezzoPerOra;
-
-    console.log(`⏰ Slot selezionati: ${selectedSlots.size} ore`);
-    console.log(`💰 Prezzo: ${selectedSlots.size} ore × €${prezzoPerOra} = €${prezzoTotale}`);
-
-    return prezzoTotale;
 }
 
-// Aggiorna riepilogo
-function updateSummary() {
-    console.log('📋 Aggiornamento riepilogo');
+// Mostra messaggio informativo (VERSIONE SEMPLIFICATA)
+function showInfo(message) {
+    console.log('ℹ️ Info:', message);
+    if (typeof window.showAlert === 'function') {
+        window.showAlert(message, 'info');
+    }
+}
 
-    // Aggiorna i campi del riepilogo
+// Calcola il prezzo della prenotazione (VERSIONE SEMPLIFICATA)
+function calculatePrice() {
+    if (selectedSlots.size === 0) return 0;
+
+    const prezzoPerOra = 10; // €10/ora
+    return selectedSlots.size * prezzoPerOra;
+}
+
+// Aggiorna riepilogo (VERSIONE SEMPLIFICATA)
+function updateSummary() {
     const summarySede = document.getElementById('summarySede');
     const summaryStanza = document.getElementById('summaryStanza');
     const summaryData = document.getElementById('summaryData');
@@ -1178,58 +988,40 @@ function updateSummary() {
     if (summarySede) summarySede.textContent = window.selectedSede ? window.selectedSede.nome : '-';
     if (summaryStanza) summaryStanza.textContent = window.selectedSpazio ? window.selectedSpazio.nome : '-';
     if (summaryData) summaryData.textContent = window.selectedDateInizio ? window.selectedDateInizio.toLocaleDateString('it-IT') : '-';
-    if (summaryOrario) {
-        if (window.selectedTimeInizio && window.selectedTimeFine) {
-            const oreTotali = selectedSlots.size;
-            summaryOrario.textContent = `${window.selectedTimeInizio} - ${window.selectedTimeFine} (${oreTotali} ${oreTotali === 1 ? 'ora' : 'ore'})`;
-        } else {
-            summaryOrario.textContent = '-';
-        }
+
+    if (summaryOrario && window.selectedTimeInizio && window.selectedTimeFine) {
+        const oreTotali = selectedSlots.size;
+        summaryOrario.textContent = `${window.selectedTimeInizio} - ${window.selectedTimeFine} (${oreTotali} ${oreTotali === 1 ? 'ora' : 'ore'})`;
+    } else if (summaryOrario) {
+        summaryOrario.textContent = '-';
     }
 
-    // Calcola il prezzo reale
     if (summaryPrezzo) {
         const prezzo = calculatePrice();
         summaryPrezzo.textContent = `€${prezzo.toFixed(2)}`;
-        console.log('💰 Prezzo calcolato:', prezzo);
     }
 }
 
-// Mostra riepilogo
+// Mostra riepilogo (VERSIONE SEMPLIFICATA)
 function showSummary() {
-    console.log('📋 Mostro riepilogo');
     const summaryCard = document.getElementById('summaryCard');
     if (summaryCard) {
         summaryCard.classList.remove('hidden');
         summaryCard.classList.add('active');
-
-        // Aggiorna il riepilogo con i dati attuali
         updateSummary();
 
-        // ✅ ANIMAZIONE: Scorri la pagina verso il basso per mostrare il riepilogo
+        // Scroll fluido verso il riepilogo
         setTimeout(() => {
-            console.log('🎬 Avvio animazione scorrimento pagina verso il basso...');
-
-            // Calcola la posizione del riepilogo
             const summaryPosition = summaryCard.offsetTop;
             const windowHeight = window.innerHeight;
-            const scrollTarget = summaryPosition - (windowHeight * 0.2); // Mostra con 20% di margine sopra
-
-            // Scorri con animazione fluida
-            window.scrollTo({
-                top: scrollTarget,
-                behavior: 'smooth',
-                duration: 1000
-            });
-
-            console.log('✅ Animazione scorrimento completata, riepilogo ora visibile');
-        }, 300); // Aspetta 300ms per permettere all'animazione del riepilogo di iniziare
+            const scrollTarget = summaryPosition - (windowHeight * 0.2);
+            window.scrollTo({ top: scrollTarget, behavior: 'smooth' });
+        }, 300);
     }
 }
 
-// Nasconde riepilogo
+// Nasconde riepilogo (VERSIONE SEMPLIFICATA)
 function hideSummary() {
-    console.log('📋 Nascondo riepilogo');
     const summaryCard = document.getElementById('summaryCard');
     if (summaryCard) {
         summaryCard.classList.remove('active');
@@ -1237,7 +1029,7 @@ function hideSummary() {
     }
 }
 
-// Funzione helper per ottenere headers di autenticazione
+// Funzione helper per ottenere headers di autenticazione (VERSIONE SEMPLIFICATA)
 function getAuthHeaders() {
     const token = localStorage.getItem('token');
     return {
@@ -1246,107 +1038,15 @@ function getAuthHeaders() {
     };
 }
 
-// Funzione per mostrare il modal di autenticazione
+// Funzione per mostrare il modal di autenticazione (VERSIONE SEMPLIFICATA)
 function showAuthModal() {
-    console.log('🔐 Mostro modal di autenticazione elegante');
-
-    // Crea il modal HTML se non esiste
-    if (!document.getElementById('authModal')) {
-        const modalHTML = `
-            <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                    <div class="modal-content auth-modal-content">
-                        <div class="modal-header auth-modal-header">
-                            <div class="d-flex align-items-center">
-                                <div class="auth-icon-container me-3">
-                                    <i class="fas fa-lock-open auth-icon"></i>
-                                </div>
-                                <div>
-                                    <h4 class="modal-title mb-0 text-white" id="authModalLabel">Autenticazione Richiesta</h4>
-                                    <p class="auth-subtitle mb-0">Per completare la prenotazione devi effettuare il login o registrarti</p>
-                                </div>
-                            </div>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        
-                        <div class="modal-body auth-modal-body">
-                            <!-- Riquadro riepilogo elegante -->
-                            <div class="auth-summary-card">
-                                <div class="auth-summary-header">
-                                    <i class="fas fa-calendar-check me-2"></i>
-                                    <span>Riepilogo Prenotazione</span>
-                                </div>
-                                <div class="auth-summary-content">
-                                    <div class="auth-summary-row">
-                                        <div class="auth-summary-label">
-                                            <i class="fas fa-building me-2"></i>
-                                            <span>Sede:</span>
-                                        </div>
-                                        <div class="auth-summary-value">${window.selectedSede ? window.selectedSede.nome : 'Non selezionata'}</div>
-                                    </div>
-                                    <div class="auth-summary-row">
-                                        <div class="auth-summary-label">
-                                            <i class="fas fa-door-open me-2"></i>
-                                            <span>Spazio:</span>
-                                        </div>
-                                        <div class="auth-summary-value">${window.selectedSpazio ? window.selectedSpazio.nome : 'Non selezionato'}</div>
-                                    </div>
-                                    <div class="auth-summary-row">
-                                        <div class="auth-summary-label">
-                                            <i class="fas fa-calendar me-2"></i>
-                                            <span>Data:</span>
-                                        </div>
-                                        <div class="auth-summary-value">${window.selectedDateInizio ? window.selectedDateInizio.toLocaleDateString('it-IT') : 'Non selezionata'}</div>
-                                    </div>
-                                    <div class="auth-summary-row">
-                                        <div class="auth-summary-label">
-                                            <i class="fas fa-clock me-2"></i>
-                                            <span>Orario:</span>
-                                        </div>
-                                        <div class="auth-summary-value">${window.selectedTimeInizio ? window.selectedTimeInizio + ' - ' + window.selectedTimeFine : 'Non selezionato'}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Messaggio informativo elegante -->
-                            <div class="auth-info-message">
-                                <div class="auth-info-icon">
-                                    <i class="fas fa-info-circle"></i>
-                                </div>
-                                <div class="auth-info-text">
-                                    <strong>Perché devo registrarmi?</strong>
-                                    <p>La registrazione ti permette di gestire le tue prenotazioni, ricevere conferme e accedere a servizi esclusivi.</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="modal-footer auth-modal-footer">
-                            <button type="button" class="btn btn-outline-secondary auth-btn-cancel" data-bs-dismiss="modal">
-                                <i class="fas fa-times me-2"></i>
-                                Annulla
-                            </button>
-                            <button type="button" class="btn btn-primary auth-btn-login" onclick="goToLogin()">
-                                <i class="fas fa-sign-in-alt me-2"></i>
-                                Vai al Login
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-    }
-
-    // Mostra il modal
-    const modal = new bootstrap.Modal(document.getElementById('authModal'));
-    modal.show();
+    // Reindirizza direttamente al login
+    window.location.href = '/login.html';
 }
 
-// Funzione per andare al login
+// Funzione per andare al login (VERSIONE SEMPLIFICATA)
 function goToLogin() {
-    // ✅ Salva i dati della selezione nel localStorage per ripristinarli dopo il login
-    // Mantieni il timezone locale invece di convertire in UTC
+    // Salva dati selezione per post-login
     const formatDate = (date) => {
         if (!date) return null;
         const year = date.getFullYear();
@@ -1364,40 +1064,26 @@ function goToLogin() {
         orarioFine: window.selectedTimeFine
     };
 
-    console.log('💾 Salvando dati prenotazione per post-login:', selectionData);
     localStorage.setItem('pendingPrenotazione', JSON.stringify(selectionData));
-
-    // ✅ SALVA REDIRECT A PAGAMENTO DOPO LOGIN
     localStorage.setItem('redirectAfterLogin', '/pagamento.html');
-    console.log('🔄 Redirect dopo login impostato a: /pagamento.html');
-
-    // Reindirizza alla pagina di login
     window.location.href = '/login.html';
 }
 
-// ✅ FUNZIONE PER RIPRISTINARE DATI POST-LOGIN
+// Funzione per ripristinare dati post-login (VERSIONE SEMPLIFICATA)
 async function restorePendingPrenotazione() {
     const pendingData = localStorage.getItem('pendingPrenotazione');
     const redirectUrl = localStorage.getItem('redirectAfterLogin');
 
     if (pendingData && redirectUrl) {
-        console.log('🔄 Ripristino dati prenotazione in attesa:', pendingData);
-
         try {
             const data = JSON.parse(pendingData);
-
-            // Ripristina i dati selezionati
             if (data.sede && data.spazio && data.dataInizio && data.orarioInizio) {
-                console.log('✅ Dati prenotazione ripristinati, creo prenotazione...');
-
-                // Crea la prenotazione nel database
+                // Crea prenotazione
                 const prenotazioneData = {
                     id_spazio: data.spazio,
                     data_inizio: new Date(`${data.dataInizio}T${data.orarioInizio}:00`).toISOString(),
                     data_fine: new Date(`${data.dataFine}T${data.orarioFine}:00`).toISOString()
                 };
-
-                console.log('📝 Dati prenotazione da creare:', prenotazioneData);
 
                 const response = await fetch(`${CONFIG.API_BASE}/prenotazioni`, {
                     method: 'POST',
@@ -1408,65 +1094,38 @@ async function restorePendingPrenotazione() {
                     body: JSON.stringify(prenotazioneData)
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`Errore creazione prenotazione: ${errorData.error || response.status}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    localStorage.removeItem('pendingPrenotazione');
+                    localStorage.removeItem('redirectAfterLogin');
+                    window.location.href = `/pagamento.html?id_prenotazione=${result.id_prenotazione}`;
                 }
-
-                const result = await response.json();
-                console.log('✅ Prenotazione creata dopo login:', result);
-
-                // Pulisci i dati dal localStorage
-                localStorage.removeItem('pendingPrenotazione');
-                localStorage.removeItem('redirectAfterLogin');
-
-                // Reindirizza alla pagina di pagamento con l'ID della prenotazione
-                window.location.href = `/pagamento.html?id_prenotazione=${result.id_prenotazione}`;
-                return;
             }
         } catch (error) {
-            console.error('❌ Errore nel ripristino dati prenotazione:', error);
-            // Pulisci i dati dal localStorage in caso di errore
+            console.error('❌ Errore ripristino prenotazione:', error);
             localStorage.removeItem('pendingPrenotazione');
             localStorage.removeItem('redirectAfterLogin');
         }
     }
 }
 
-// Funzione per verificare se l'utente può accedere a questa pagina
+// Funzione per verificare accesso utente (VERSIONE SEMPLIFICATA)
 function checkUserAccess() {
     const userStr = localStorage.getItem('user');
-
     if (userStr) {
         try {
             const user = JSON.parse(userStr);
-
-            // Se l'utente è gestore o amministratore, reindirizza alla dashboard
             if (user.ruolo === 'gestore' || user.ruolo === 'amministratore') {
-                console.log('🚫 Accesso negato: utente gestore/amministratore non può prenotare');
-
-                // Mostra messaggio di errore
-                showError('I gestori non possono effettuare prenotazioni. Verrai reindirizzato alla dashboard.');
-
-                // Reindirizza alla dashboard dopo 3 secondi
-                setTimeout(() => {
-                    window.location.href = '/dashboard.html';
-                }, 3000);
-
+                showError('I gestori non possono effettuare prenotazioni. Reindirizzamento alla dashboard...');
+                setTimeout(() => window.location.href = '/dashboard.html', 3000);
                 return false;
             }
-
-            console.log('✅ Accesso consentito per utente:', user.ruolo);
             return true;
-
         } catch (error) {
-            console.error('❌ Errore nel controllo accesso:', error);
             return true; // In caso di errore, permetti l'accesso
         }
     }
-
-    // Utente non loggato può accedere (verrà richiesto il login per prenotare)
-    return true;
+    return true; // Utente non loggato può accedere
 }
 
 

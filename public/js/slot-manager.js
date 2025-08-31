@@ -1,6 +1,6 @@
 /**
- * Slot Manager - Gestione bottoni slot in tempo reale con SSE
- * Sistema di colori e stati per gli slot disponibili/occupati/prenotati
+ * Slot Manager Semplificato - Gestione slot in tempo reale
+ * Versione ottimizzata con meno complessità e più performance
  */
 
 class SlotManager {
@@ -12,8 +12,8 @@ class SlotManager {
         this.currentDate = null;
         this.isConnected = false;
         this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 5;
-        this.reconnectDelay = 2000;
+        this.maxReconnectAttempts = 3; // Ridotto da 5 a 3
+        this.reconnectDelay = 1000; // Ridotto da 2000 a 1000
     }
 
     // Inizializza il sistema SSE
@@ -214,70 +214,47 @@ class SlotManager {
         });
     }
 
-    // Aggiorna singolo bottone slot
+    // Aggiorna singolo bottone slot (VERSIONE SEMPLIFICATA)
     updateSlotButton(slotId, status, slotData = {}) {
-        console.log(`🎯 SlotManager - Aggiornamento bottone slot ${slotId} con status: ${status}`, slotData);
+        // Trova il bottone (logica semplificata)
+        const button = document.querySelector(`[data-slot-id="${slotId}"]`) ||
+            document.querySelector(`[data-orario="${slotId}"]`);
 
-        // Cerca il bottone per data-slot-id o per orario
-        let button = document.querySelector(`[data-slot-id="${slotId}"]`);
         if (!button) {
-            // Prova a cercare per orario se slotId è un orario
-            button = document.querySelector(`[data-orario="${slotId}"]`);
-        }
-        if (!button) {
-            // Prova a cercare per testo del bottone (orario)
-            const allButtons = document.querySelectorAll('.slot-button');
-            button = Array.from(allButtons).find(btn => btn.textContent.trim() === slotId);
-        }
-        if (!button) {
-            console.warn('⚠️ SlotManager - Bottone non trovato per slot:', slotId);
-            console.log('🔍 Cercando bottoni disponibili:', document.querySelectorAll('[data-slot-id], [data-orario]'));
+            console.warn('⚠️ Bottone non trovato per slot:', slotId);
             return;
         }
 
-        // Rimuovi SOLO le classi Bootstrap, mantieni le nostre classi personalizzate
-        button.classList.remove('btn-success', 'btn-danger', 'btn-warning', 'btn-secondary', 'btn-outline-primary');
-        // NON rimuovere le nostre classi slot-* personalizzate!
+        // Rimuovi tutte le classi di stato precedenti
+        button.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected');
 
-        // Applica classe e stato in base al status
+        // Applica nuovo stato (solo 4 stati principali)
         switch (status) {
             case 'available':
                 button.classList.add('slot-available');
                 button.disabled = false;
-                button.title = 'Slot disponibile';
+                button.title = 'Disponibile';
                 break;
-
             case 'booked':
                 button.classList.add('slot-booked');
                 button.disabled = true;
-                button.title = 'Slot prenotato';
+                button.title = 'Prenotato';
                 break;
-
             case 'occupied':
                 button.classList.add('slot-occupied');
                 button.disabled = true;
-                button.title = `Slot occupato (hold scade in ${slotData.hold_time_remaining || '?'} min)`;
+                button.title = 'Occupato';
                 break;
-
             case 'past':
                 button.classList.add('slot-past');
                 button.disabled = true;
-                button.title = 'Orario passato';
+                button.title = 'Passato';
                 break;
-
             default:
                 button.classList.add('slot-available');
                 button.disabled = false;
-                button.title = 'Stato sconosciuto';
+                button.title = 'Disponibile';
         }
-
-        // Aggiungi animazione per cambi di stato
-        button.classList.add('slot-status-changed');
-        setTimeout(() => {
-            button.classList.remove('slot-status-changed');
-        }, 500);
-
-        console.log(`🔄 SlotManager - Bottone ${slotId} aggiornato a: ${status}`);
     }
 
     // Gestisce errori SSE
@@ -295,20 +272,16 @@ class SlotManager {
         }
     }
 
-    // Fallback a polling se SSE fallisce
+    // Fallback semplificato - ricarica stato una volta
     fallbackToPolling() {
-        console.log('🔄 SlotManager - Attivazione fallback polling');
-
-        // Polling ogni 10 secondi
-        this.pollingInterval = setInterval(() => {
-            this.loadInitialSlotsStatus();
-        }, 10000);
+        console.log('🔄 SlotManager - Fallback: ricarico stato slot');
+        this.loadInitialSlotsStatus();
     }
 
-    // Seleziona uno slot (cambia colore a blu)
+    // Seleziona uno slot (VERSIONE SEMPLIFICATA)
     selectSlot(slotId) {
         const button = document.querySelector(`[data-slot-id="${slotId}"]`);
-        if (!button) return;
+        if (!button || button.disabled) return;
 
         // Rimuovi selezione precedente
         document.querySelectorAll('.slot-selected').forEach(btn => {
@@ -319,25 +292,17 @@ class SlotManager {
         // Seleziona nuovo slot
         button.classList.remove('slot-available');
         button.classList.add('slot-selected');
-        button.title = 'Slot selezionato';
-
-        console.log('✅ SlotManager - Slot selezionato:', slotId);
+        button.title = 'Selezionato';
     }
 
-    // Deseleziona uno slot
+    // Deseleziona uno slot (VERSIONE SEMPLIFICATA)
     deselectSlot(slotId) {
         const button = document.querySelector(`[data-slot-id="${slotId}"]`);
         if (!button) return;
 
-        button.classList.remove('btn-primary', 'slot-selected');
-
-        // Ripristina stato originale
-        const slotStatus = this.slotsStatus.get(slotId);
-        if (slotStatus) {
-            this.updateSlotButton(slotId, slotStatus.status, slotStatus);
-        }
-
-        console.log('❌ SlotManager - Slot deselezionato:', slotId);
+        button.classList.remove('slot-selected');
+        button.classList.add('slot-available');
+        button.title = 'Disponibile';
     }
 
     // Ottieni stato corrente di uno slot
@@ -368,42 +333,20 @@ class SlotManager {
         return selected;
     }
 
-    // Pulisci e chiudi connessioni
+    // Pulisci e chiudi connessioni (VERSIONE SEMPLIFICATA)
     cleanup() {
         if (this.eventSource) {
             this.eventSource.close();
             this.eventSource = null;
         }
-
-        if (this.pollingInterval) {
-            clearInterval(this.pollingInterval);
-            this.pollingInterval = null;
-        }
-
         this.isConnected = false;
         console.log('🧹 SlotManager - Pulizia completata');
     }
 
-    // Metodo per gestire utenti non autenticati
+    // Gestione utenti non autenticati (VERSIONE SEMPLIFICATA)
     handleUnauthenticatedUser() {
-        console.log('👤 SlotManager - Gestione utente non autenticato');
-
-        // Per utenti non autenticati, disabilita la prenotazione
-        // ma mantieni la visualizzazione dello stato reale degli slot
-        const allButtons = document.querySelectorAll('[data-slot-id]');
-        allButtons.forEach(button => {
-            if (button.classList.contains('slot-available')) {
-                button.title = 'Slot disponibile (login richiesto per prenotazione)';
-            }
-        });
-    }
-
-    // Riconnetti manualmente
-    reconnect() {
-        console.log('🔄 SlotManager - Riconnessione manuale');
-        this.cleanup();
-        this.reconnectAttempts = 0;
-        this.connectSSE();
+        console.log('👤 SlotManager - Utente non autenticato');
+        // Gli slot rimangono visibili ma la prenotazione richiede login
     }
 }
 
