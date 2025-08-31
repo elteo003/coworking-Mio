@@ -12,6 +12,10 @@ let datePicker = null;
 // Nuovo Slot Manager per gestione real-time degli slot con SSE
 let slotManager = null;
 
+// Gestione selezione multipla slot
+let selectedSlots = new Set(); // Set per mantenere gli slot selezionati
+let lastSelectedSlot = null; // Ultimo slot selezionato per selezione con Shift
+
 // Inizializza il nuovo Slot Manager
 function initializeSlotManager() {
     console.log('🚀 initializeSlotManager chiamata');
@@ -36,6 +40,9 @@ function initializeSlotManager() {
         if (slotManager) {
             slotManager.cleanup();
         }
+        
+        // Reset selezione slot
+        clearAllSelections();
 
         // PRIMA crea i bottoni degli slot
         console.log('🔨 STEP 1: Creo i bottoni degli slot...');
@@ -695,8 +702,8 @@ function createTimeSlots() {
         slot.dataset.slotId = i + 1; // ID univoco per ogni slot
 
         // Aggiungi event listener per tutti gli slot
-        slot.addEventListener('click', () => selectTimeSlot(orario, slot));
-        slot.title = 'Clicca per selezionare orario inizio/fine';
+        slot.addEventListener('click', (event) => selectTimeSlot(orario, slot, event));
+        slot.title = 'Click per selezionare (1 ora)';
 
         timeSlotsContainer.appendChild(slot);
         console.log('✅ Slot creato e aggiunto:', slot);
@@ -715,6 +722,12 @@ function createTimeSlots() {
     console.log('🎯 Container slot mostrato, slot creati:', timeSlotsContainer.children.length);
     console.log('🔍 Bottoni disponibili nel DOM:', document.querySelectorAll('[data-slot-id]').length);
     console.log('🔍 Bottoni disponibili nel DOM:', document.querySelectorAll('[data-slot-id]'));
+    
+    // Mostra i controlli rapidi
+    const quickControls = document.getElementById('quickControls');
+    if (quickControls) {
+        quickControls.style.display = 'block';
+    }
 }
 
 // Mostra gli slot temporali disponibili (versione originale per compatibilità)
@@ -751,8 +764,8 @@ async function displayTimeSlots(disponibilita) {
         slot.dataset.slotId = i + 1; // ID univoco per ogni slot
 
         // Aggiungi event listener per tutti gli slot
-        slot.addEventListener('click', () => selectTimeSlot(orario, slot));
-        slot.title = 'Clicca per selezionare orario inizio/fine';
+        slot.addEventListener('click', (event) => selectTimeSlot(orario, slot, event));
+        slot.title = 'Click per selezionare (1 ora)';
 
         timeSlotsContainer.appendChild(slot);
         console.log('✅ Slot creato e aggiunto:', slot);
@@ -781,84 +794,157 @@ async function displayTimeSlots(disponibilita) {
 
     if (orariApertura.length === 0) {
         timeSlotsContainer.innerHTML = '<p class="text-muted">Nessun orario disponibile per questa data</p>';
+        
+        // Nascondi i controlli rapidi
+        const quickControls = document.getElementById('quickControls');
+        if (quickControls) {
+            quickControls.style.display = 'none';
+        }
     }
 }
 
-// Seleziona uno slot temporale (NUOVA LOGICA: selezione singola per intervallo di 1 ora)
-async function selectTimeSlot(orario, slotElement) {
-    console.log('🎯 selectTimeSlot chiamata:', { orario, slotElement, classList: slotElement.classList.toString() });
+// Seleziona uno slot temporale (NUOVA LOGICA: selezione multipla avanzata)
+async function selectTimeSlot(orario, slotElement, event = null) {
+    console.log('🎯 selectTimeSlot chiamata:', { 
+        orario, 
+        slotElement, 
+        classList: slotElement.classList.toString(),
+        event: event ? { shiftKey: event.shiftKey, ctrlKey: event.ctrlKey, altKey: event.altKey } : null
+    });
 
-    // Se è già selezionato, lo deseleziona
-    if (slotElement.classList.contains('slot-selected')) {
+    const slotId = slotElement.dataset.slotId;
+    const isSelected = selectedSlots.has(slotId);
+    const isShiftClick = event && event.shiftKey;
+    const isCtrlClick = event && event.ctrlKey;
+    const isAltClick = event && event.altKey;
+
+    // Gestione deselezione
+    if (isSelected && !isShiftClick && !isCtrlClick && !isAltClick) {
         console.log('🔄 Deseleziono slot:', orario);
-        slotElement.classList.remove('slot-selected');
-        window.selectedTimeInizio = null;
-        window.selectedTimeFine = null;
-
-        // Rimuovi tutti i blocchi e ripristina gli slot
-        document.querySelectorAll('.slot-button').forEach(slot => {
-            // Rimuovi tutte le classi di stato
-            slot.classList.remove('slot-selected', 'slot-intermediate', 'slot-occupied', 'slot-booked', 'slot-expired', 'slot-past-time');
-            // Ripristina la classe 'slot-available' per tutti gli slot
-            slot.classList.add('slot-available');
-            // Ripristina il titolo originale
-            slot.title = 'Clicca per prenotare questo slot (1 ora)';
-        });
-
-        hideSummary();
-        hideTimeSelectionMessage();
+        deselectSlot(slotId, slotElement);
         return;
     }
 
-    // NUOVA LOGICA: Un click seleziona automaticamente l'intervallo di 1 ora
-    console.log('🎯 Selezione singola slot per 1 ora:', orario);
-    
-    // Rimuovi selezione precedente
-    document.querySelectorAll('.slot-selected').forEach(s => {
-        s.classList.remove('slot-selected');
-        s.classList.add('slot-available');
-    });
-
-    // Seleziona il slot usando il nuovo SlotManager
-    if (window.slotManager) {
-        window.slotManager.selectSlot(slotElement.dataset.slotId);
+    // Gestione selezione con Shift (intervallo continuo)
+    if (isShiftClick && lastSelectedSlot && lastSelectedSlot !== slotId) {
+        console.log('🎯 Selezione intervallo con Shift:', lastSelectedSlot, '→', slotId);
+        selectSlotRange(lastSelectedSlot, slotId);
+        return;
     }
 
-    // Aggiungi la classe per lo slot selezionato
+    // Gestione selezione con Ctrl (aggiungi/rimuovi singoli)
+    if (isCtrlClick) {
+        console.log('🎯 Selezione con Ctrl:', orario);
+        if (isSelected) {
+            deselectSlot(slotId, slotElement);
+        } else {
+            selectSingleSlot(slotId, slotElement, orario);
+        }
+        return;
+    }
+
+    // Gestione selezione normale (singola o multipla)
+    if (isSelected) {
+        deselectSlot(slotId, slotElement);
+    } else {
+        selectSingleSlot(slotId, slotElement, orario);
+    }
+
+    // Aggiorna ultimo slot selezionato
+    lastSelectedSlot = slotId;
+
+    // Verifica disponibilità e aggiorna UI
+    await updateSelectionUI();
+}
+
+// Seleziona un singolo slot
+function selectSingleSlot(slotId, slotElement, orario) {
+    console.log('✅ Seleziono slot singolo:', orario);
+    
+    selectedSlots.add(slotId);
     slotElement.classList.remove('slot-available');
     slotElement.classList.add('slot-selected');
-
-    // Imposta automaticamente l'intervallo di 1 ora
-    const orarioInizio = parseInt(orario.split(':')[0]);
-    const orarioFine = orarioInizio + 1;
+    slotElement.title = 'Click per deselezionare';
     
-    window.selectedTimeInizio = orario;
-    window.selectedTimeFine = `${orarioFine.toString().padStart(2, '0')}:00`;
+    // Aggiorna SlotManager se disponibile
+    if (window.slotManager) {
+        window.slotManager.selectSlot(slotId);
+    }
+}
 
-    console.log('⏰ Slot selezionato:', window.selectedTimeInizio, '→', window.selectedTimeFine);
-    console.log('🎨 Slot selezionato, classi:', slotElement.classList.toString());
+// Deseleziona un slot
+function deselectSlot(slotId, slotElement) {
+    console.log('❌ Deseleziono slot:', slotElement.textContent.trim());
+    
+    selectedSlots.delete(slotId);
+    slotElement.classList.remove('slot-selected');
+    slotElement.classList.add('slot-available');
+    slotElement.title = 'Click per selezionare (1 ora)';
+    
+    // Aggiorna SlotManager se disponibile
+    if (window.slotManager) {
+        window.slotManager.deselectSlot(slotId);
+    }
+}
 
-    // VERIFICA DISPONIBILITÀ FINALE PRIMA DI ABILITARE IL BOTTONE
-    console.log('🔍 Verifica disponibilità finale prima di abilitare il bottone...');
+// Seleziona un intervallo di slot
+function selectSlotRange(startSlotId, endSlotId) {
+    console.log('🎯 Seleziono intervallo:', startSlotId, '→', endSlotId);
+    
+    const startHour = parseInt(startSlotId);
+    const endHour = parseInt(endSlotId);
+    const minHour = Math.min(startHour, endHour);
+    const maxHour = Math.max(startHour, endHour);
+    
+    // Seleziona tutti gli slot nell'intervallo
+    for (let hour = minHour; hour <= maxHour; hour++) {
+        const slotElement = document.querySelector(`[data-slot-id="${hour}"]`);
+        if (slotElement && !slotElement.disabled && slotElement.classList.contains('slot-available')) {
+            const orario = `${hour.toString().padStart(2, '0')}:00`;
+            selectSingleSlot(hour.toString(), slotElement, orario);
+        }
+    }
+}
+
+// Aggiorna UI dopo selezione
+async function updateSelectionUI() {
+    console.log('🔄 Aggiorno UI selezione, slot selezionati:', selectedSlots.size);
+    
+    if (selectedSlots.size === 0) {
+        // Nessuno slot selezionato
+        hideSummary();
+        hideTimeSelectionMessage();
+        document.getElementById('btnBook').disabled = true;
+        document.getElementById('btnBook').textContent = 'Seleziona uno slot';
+        return;
+    }
+
+    // Calcola intervallo di tempo
+    const sortedSlots = Array.from(selectedSlots).sort((a, b) => parseInt(a) - parseInt(b));
+    const firstSlot = Math.min(...sortedSlots.map(s => parseInt(s)));
+    const lastSlot = Math.max(...sortedSlots.map(s => parseInt(s)));
+    
+    window.selectedTimeInizio = `${firstSlot.toString().padStart(2, '0')}:00`;
+    window.selectedTimeFine = `${(lastSlot + 1).toString().padStart(2, '0')}:00`;
+
+    console.log('⏰ Intervallo selezionato:', window.selectedTimeInizio, '→', window.selectedTimeFine);
+    console.log('📊 Slot selezionati:', selectedSlots.size, 'ore totali:', lastSlot - firstSlot + 1);
 
     // Controlla se l'utente è autenticato
     const token = localStorage.getItem('token');
 
     if (!token) {
-        // ✅ UTENTE NON AUTENTICATO: Stessa esperienza ma con modal di login
+        // Utente non autenticato
         console.log('👤 Utente non autenticato, abilito bottone e mostro riepilogo');
         document.getElementById('btnBook').disabled = false;
         document.getElementById('btnBook').textContent = 'Prenota Ora (Login Richiesto)';
         document.getElementById('btnBook').classList.remove('btn-secondary');
         document.getElementById('btnBook').classList.add('btn-warning');
 
-        // ✅ MOSTRA RIEPILOGO ANCHE PER UTENTI NON AUTENTICATI
         updateSummary();
         showSummary();
         hideTimeSelectionMessage();
-
-        // Mostra messaggio informativo
-        showInfo('Slot selezionato! Effettua il login per completare la prenotazione.');
+        showInfo(`${selectedSlots.size} slot selezionati! Effettua il login per completare la prenotazione.`);
         return;
     }
 
@@ -866,26 +952,93 @@ async function selectTimeSlot(orario, slotElement) {
     const disponibile = await checkAvailability(window.selectedTimeInizio, window.selectedTimeFine);
 
     if (!disponibile) {
-        // Slot non disponibile, disabilita il bottone e mostra errore
         document.getElementById('btnBook').disabled = true;
         document.getElementById('btnBook').textContent = 'Slot Non Disponibile';
-        showError('🚫 Slot non disponibile per l\'orario selezionato');
+        showError('🚫 Alcuni slot non sono disponibili per l\'orario selezionato');
         return;
     }
 
-    // ✅ SLOT DISPONIBILI - ABILITA IL BOTTONE!
+    // Slot disponibili - abilita bottone
     console.log('✅ Slot disponibili, abilito bottone Prenota Ora');
     document.getElementById('btnBook').disabled = false;
-    document.getElementById('btnBook').textContent = 'Prenota Ora';
+    document.getElementById('btnBook').textContent = `Prenota Ora (${selectedSlots.size} slot)`;
     document.getElementById('btnBook').classList.remove('btn-warning', 'btn-secondary');
     document.getElementById('btnBook').classList.add('btn-book');
 
-    // Aggiorna il riepilogo
     updateSummary();
-
-    // Mostra il riepilogo
     showSummary();
     hideTimeSelectionMessage();
+}
+
+// Deseleziona tutti gli slot
+function clearAllSelections() {
+    console.log('🧹 Deseleziono tutti gli slot');
+    
+    selectedSlots.clear();
+    lastSelectedSlot = null;
+    
+    document.querySelectorAll('.slot-button').forEach(slot => {
+        if (slot.classList.contains('slot-selected')) {
+            slot.classList.remove('slot-selected');
+            slot.classList.add('slot-available');
+            slot.title = 'Click per selezionare (1 ora)';
+        }
+    });
+    
+    updateSelectionUI();
+}
+
+// Undo ultima selezione
+function undoLastSelection() {
+    if (selectedSlots.size > 0) {
+        const lastSlot = Array.from(selectedSlots).pop();
+        const slotElement = document.querySelector(`[data-slot-id="${lastSlot}"]`);
+        if (slotElement) {
+            deselectSlot(lastSlot, slotElement);
+            updateSelectionUI();
+        }
+    }
+}
+
+// Selezioni rapide preset
+function selectPreset(presetType) {
+    console.log('🎯 Selezione preset:', presetType);
+    
+    clearAllSelections();
+    
+    let startHour, endHour;
+    
+    switch (presetType) {
+        case 'mattina':
+            startHour = 9;
+            endHour = 12;
+            break;
+        case 'pomeriggio':
+            startHour = 14;
+            endHour = 17;
+            break;
+        case 'giornata':
+            startHour = 9;
+            endHour = 17;
+            break;
+        case 'mezza-giornata':
+            startHour = 9;
+            endHour = 13;
+            break;
+        default:
+            return;
+    }
+    
+    // Seleziona tutti gli slot nel range
+    for (let hour = startHour; hour <= endHour; hour++) {
+        const slotElement = document.querySelector(`[data-slot-id="${hour}"]`);
+        if (slotElement && !slotElement.disabled && slotElement.classList.contains('slot-available')) {
+            const orario = `${hour.toString().padStart(2, '0')}:00`;
+            selectSingleSlot(hour.toString(), slotElement, orario);
+        }
+    }
+    
+    updateSelectionUI();
 }
 
 // Blocca gli slot intermedi
@@ -952,21 +1105,16 @@ function showInfo(message) {
 
 // Calcola il prezzo della prenotazione
 function calculatePrice() {
-    if (!window.selectedTimeInizio || !window.selectedTimeFine) {
+    if (selectedSlots.size === 0) {
         return 0;
     }
 
-    // Calcola le ore totali
-    const orarioInizio = parseInt(window.selectedTimeInizio.split(':')[0]);
-    const orarioFine = parseInt(window.selectedTimeFine.split(':')[0]);
-    const oreTotali = orarioFine - orarioInizio;
-
     // Prezzo base per ora (€10/ora)
     const prezzoPerOra = 10;
-    const prezzoTotale = oreTotali * prezzoPerOra;
+    const prezzoTotale = selectedSlots.size * prezzoPerOra;
 
-    console.log(`⏰ Ore calcolate: ${orarioInizio}:00 - ${orarioFine}:00 = ${oreTotali} ore`);
-    console.log(`💰 Prezzo: ${oreTotali} ore × €${prezzoPerOra} = €${prezzoTotale}`);
+    console.log(`⏰ Slot selezionati: ${selectedSlots.size} ore`);
+    console.log(`💰 Prezzo: ${selectedSlots.size} ore × €${prezzoPerOra} = €${prezzoTotale}`);
 
     return prezzoTotale;
 }
@@ -985,7 +1133,14 @@ function updateSummary() {
     if (summarySede) summarySede.textContent = window.selectedSede ? window.selectedSede.nome : '-';
     if (summaryStanza) summaryStanza.textContent = window.selectedSpazio ? window.selectedSpazio.nome : '-';
     if (summaryData) summaryData.textContent = window.selectedDateInizio ? window.selectedDateInizio.toLocaleDateString('it-IT') : '-';
-    if (summaryOrario) summaryOrario.textContent = window.selectedTimeInizio && window.selectedTimeFine ? `${window.selectedTimeInizio} - ${window.selectedTimeFine} (1 ora)` : '-';
+    if (summaryOrario) {
+        if (window.selectedTimeInizio && window.selectedTimeFine) {
+            const oreTotali = selectedSlots.size;
+            summaryOrario.textContent = `${window.selectedTimeInizio} - ${window.selectedTimeFine} (${oreTotali} ${oreTotali === 1 ? 'ora' : 'ore'})`;
+        } else {
+            summaryOrario.textContent = '-';
+        }
+    }
 
     // Calcola il prezzo reale
     if (summaryPrezzo) {
