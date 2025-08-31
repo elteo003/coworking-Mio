@@ -291,6 +291,49 @@ app.get('/api/debug/sedi-test', async (req, res) => {
   }
 });
 
+// Endpoint di debug per popolare il database con dati di esempio
+app.post('/api/debug/populate-db', async (req, res) => {
+  try {
+    const pool = require('./db');
+    const fs = require('fs');
+    const path = require('path');
+
+    console.log('🔄 Popolamento database via API...');
+
+    // Leggi il file seed.sql
+    const seedPath = path.join(__dirname, '../../database/seed.sql');
+    const seedSQL = fs.readFileSync(seedPath, 'utf8');
+
+    // Esegui le query di seed
+    await pool.query(seedSQL);
+
+    // Verifica che i dati siano stati inseriti
+    const sediResult = await pool.query('SELECT COUNT(*) as count FROM Sede');
+    const spaziResult = await pool.query('SELECT COUNT(*) as count FROM Spazio');
+    const serviziResult = await pool.query('SELECT COUNT(*) as count FROM Servizio');
+
+    console.log('✅ Database popolato con successo!');
+
+    res.json({
+      message: 'Database populated successfully',
+      data: {
+        sedi: sediResult.rows[0].count,
+        spazi: spaziResult.rows[0].count,
+        servizi: serviziResult.rows[0].count
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Errore popolamento database:', error);
+    res.status(500).json({
+      error: 'Database population failed',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Endpoint di test per le route spazi
 app.get('/api/test-spazi', (req, res) => {
   res.json({
