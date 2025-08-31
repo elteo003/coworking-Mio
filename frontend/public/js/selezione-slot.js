@@ -217,7 +217,7 @@ function setAsStart(slotId, slotElement) {
     selectionState.allSelected.add(slotId);
 
     // Applica stile START
-    slotElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past');
+    slotElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past');
     slotElement.classList.add('slot-start');
     slotElement.title = 'Inizio selezione';
 
@@ -253,9 +253,11 @@ function setAsEnd(slotId, slotElement) {
     }
 
     // Applica stili
+    startElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past');
     startElement.classList.add('slot-start');
     startElement.title = 'Inizio selezione';
 
+    slotElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past');
     slotElement.classList.add('slot-end');
     slotElement.title = 'Fine selezione';
 
@@ -263,6 +265,7 @@ function setAsEnd(slotId, slotElement) {
     for (let id = minId + 1; id < maxId; id++) {
         const element = document.querySelector(`[data-slot-id="${id}"]`);
         if (element) {
+            element.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past');
             element.classList.add('slot-selected');
             element.title = 'Slot selezionato';
         }
