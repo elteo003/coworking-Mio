@@ -8,6 +8,8 @@ const { authenticateToken } = require('../middleware/auth');
 const socketService = require('../services/socketService');
 const redisService = require('../services/redisService');
 
+
+
 /**
  * Ottieni stato di tutti gli slot per uno spazio e data con Redis caching
  * GET /api/slots/:idSpazio/:date
@@ -67,6 +69,8 @@ async function getSlotsStatus(req, res) {
 async function fetchSlotsFromDatabase(idSpazio, date) {
     try {
         console.log(`🚀 fetchSlotsFromDatabase chiamato per spazio: ${idSpazio}, data: ${date}`);
+
+
 
         // Prima libera slot scaduti automaticamente (se le funzioni esistono)
         try {
