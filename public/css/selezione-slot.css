@@ -244,13 +244,12 @@ section::-webkit-scrollbar,
 }
 
 .time-slot.occupied {
-    background: var(--warning) !important;
+    background: #fd7e14 !important;
     color: white !important;
-    border-color: var(--warning) !important;
+    border-color: #e55100 !important;
     cursor: not-allowed !important;
     opacity: 0.8 !important;
-    animation: pulse-orange 2s infinite !important;
-    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3) !important;
+    box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3) !important;
 }
 
 .time-slot.booked {
@@ -300,7 +299,10 @@ div.slot-button.slot-occupied,
 .time-slot.occupied:focus,
 .slot-button.slot-occupied:focus,
 .time-slot.occupied:active,
-.slot-button.slot-occupied:active {
+.slot-button.slot-occupied:active,
+button.time-slot.occupied,
+input.time-slot.occupied,
+.btn.time-slot.occupied {
     background-color: #fd7e14 !important;
     background-image: none !important;
     color: white !important;
@@ -893,6 +895,15 @@ main {
     cursor: not-allowed !important;
     opacity: 0.8 !important;
     box-shadow: 0 0 8px rgba(253, 126, 20, 0.4) !important;
+}
+
+/* REGOLA ULTRA SPECIFICA per forzare bordo arancione */
+.slot-button.slot-occupied,
+.slot-button.slot-occupied:focus,
+.slot-button.slot-occupied:active,
+.slot-button.slot-occupied:hover {
+    border: 2px solid #e55100 !important;
+    border-color: #e55100 !important;
 }
 
 .slot-button.slot-booked {
