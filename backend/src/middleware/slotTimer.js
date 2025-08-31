@@ -55,23 +55,21 @@ async function updateExpiredSlots(req, res, next) {
 async function freeExpiredSlots() {
     try {
         const result = await pool.query(`
-            UPDATE slots 
-            SET status = 'available', 
-                expires_at = NULL, 
-                id_utente = NULL,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE status = 'occupied' 
+            UPDATE Prenotazione 
+            SET stato = 'disponibile', 
+                expires_at = NULL
+            WHERE stato = 'in attesa' 
             AND expires_at IS NOT NULL 
             AND expires_at < CURRENT_TIMESTAMP
-            RETURNING id, id_spazio
+            RETURNING id_prenotazione, id_spazio
         `);
 
         const freedSlots = result.rows;
 
         // Invia aggiornamenti real-time per ogni slot liberato
         freedSlots.forEach(slot => {
-            socketService.broadcastSlotUpdate(slot.id, 'available', {
-                id: slot.id,
+            socketService.broadcastSlotUpdate(slot.id_prenotazione, 'available', {
+                id: slot.id_prenotazione,
                 id_spazio: slot.id_spazio,
                 status: 'available'
             });
@@ -91,12 +89,11 @@ async function freeExpiredSlots() {
 async function updatePastSlots() {
     try {
         const result = await pool.query(`
-            UPDATE slots 
-            SET status = 'past',
-                updated_at = CURRENT_TIMESTAMP
-            WHERE status IN ('available', 'occupied') 
-            AND end_time < CURRENT_TIMESTAMP
-            RETURNING id
+            UPDATE Prenotazione 
+            SET stato = 'passato'
+            WHERE stato IN ('disponibile', 'in attesa') 
+            AND data_fine < CURRENT_TIMESTAMP
+            RETURNING id_prenotazione
         `);
 
         return result.rowCount;
@@ -118,9 +115,10 @@ async function createDailySlots(idSpazio, date, startHour = 9, endHour = 18) {
     try {
         // Pulisci slot esistenti per questa data e spazio
         await pool.query(`
-            DELETE FROM slots 
+            DELETE FROM Prenotazione 
             WHERE id_spazio = $1 
-            AND DATE(start_time) = $2
+            AND DATE(data_inizio) = $2
+            AND stato = 'disponibile'
         `, [idSpazio, date]);
 
         let slotsCreated = 0;
@@ -130,10 +128,10 @@ async function createDailySlots(idSpazio, date, startHour = 9, endHour = 18) {
             const startTime = new Date(`${date}T${hour.toString().padStart(2, '0')}:00:00`);
             const endTime = new Date(`${date}T${(hour + 1).toString().padStart(2, '0')}:00:00`);
 
-            const status = startTime < new Date() ? 'past' : 'available';
+            const status = startTime < new Date() ? 'passato' : 'disponibile';
 
             await pool.query(`
-                INSERT INTO slots (id_spazio, start_time, end_time, status)
+                INSERT INTO Prenotazione (id_spazio, data_inizio, data_fine, stato)
                 VALUES ($1, $2, $3, $4)
             `, [idSpazio, startTime, endTime, status]);
 
@@ -158,22 +156,21 @@ async function holdSlot(slotId, userId) {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minuti da ora
 
         const result = await pool.query(`
-            UPDATE slots 
-            SET status = 'occupied',
+            UPDATE Prenotazione 
+            SET stato = 'in attesa',
                 expires_at = $1,
-                id_utente = $2,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = $3 
-            AND status = 'available'
-            AND start_time > CURRENT_TIMESTAMP
-            RETURNING id, id_spazio
+                id_utente = $2
+            WHERE id_prenotazione = $3 
+            AND stato = 'disponibile'
+            AND data_inizio > CURRENT_TIMESTAMP
+            RETURNING id_prenotazione, id_spazio
         `, [expiresAt, userId, slotId]);
 
         if (result.rowCount > 0) {
             const slot = result.rows[0];
             // Invia aggiornamento real-time
             socketService.broadcastSlotUpdate(slotId, 'occupied', {
-                id: slot.id,
+                id: slot.id_prenotazione,
                 id_spazio: slot.id_spazio,
                 status: 'occupied',
                 expires_at: expiresAt,
@@ -197,15 +194,14 @@ async function holdSlot(slotId, userId) {
 async function bookSlot(slotId, userId) {
     try {
         const result = await pool.query(`
-            UPDATE slots 
-            SET status = 'booked',
-                held_until = NULL,
-                id_utente = $1,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = $2 
-            AND status = 'occupied'
+            UPDATE Prenotazione 
+            SET stato = 'confermata',
+                expires_at = NULL,
+                id_utente = $1
+            WHERE id_prenotazione = $2 
+            AND stato = 'in attesa'
             AND id_utente = $1
-            RETURNING id
+            RETURNING id_prenotazione
         `, [userId, slotId]);
 
         return result.rowCount > 0;
@@ -224,15 +220,14 @@ async function bookSlot(slotId, userId) {
 async function releaseSlot(slotId, userId) {
     try {
         const result = await pool.query(`
-            UPDATE slots 
-            SET status = 'available',
-                held_until = NULL,
-                id_utente = NULL,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = $1 
-            AND status = 'occupied'
+            UPDATE Prenotazione 
+            SET stato = 'disponibile',
+                expires_at = NULL,
+                id_utente = NULL
+            WHERE id_prenotazione = $1 
+            AND stato = 'in attesa'
             AND id_utente = $2
-            RETURNING id
+            RETURNING id_prenotazione
         `, [slotId, userId]);
 
         return result.rowCount > 0;
@@ -252,23 +247,23 @@ async function getSlotsStatus(idSpazio, date) {
     try {
         const result = await pool.query(`
             SELECT 
-                id,
+                id_prenotazione as id,
                 id_spazio,
-                start_time,
-                end_time,
-                status,
-                held_until,
+                data_inizio as start_time,
+                data_fine as end_time,
+                stato as status,
+                expires_at as held_until,
                 id_utente,
-                EXTRACT(HOUR FROM start_time) as hour,
+                EXTRACT(HOUR FROM data_inizio) as hour,
                 CASE 
-                    WHEN held_until IS NOT NULL AND held_until > CURRENT_TIMESTAMP 
-                    THEN EXTRACT(EPOCH FROM (held_until - CURRENT_TIMESTAMP))::INTEGER
+                    WHEN expires_at IS NOT NULL AND expires_at > CURRENT_TIMESTAMP 
+                    THEN EXTRACT(EPOCH FROM (expires_at - CURRENT_TIMESTAMP))::INTEGER
                     ELSE NULL 
                 END as seconds_until_expiry
-            FROM slots 
+            FROM Prenotazione 
             WHERE id_spazio = $1 
-            AND DATE(start_time) = $2
-            ORDER BY start_time
+            AND DATE(data_inizio) = $2
+            ORDER BY data_inizio
         `, [idSpazio, date]);
 
         return result.rows;
