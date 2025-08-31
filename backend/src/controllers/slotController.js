@@ -77,10 +77,10 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
             // Fallback: libera slot scaduti manualmente
             await pool.query(`
                 UPDATE Prenotazione 
-                SET stato = 'disponibile', expires_at = NULL
+                SET stato = 'scaduta', scadenza_slot = NULL
                 WHERE stato = 'in attesa' 
-                AND expires_at IS NOT NULL 
-                AND expires_at < CURRENT_TIMESTAMP
+                AND scadenza_slot IS NOT NULL 
+                AND scadenza_slot < CURRENT_TIMESTAMP
             `);
         }
 
@@ -103,19 +103,19 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
 
         console.log(`⏰ Orari apertura generati: ${orariApertura.length} slot`);
 
-        // Query ottimizzata con controllo expires_at
+        // Query ottimizzata con controllo scadenza_slot
         const prenotazioniQuery = `
             SELECT 
                 EXTRACT(HOUR FROM data_inizio) as orario_inizio,
                 EXTRACT(HOUR FROM data_fine) as orario_fine,
                 stato,
-                expires_at,
+                scadenza_slot,
                 id_prenotazione
             FROM Prenotazione 
             WHERE id_spazio = $1 
             AND DATE(data_inizio) = $2
             AND stato IN ('confermata', 'in attesa')
-            AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+            AND (scadenza_slot IS NULL OR scadenza_slot > CURRENT_TIMESTAMP)
         `;
 
         const prenotazioniResult = await pool.query(prenotazioniQuery, [idSpazio, date]);
@@ -156,7 +156,7 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
                         prenotazione_id: prenotazione.id_prenotazione
                     };
                 } else if (prenotazione.stato === 'in attesa') {
-                    const expiresAt = new Date(prenotazione.expires_at);
+                    const expiresAt = new Date(prenotazione.scadenza_slot);
                     const minutesLeft = Math.max(0, Math.ceil((expiresAt - now) / (1000 * 60)));
 
                     return {
@@ -164,7 +164,7 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
                         orario: orario,
                         status: 'occupied',
                         title: `Slot occupato (${minutesLeft} min rimasti)`,
-                        expires_at: prenotazione.expires_at,
+                        expires_at: prenotazione.scadenza_slot,
                         minutes_remaining: minutesLeft,
                         prenotazione_id: prenotazione.id_prenotazione
                     };
@@ -212,11 +212,11 @@ async function holdSlot(req, res) {
         const endTime = new Date(`${date}T${(slotHour + 1).toString().padStart(2, '0')}:00:00Z`); // UTC
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minuti da ora
 
-        // Crea prenotazione temporanea con expires_at
+        // Crea prenotazione temporanea con scadenza_slot
         const result = await pool.query(`
-            INSERT INTO Prenotazione (id_utente, id_spazio, data_inizio, data_fine, stato, expires_at)
+            INSERT INTO Prenotazione (id_utente, id_spazio, data_inizio, data_fine, stato, scadenza_slot)
             VALUES ($1, $2, $3, $4, 'in attesa', $5)
-            RETURNING id_prenotazione, expires_at
+            RETURNING id_prenotazione, scadenza_slot
         `, [
             userId,
             idSpazio,
@@ -236,7 +236,7 @@ async function holdSlot(req, res) {
                 const slotData = {
                     id: parseInt(id),
                     status: 'occupied',
-                    expires_at: prenotazione.expires_at,
+                    expires_at: prenotazione.scadenza_slot,
                     prenotazione_id: prenotazione.id_prenotazione
                 };
                 socketService.broadcastSlotUpdate(idSpazio, sedeId, slotData);
@@ -248,7 +248,7 @@ async function holdSlot(req, res) {
                 data: {
                     slotId: parseInt(id),
                     prenotazione_id: prenotazione.id_prenotazione,
-                    expires_at: prenotazione.expires_at
+                    expires_at: prenotazione.scadenza_slot
                 }
             });
         } else {
@@ -287,10 +287,10 @@ async function bookSlot(req, res) {
         // Converte slot ID in orario per la query
         const slotHour = parseInt(id) + 8; // slot 1 = 9:00, slot 2 = 10:00
 
-        // Aggiorna prenotazione da 'in attesa' a 'confermata' e rimuovi expires_at
+        // Aggiorna prenotazione da 'in attesa' a 'confermata' e rimuovi scadenza_slot
         const result = await pool.query(`
             UPDATE Prenotazione 
-            SET stato = 'confermata', expires_at = NULL
+            SET stato = 'confermata', scadenza_slot = NULL
             WHERE id_utente = $1 
             AND id_spazio = $2 
             AND stato = 'in attesa'
@@ -454,10 +454,10 @@ async function createDailySlots(req, res) {
             const startTime = new Date(`${date}T${hour.toString().padStart(2, '0')}:00:00Z`); // UTC
             const endTime = new Date(`${date}T${(hour + 1).toString().padStart(2, '0')}:00:00Z`); // UTC
 
-            // Inserisci slot nella tabella Prenotazione come "disponibile"
+            // Inserisci slot nella tabella Prenotazione come "pendente"
             const result = await pool.query(`
                 INSERT INTO Prenotazione (id_utente, id_spazio, data_inizio, data_fine, stato)
-                VALUES ($1, $2, $3, $4, 'disponibile')
+                VALUES ($1, $2, $3, $4, 'pendente')
                 RETURNING id_prenotazione
             `, [userId, idSpazio, startTime, endTime]);
 
