@@ -282,6 +282,9 @@ function startSlotTimer() {
 
     setInterval(async () => {
         try {
+            // Verifica connessione database prima di eseguire operazioni
+            await pool.query('SELECT 1');
+            
             const [freedCount, pastCount] = await Promise.all([
                 freeExpiredSlots(),
                 updatePastSlots()
@@ -291,7 +294,11 @@ function startSlotTimer() {
                 console.log(`⏰ Timer Slot: Liberati ${freedCount} slot scaduti, aggiornati ${pastCount} slot passati`);
             }
         } catch (error) {
-            console.error('❌ Errore nel timer automatico slot:', error);
+            if (error.code === '28P01') {
+                console.log('⚠️ Timer Slot: Database non connesso, salto operazioni...');
+            } else {
+                console.error('❌ Errore nel timer automatico slot:', error);
+            }
         }
     }, 30000); // 30 secondi
 }

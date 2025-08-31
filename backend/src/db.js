@@ -1,20 +1,12 @@
 const { Pool } = require('pg');
 
-// Usa DATABASE_URL se disponibile (per Supabase), altrimenti fallback alle variabili singole
-const pool = new Pool(
-  process.env.DATABASE_URL && process.env.DATABASE_URL !== 'null' ? {
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  } : {
-    user: process.env.PGUSER || 'postgres',
-    host: process.env.PGHOST || 'localhost',
-    database: process.env.PGDATABASE || 'coworkspace',
-    password: process.env.PGPASSWORD || 'password',
-    port: process.env.PGPORT ? parseInt(process.env.PGPORT) : 5432,
+// Configurazione database per Supabase
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
   }
-);
+});
 
 pool.on('connect', () => {
   console.log('Connesso a PostgreSQL!');
