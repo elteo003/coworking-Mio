@@ -39,10 +39,6 @@ class ScadenzeCron {
 
             const result = await ScadenzeController.eseguiControlliScadenza();
 
-        - Slot liberati: ${result.slotLiberati}
-        - Pagamenti scaduti: ${result.pagamentiScaduti}
-        - Prenotazioni in scadenza: ${result.prenotazioniInScadenza}`);
-
         } catch (error) {
             console.error('❌ Errore durante controllo scadenze programmato:', error);
         }
@@ -53,10 +49,6 @@ class ScadenzeCron {
         try {
 
             const result = await ScadenzeController.eseguiControlliScadenza();
-
-        - Slot liberati: ${result.slotLiberati}
-        - Pagamenti scaduti: ${result.pagamentiScaduti}
-        - Prenotazioni in scadenza: ${result.prenotazioniInScadenza}`);
 
             return result;
 

@@ -162,10 +162,6 @@ class ScadenzeController {
         this.checkPrenotazioniInScadenza()
       ]);
 
-        - Slot liberati: ${slotLiberati}
-        - Pagamenti scaduti: ${pagamentiScaduti}
-        - Prenotazioni in scadenza: ${prenotazioniInScadenza}`);
-
       return {
         slotLiberati,
         pagamentiScaduti,
