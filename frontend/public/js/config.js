@@ -21,6 +21,11 @@ const API_BASE_URL = CONFIG.API_BASE;
 window.API_BASE_URL = API_BASE_URL; // Esponi globalmente per compatibilità
 console.log('🔍 Dopo aver definito API_BASE_URL:', API_BASE_URL);
 
+// Configurazione Socket.IO (senza /api path)
+const SOCKET_BASE_URL = CONFIG.API_BASE.replace('/api', '');
+window.SOCKET_BASE_URL = SOCKET_BASE_URL; // Esponi globalmente per Socket.IO
+console.log('🔌 Socket.IO Base URL:', SOCKET_BASE_URL);
+
 // Debug: log della configurazione per verificare che sia caricata
 console.log('Configurazione caricata:', CONFIG);
 console.log('API_BASE:', CONFIG.API_BASE);

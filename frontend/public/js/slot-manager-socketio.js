@@ -124,7 +124,7 @@ class SlotManagerSocketIO {
 
             console.log('🔗 SlotManagerSocketIO - Connessione Socket.IO...');
 
-            this.socket = io(window.CONFIG.API_BASE, {
+            this.socket = io(window.SOCKET_BASE_URL, {
                 auth: {
                     token: token
                 },
