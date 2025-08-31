@@ -231,7 +231,7 @@ exports.creaSede = async (req, res) => {
     `;
 
     const result = await pool.query(query, [nome, citta, indirizzo, telefono, gestore_id, capacita_massima, descrizione]);
-    
+
     res.json({ success: true, message: 'Sede creata con successo', id_sede: result.rows[0].id_sede });
   } catch (error) {
     console.error('Errore creazione sede:', error);
@@ -245,7 +245,7 @@ exports.eliminaSede = async (req, res) => {
 
     // Elimina spazi associati
     await pool.query('DELETE FROM Spazio WHERE sede_id = $1', [id]);
-    
+
     // Elimina sede
     await pool.query('DELETE FROM Sede WHERE id_sede = $1', [id]);
 
@@ -294,7 +294,7 @@ exports.creaSpazio = async (req, res) => {
     `;
 
     const result = await pool.query(query, [nome, sede_id, tipologia, capacita, prezzo_ora, descrizione]);
-    
+
     res.json({ success: true, message: 'Spazio creato con successo', id_spazio: result.rows[0].id_spazio });
   } catch (error) {
     console.error('Errore creazione spazio:', error);
@@ -313,14 +313,14 @@ exports.eliminaSpazio = async (req, res) => {
       WHERE spazio_id = $1 AND data_inizio > CURRENT_TIMESTAMP
     `;
     const prenotazioniResult = await pool.query(prenotazioniQuery, [id]);
-    
+
     if (parseInt(prenotazioniResult.rows[0].count) > 0) {
       return res.status(400).json({ error: 'Non è possibile eliminare uno spazio con prenotazioni future' });
     }
 
     // Elimina prenotazioni passate
     await pool.query('DELETE FROM Prenotazione WHERE spazio_id = $1', [id]);
-    
+
     // Elimina spazio
     await pool.query('DELETE FROM Spazio WHERE id_spazio = $1', [id]);
 
@@ -588,9 +588,9 @@ exports.creaCodiceInvito = async (req, res) => {
     `;
 
     const result = await pool.query(query, [codice, ruolo, creato_da, note, scadenza]);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: 'Codice di invito creato con successo',
       codice: result.rows[0].codice
     });
@@ -645,7 +645,7 @@ exports.clearLogs = async (req, res) => {
   try {
     // Elimina log più vecchi di 30 giorni
     await pool.query('DELETE FROM LogSistema WHERE timestamp < NOW() - INTERVAL \'30 days\'');
-    
+
     res.json({ success: true, message: 'Log vecchi eliminati con successo' });
   } catch (error) {
     console.error('Errore eliminazione log:', error);
@@ -686,11 +686,309 @@ exports.emergencyMode = async (req, res) => {
 exports.saveSettings = async (req, res) => {
   try {
     const { max_users, session_timeout, maintenance_mode } = req.body;
-    
+
     // Salva impostazioni (implementa logica di salvataggio)
     res.json({ success: true, message: 'Impostazioni salvate con successo' });
   } catch (error) {
     console.error('Errore salvataggio impostazioni:', error);
     res.status(500).json({ error: 'Errore salvataggio impostazioni' });
+  }
+};
+
+// Funzioni mancanti per la gestione utenti
+exports.updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { ruolo } = req.body;
+
+    // Verifica che il ruolo sia valido
+    const ruoliValidi = ['cliente', 'gestore', 'amministratore'];
+    if (!ruoliValidi.includes(ruolo)) {
+      return res.status(400).json({ error: 'Ruolo non valido' });
+    }
+
+    // Aggiorna il ruolo dell'utente
+    await pool.query('UPDATE Utente SET ruolo = $1 WHERE id_utente = $2', [ruolo, id]);
+
+    res.json({ success: true, message: 'Ruolo utente aggiornato con successo' });
+  } catch (error) {
+    console.error('Errore aggiornamento ruolo utente:', error);
+    res.status(500).json({ error: 'Errore aggiornamento ruolo utente' });
+  }
+};
+
+exports.suspendUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { motivo_sospensione } = req.body;
+
+    // Sospendi l'utente
+    await pool.query('UPDATE Utente SET sospeso = true, motivo_sospensione = $1 WHERE id_utente = $2', [motivo_sospensione, id]);
+
+    res.json({ success: true, message: 'Utente sospeso con successo' });
+  } catch (error) {
+    console.error('Errore sospensione utente:', error);
+    res.status(500).json({ error: 'Errore sospensione utente' });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verifica se l'utente ha prenotazioni attive
+    const prenotazioniQuery = `
+      SELECT COUNT(*) as count
+      FROM Prenotazione
+      WHERE utente_id = $1 AND stato IN ('confermata', 'in_corso')
+    `;
+    const prenotazioniResult = await pool.query(prenotazioniQuery, [id]);
+
+    if (parseInt(prenotazioniResult.rows[0].count) > 0) {
+      return res.status(400).json({ error: 'Non è possibile eliminare un utente con prenotazioni attive' });
+    }
+
+    // Elimina l'utente
+    await pool.query('DELETE FROM Utente WHERE id_utente = $1', [id]);
+
+    res.json({ success: true, message: 'Utente eliminato con successo' });
+  } catch (error) {
+    console.error('Errore eliminazione utente:', error);
+    res.status(500).json({ error: 'Errore eliminazione utente' });
+  }
+};
+
+// Funzioni mancanti per la gestione sedi
+exports.updateSede = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome, citta, indirizzo, telefono, gestore_id, capacita_massima, descrizione } = req.body;
+
+    const query = `
+      UPDATE Sede 
+      SET nome = $1, citta = $2, indirizzo = $3, telefono = $4, 
+          gestore_id = $5, capacita_massima = $6, descrizione = $7
+      WHERE id_sede = $8
+    `;
+
+    await pool.query(query, [nome, citta, indirizzo, telefono, gestore_id, capacita_massima, descrizione, id]);
+
+    res.json({ success: true, message: 'Sede aggiornata con successo' });
+  } catch (error) {
+    console.error('Errore aggiornamento sede:', error);
+    res.status(500).json({ error: 'Errore aggiornamento sede' });
+  }
+};
+
+// Funzioni mancanti per la gestione spazi
+exports.updateSpazio = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome, tipologia, capacita, prezzo_ora, descrizione, disponibile } = req.body;
+
+    const query = `
+      UPDATE Spazio 
+      SET nome = $1, tipologia = $2, capacita = $3, prezzo_ora = $4, 
+          descrizione = $5, disponibile = $6
+      WHERE id_spazio = $7
+    `;
+
+    await pool.query(query, [nome, tipologia, capacita, prezzo_ora, descrizione, disponibile, id]);
+
+    res.json({ success: true, message: 'Spazio aggiornato con successo' });
+  } catch (error) {
+    console.error('Errore aggiornamento spazio:', error);
+    res.status(500).json({ error: 'Errore aggiornamento spazio' });
+  }
+};
+
+// Funzioni mancanti per la gestione prenotazioni
+exports.getPrenotazione = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const query = `
+      SELECT 
+        p.id_prenotazione,
+        p.data_inizio,
+        p.data_fine,
+        p.stato,
+        p.importo,
+        p.note,
+        u.nome as nome_utente,
+        u.cognome as cognome_utente,
+        u.email as email_utente,
+        sp.nome as nome_spazio,
+        s.nome as nome_sede,
+        s.citta as citta_sede
+      FROM Prenotazione p
+      JOIN Utente u ON p.utente_id = u.id_utente
+      JOIN Spazio sp ON p.spazio_id = sp.id_spazio
+      JOIN Sede s ON sp.sede_id = s.id_sede
+      WHERE p.id_prenotazione = $1
+    `;
+
+    const result = await pool.query(query, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Prenotazione non trovata' });
+    }
+
+    res.json({ success: true, prenotazione: result.rows[0] });
+  } catch (error) {
+    console.error('Errore caricamento prenotazione:', error);
+    res.status(500).json({ error: 'Errore caricamento prenotazione' });
+  }
+};
+
+exports.updatePrenotazione = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { stato, note } = req.body;
+
+    // Verifica che lo stato sia valido
+    const statiValidi = ['in_attesa', 'confermata', 'in_corso', 'completata', 'cancellata'];
+    if (stato && !statiValidi.includes(stato)) {
+      return res.status(400).json({ error: 'Stato non valido' });
+    }
+
+    let query = 'UPDATE Prenotazione SET ';
+    let params = [];
+    let paramCount = 0;
+
+    if (stato) {
+      paramCount++;
+      query += `stato = $${paramCount}`;
+      params.push(stato);
+    }
+
+    if (note !== undefined) {
+      if (paramCount > 0) query += ', ';
+      paramCount++;
+      query += `note = $${paramCount}`;
+      params.push(note);
+    }
+
+    paramCount++;
+    query += ` WHERE id_prenotazione = $${paramCount}`;
+    params.push(id);
+
+    await pool.query(query, params);
+
+    res.json({ success: true, message: 'Prenotazione aggiornata con successo' });
+  } catch (error) {
+    console.error('Errore aggiornamento prenotazione:', error);
+    res.status(500).json({ error: 'Errore aggiornamento prenotazione' });
+  }
+};
+
+exports.deletePrenotazione = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verifica se la prenotazione può essere eliminata
+    const prenotazioneQuery = `
+      SELECT stato, data_inizio
+      FROM Prenotazione
+      WHERE id_prenotazione = $1
+    `;
+    const prenotazioneResult = await pool.query(prenotazioneQuery, [id]);
+
+    if (prenotazioneResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Prenotazione non trovata' });
+    }
+
+    const prenotazione = prenotazioneResult.rows[0];
+    if (prenotazione.stato === 'completata') {
+      return res.status(400).json({ error: 'Non è possibile eliminare una prenotazione completata' });
+    }
+
+    // Elimina la prenotazione
+    await pool.query('DELETE FROM Prenotazione WHERE id_prenotazione = $1', [id]);
+
+    res.json({ success: true, message: 'Prenotazione eliminata con successo' });
+  } catch (error) {
+    console.error('Errore eliminazione prenotazione:', error);
+    res.status(500).json({ error: 'Errore eliminazione prenotazione' });
+  }
+};
+
+// Funzioni mancanti per la gestione pagamenti
+exports.getPagamento = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const query = `
+      SELECT 
+        p.id_pagamento,
+        p.importo,
+        p.data_pagamento,
+        p.stato,
+        p.metodo_pagamento,
+        p.transaction_id,
+        u.nome as nome_utente,
+        u.cognome as cognome_utente,
+        u.email as email_utente,
+        sp.nome as nome_spazio,
+        s.nome as nome_sede,
+        s.citta as citta_sede
+      FROM Pagamento p
+      JOIN Utente u ON p.utente_id = u.id_utente
+      JOIN Spazio sp ON p.spazio_id = sp.id_spazio
+      JOIN Sede s ON sp.sede_id = s.id_sede
+      WHERE p.id_pagamento = $1
+    `;
+
+    const result = await pool.query(query, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Pagamento non trovato' });
+    }
+
+    res.json({ success: true, pagamento: result.rows[0] });
+  } catch (error) {
+    console.error('Errore caricamento pagamento:', error);
+    res.status(500).json({ error: 'Errore caricamento pagamento' });
+  }
+};
+
+exports.updatePagamento = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { stato, note } = req.body;
+
+    // Verifica che lo stato sia valido
+    const statiValidi = ['in_attesa', 'completato', 'fallito', 'rimborsato'];
+    if (stato && !statiValidi.includes(stato)) {
+      return res.status(400).json({ error: 'Stato non valido' });
+    }
+
+    let query = 'UPDATE Pagamento SET ';
+    let params = [];
+    let paramCount = 0;
+
+    if (stato) {
+      paramCount++;
+      query += `stato = $${paramCount}`;
+      params.push(stato);
+    }
+
+    if (note !== undefined) {
+      if (paramCount > 0) query += ', ';
+      paramCount++;
+      query += `note = $${paramCount}`;
+      params.push(note);
+    }
+
+    paramCount++;
+    query += ` WHERE id_pagamento = $${paramCount}`;
+    params.push(id);
+
+    await pool.query(query, params);
+
+    res.json({ success: true, message: 'Pagamento aggiornato con successo' });
+  } catch (error) {
+    console.error('Errore aggiornamento pagamento:', error);
+    res.status(500).json({ error: 'Errore aggiornamento pagamento' });
   }
 };
