@@ -17,16 +17,7 @@
 }
 
 .slot-button.slot-start::after {
-    content: "START";
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: #0056b3;
-    color: white;
-    font-size: 10px;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-weight: bold;
+    content: "";
 }
 
 .slot-button.slot-end {
@@ -45,16 +36,7 @@
 }
 
 .slot-button.slot-end::after {
-    content: "END";
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: #0056b3;
-    color: white;
-    font-size: 10px;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-weight: bold;
+    content: "";
 }
 
 .slot-button.slot-selected {
@@ -300,10 +282,15 @@ input.time-slot.occupied {
 
 /* CSS ULTRA SPECIFICO per slot occupati - DEVE ESSERE ROSSO */
 .time-slot.occupied,
+.slot-button.slot-occupied,
 div.time-slot.occupied,
+div.slot-button.slot-occupied,
 .time-slot.occupied:hover,
+.slot-button.slot-occupied:hover,
 .time-slot.occupied:focus,
-.time-slot.occupied:active {
+.slot-button.slot-occupied:focus,
+.time-slot.occupied:active,
+.slot-button.slot-occupied:active {
     background-color: var(--danger) !important;
     background-image: none !important;
     color: white !important;
@@ -883,4 +870,36 @@ main {
         transform: translateY(0) scale(1);
         opacity: 1;
     }
+}
+
+/* CSS per classi slot-button (nuovo sistema) */
+.slot-button.slot-occupied {
+    background-color: var(--danger) !important;
+    color: white !important;
+    border-color: var(--danger) !important;
+    cursor: not-allowed !important;
+    opacity: 0.8 !important;
+}
+
+.slot-button.slot-booked {
+    background-color: var(--warning) !important;
+    color: white !important;
+    border-color: var(--warning) !important;
+    cursor: not-allowed !important;
+    opacity: 0.8 !important;
+}
+
+.slot-button.slot-past {
+    background-color: var(--gray-500) !important;
+    color: white !important;
+    border-color: var(--gray-500) !important;
+    cursor: not-allowed !important;
+    opacity: 0.4 !important;
+}
+
+.slot-button.slot-available {
+    background-color: var(--success) !important;
+    color: white !important;
+    border-color: var(--success) !important;
+    cursor: pointer !important;
 }

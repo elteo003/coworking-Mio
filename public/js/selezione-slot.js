@@ -1048,7 +1048,7 @@ async function updateSelectionUI() {
     window.selectedTimeFine = `${lastHour.toString().padStart(2, '0')}:00`;
 
     // Mostra messaggio appropriato
-    if (selectedSlots.size === 1) {
+    if (selectionState.allSelected.size === 1) {
         showTimeSelectionMessage('Seleziona l\'orario di fine per completare l\'intervallo');
     } else {
         hideTimeSelectionMessage();
