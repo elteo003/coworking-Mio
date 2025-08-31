@@ -17,7 +17,7 @@ let selectedSlots = new Set(); // Set per mantenere gli slot selezionati
 let lastSelectedSlot = null; // Ultimo slot selezionato per selezione con Shift
 
 // Inizializza il nuovo Slot Manager
-function initializeSlotManager() {
+async function initializeSlotManager() {
     console.log('🚀 initializeSlotManager chiamata');
     console.log('🔍 Stato selezioni:', {
         selectedSede: !!window.selectedSede,
@@ -44,10 +44,10 @@ function initializeSlotManager() {
         // Reset selezione slot
         clearAllSelections();
 
-        // PRIMA crea i bottoni degli slot
-        console.log('🔨 STEP 1: Creo i bottoni degli slot...');
-        createTimeSlots();
-        console.log('✅ STEP 1 COMPLETATO: Bottoni creati');
+        // PRIMA crea i bottoni degli slot con stati corretti
+        console.log('🔨 STEP 1: Creo i bottoni degli slot con stati corretti...');
+        await createTimeSlots();
+        console.log('✅ STEP 1 COMPLETATO: Bottoni creati con stati corretti');
 
         // POI crea nuova istanza di SlotManager
         console.log('🚀 STEP 2: Creo SlotManager...');
@@ -101,7 +101,39 @@ async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
     return true;
 }
 
-// Funzione rimossa: waitForSlotManager non più necessaria
+// Funzione per applicare stato corretto a uno slot
+function applySlotState(slot, status) {
+    // Rimuovi tutte le classi di stato precedenti
+    slot.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected');
+    
+    // Applica nuovo stato
+    switch (status) {
+        case 'available':
+            slot.classList.add('slot-available');
+            slot.disabled = false;
+            slot.title = 'Disponibile';
+            break;
+        case 'booked':
+            slot.classList.add('slot-booked');
+            slot.disabled = true;
+            slot.title = 'Prenotato';
+            break;
+        case 'occupied':
+            slot.classList.add('slot-occupied');
+            slot.disabled = true;
+            slot.title = 'Occupato';
+            break;
+        case 'past':
+            slot.classList.add('slot-past');
+            slot.disabled = true;
+            slot.title = 'Passato';
+            break;
+        default:
+            slot.classList.add('slot-available');
+            slot.disabled = false;
+            slot.title = 'Disponibile';
+    }
+}
 
 // Verifica disponibilità usando API (VERSIONE SEMPLIFICATA)
 async function checkAvailabilityFromAPI(orarioInizio, orarioFine) {
@@ -577,8 +609,8 @@ function handleUrlParameters() {
     console.log('✅ Gestione parametri URL completata');
 }
 
-// Crea gli slot temporali (versione semplificata per SlotManager)
-function createTimeSlots() {
+// Crea gli slot temporali con stati corretti (VERSIONE OTTIMIZZATA)
+async function createTimeSlots() {
     const timeSlotsContainer = document.getElementById('timeSlots');
 
     console.log('🔨 createTimeSlots chiamata, container:', timeSlotsContainer);
@@ -599,23 +631,65 @@ function createTimeSlots() {
     // Pulisci il container
     timeSlotsContainer.innerHTML = '';
 
-    // Crea gli slot temporali
+    // PRIMA: Carica gli stati degli slot dal backend
+    let slotsStatus = [];
+    try {
+        const token = localStorage.getItem('token');
+        let response;
+
+        if (token) {
+            // Utente autenticato: usa endpoint protetto
+            response = await fetch(`${window.CONFIG.API_BASE}/sse/slots-status/${window.selectedSede.id_sede}/${window.selectedSpazio.id_spazio}/${window.selectedDateInizio.toISOString().split('T')[0]}?token=${encodeURIComponent(token)}`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } else {
+            // Utente non autenticato: usa endpoint pubblico
+            response = await fetch(`${window.CONFIG.API_BASE}/spazi/${window.selectedSpazio.id_spazio}/disponibilita-slot/${window.selectedDateInizio.toISOString().split('T')[0]}`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        if (response.ok) {
+            const data = await response.json();
+            // Gestisci diversi formati di risposta
+            if (data.data && data.data.slots) {
+                slotsStatus = data.data.slots;
+            } else if (Array.isArray(data.data)) {
+                slotsStatus = data.data;
+            } else if (Array.isArray(data)) {
+                slotsStatus = data;
+            }
+            console.log('📋 Stati slot caricati:', slotsStatus);
+        }
+    } catch (error) {
+        console.warn('⚠️ Errore caricamento stati slot, uso stati default:', error);
+    }
+
+    // Crea gli slot temporali con stati corretti
     for (let i = 0; i < orariApertura.length; i++) {
         const orario = orariApertura[i];
-        console.log('🔨 Creo slot per orario:', orario);
+        const slotId = i + 1;
+        
+        // Trova lo stato per questo slot
+        const slotData = slotsStatus.find(s => s.id_slot === slotId || s.orario === orario);
+        const status = slotData ? slotData.status : 'available';
+        
+        console.log('🔨 Creo slot per orario:', orario, 'con stato:', status);
 
         const slot = document.createElement('button');
-        slot.className = 'btn btn-lg slot-button slot-available';
+        slot.className = 'btn btn-lg slot-button';
         slot.textContent = orario;
         slot.dataset.orario = orario;
-        slot.dataset.slotId = i + 1; // ID univoco per ogni slot
+        slot.dataset.slotId = slotId;
+
+        // Applica stato corretto direttamente
+        applySlotState(slot, status);
 
         // Aggiungi event listener per tutti gli slot
         slot.addEventListener('click', (event) => selectTimeSlot(orario, slot, event));
-        slot.title = 'Click per selezionare (1 ora)';
 
         timeSlotsContainer.appendChild(slot);
-        console.log('✅ Slot creato e aggiunto:', slot);
+        console.log('✅ Slot creato con stato:', status);
     }
 
     // Mostra il container
@@ -629,9 +703,7 @@ function createTimeSlots() {
     }
 
     console.log('🎯 Container slot mostrato, slot creati:', timeSlotsContainer.children.length);
-    console.log('🔍 Bottoni disponibili nel DOM:', document.querySelectorAll('[data-slot-id]').length);
-    console.log('🔍 Bottoni disponibili nel DOM:', document.querySelectorAll('[data-slot-id]'));
-
+    
     // Mostra i controlli rapidi
     const quickControls = document.getElementById('quickControls');
     if (quickControls) {
@@ -692,14 +764,8 @@ async function displayTimeSlots(disponibilita) {
 
     console.log('🎯 Container slot mostrato, slot creati:', timeSlotsContainer.children.length);
 
-    // Mostra tutti gli slot come disponibili (SlotManager si occuperà di aggiornarli)
-    const allButtons = document.querySelectorAll('[data-slot-id]');
-    allButtons.forEach(button => {
-        button.classList.remove('btn-danger', 'btn-warning', 'btn-secondary', 'btn-outline-primary', 'btn-success');
-        button.classList.add('slot-available');
-        button.disabled = false;
-        button.title = 'Clicca per prenotare questo slot (1 ora)';
-    });
+    // Gli slot sono già stati creati con gli stati corretti in createTimeSlots()
+    // Non serve più impostarli tutti come disponibili
 
     if (orariApertura.length === 0) {
         timeSlotsContainer.innerHTML = '<p class="text-muted">Nessun orario disponibile per questa data</p>';

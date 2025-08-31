@@ -43,8 +43,15 @@ class SlotManager {
         }
     }
 
-    // Carica stato iniziale degli slot
+    // Carica stato iniziale degli slot (VERSIONE OTTIMIZZATA)
     async loadInitialSlotsStatus() {
+        // Se gli slot sono già stati caricati con stati corretti, non ricaricare
+        if (this.slotsStatus.size > 0) {
+            console.log('📋 SlotManager - Stati slot già caricati, aggiorno solo i bottoni');
+            this.updateAllSlotButtons();
+            return;
+        }
+
         try {
             // Ottieni il token di autenticazione
             const token = localStorage.getItem('token');
