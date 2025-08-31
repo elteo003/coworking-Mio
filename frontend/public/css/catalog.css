@@ -26,55 +26,34 @@
     transform: scale(1.05);
 }
 
-/* Modal extra large per catalogo - Specificità massima */
-html body .modal-dialog.modal-fullscreen-lg-down,
-html body .modal-dialog.modal-fullscreen-lg-down[style*="max-width"],
-html body .modal-dialog.modal-fullscreen-lg-down[style*="width"],
-html body .modal-dialog.modal-fullscreen-lg-down.force-wide,
-html body .modal-dialog.modal-fullscreen-lg-down.force-wide[style*="max-width"],
-html body .modal-dialog.modal-fullscreen-lg-down.force-wide[style*="width"] {
-    max-width: 85vw !important;
-    width: 85vw !important;
-    max-height: 85vh !important;
-    height: 85vh !important;
-    margin: 2vh auto !important;
+/* Modal XL per catalogo - Usa classi Bootstrap standard */
+.modal-dialog.modal-xl {
+    max-width: 90vw;
+    width: 90vw;
+    max-height: 90vh;
+    margin: 1rem auto;
 }
 
-/* Specificità ancora più alta per Bootstrap 5 */
-html body .modal-dialog.modal-fullscreen-lg-down.force-wide {
-    max-width: 85vw !important;
-    width: 85vw !important;
-    max-height: 85vh !important;
-    height: 85vh !important;
-    margin: 2vh auto !important;
+
+
+.modal-dialog.modal-xl .modal-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Forza il modal container */
-html body .modal.force-wide {
-    padding-left: 2vw !important;
-    padding-right: 2vw !important;
-    padding-top: 2vh !important;
-    padding-bottom: 2vh !important;
-}
-
-body .modal-dialog.modal-fullscreen-lg-down .modal-content {
-    height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-}
-
-body .modal-dialog.modal-fullscreen-lg-down .modal-body {
-    flex: 1 !important;
-    overflow-y: auto !important;
+.modal-dialog.modal-xl .modal-body {
+    flex: 1;
+    overflow-y: auto;
 }
 
 /* Carosello immersivo nei modal */
-body .modal-dialog.modal-fullscreen-lg-down .immersive-carousel {
-    height: 400px !important;
+.modal-dialog.modal-xl .immersive-carousel {
+    height: 400px;
 }
 
-body .modal-dialog.modal-fullscreen-lg-down .immersive-carousel-image {
-    height: 400px !important;
+.modal-dialog.modal-xl .immersive-carousel-image {
+    height: 400px;
 }
 
 /* Disabilita animazioni per card statiche nel catalogo */
