@@ -14,39 +14,23 @@ let pagamentoCompletato = false;
 
 // Inizializzazione della pagina per produzione
 $(document).ready(async function () {
-    console.log('🚀 pagamento.js - Inizializzazione per PRODUZIONE (CON STRIPE)');
-    console.log('🔍 Test debug semplice');
-    console.log('🔍 Test CONFIG.API_BASE:', typeof CONFIG.API_BASE);
-    console.log('🔍 Test CONFIG:', typeof CONFIG);
-    console.log('🔍 Test window.CONFIG.API_BASE:', typeof window.CONFIG.API_BASE);
-    console.log('🔍 Test window.CONFIG:', typeof window.CONFIG);
 
     // Inizializza la navbar universale se disponibile
     if (typeof window.initializeNavbar === 'function') {
         window.initializeNavbar();
     }
     
-    console.log('🔍 Dopo initializeNavbar');
 
     try {
-        console.log('🔍 Inizio blocco try');
         // Verifica se abbiamo parametri URL per la prenotazione
         const urlParams = new URLSearchParams(window.location.search);
         const prenotazioneId = urlParams.get('prenotazione') || urlParams.get('id_prenotazione');
         
-        console.log('🔍 Debug parametri URL:');
-        console.log('URL completo:', window.location.href);
-        console.log('Parametri URL:', window.location.search);
-        console.log('prenotazioneId trovato:', prenotazioneId);
-        console.log('urlParams.get("prenotazione"):', urlParams.get('prenotazione'));
-        console.log('urlParams.get("id_prenotazione"):', urlParams.get('id_prenotazione'));
         
         if (prenotazioneId) {
-            console.log('✅ ID prenotazione trovato, carico dati...');
             // Carica i dati reali della prenotazione dal database
             await loadPrenotazioneData(prenotazioneId);
         } else {
-            console.log('❌ ID prenotazione mancante nei parametri URL');
             // Fallback: mostra errore se non c'è ID prenotazione
             showError('ID prenotazione mancante. Torna alla dashboard e riprova.');
             return;
@@ -67,10 +51,6 @@ $(document).ready(async function () {
 // Carica i dati reali della prenotazione dal database
 async function loadPrenotazioneData(prenotazioneId) {
     try {
-        console.log('📊 Carico dati prenotazione:', prenotazioneId);
-        console.log('🔍 CONFIG.API_BASE:', CONFIG.API_BASE);
-        console.log('🔍 URL completa API:', `${CONFIG.API_BASE}/prenotazioni/${prenotazioneId}`);
-        console.log('🔍 Token presente:', !!localStorage.getItem('token'));
         
         // Chiamata API per ottenere i dati della prenotazione
         const response = await fetch(`${CONFIG.API_BASE}/prenotazioni/${prenotazioneId}`, {
@@ -86,16 +66,12 @@ async function loadPrenotazioneData(prenotazioneId) {
         }
 
         const data = await response.json();
-        console.log('📊 Response completa API:', data);
-        console.log('📊 Struttura data:', Object.keys(data));
         
         // Controlla se i dati sono in data.prenotazione o direttamente in data
         if (data.prenotazione) {
             prenotazioneData = data.prenotazione;
-            console.log('📊 Dati estratti da data.prenotazione:', prenotazioneData);
         } else {
             prenotazioneData = data;
-            console.log('📊 Dati estratti direttamente da data:', prenotazioneData);
         }
         
         // Popola i dettagli della prenotazione
@@ -107,7 +83,6 @@ async function loadPrenotazioneData(prenotazioneId) {
         // Aggiungi CSS per campi precompilati
         addPrefilledFieldsCSS();
         
-        console.log('✅ Dati prenotazione caricati:', prenotazioneData);
         
     } catch (error) {
         console.error('❌ Errore caricamento prenotazione:', error);
@@ -119,7 +94,6 @@ async function loadPrenotazioneData(prenotazioneId) {
 // Inizializza Stripe
 async function initializeStripe() {
     try {
-        console.log('💳 Inizializzazione Stripe...');
 
         // Verifica se Stripe è disponibile
         if (typeof Stripe === 'undefined') {
@@ -179,7 +153,6 @@ async function initializeStripe() {
         // Configura gli event listener
         setupEventListeners();
         
-        console.log('✅ Stripe inizializzato con successo');
         
     } catch (error) {
         console.error('❌ Errore inizializzazione Stripe:', error);
@@ -191,16 +164,11 @@ async function initializeStripe() {
 // Popola i dettagli della prenotazione
 function populatePrenotazioneDetails() {
     const data = prenotazioneData;
-    console.log('🔍 populatePrenotazioneDetails chiamata');
-    console.log('🔍 prenotazioneData:', prenotazioneData);
-    console.log('🔍 data:', data);
     
     if (!data) {
-        console.log('❌ Nessun dato prenotazione disponibile');
         return;
     }
 
-    console.log('populatePrenotazioneDetails - Dati prenotazione:', data);
 
     // Formatta le date
     const dataInizio = new Date(data.data_inizio);
@@ -225,16 +193,12 @@ function populatePrenotazioneDetails() {
     });
 
     // Aggiorna l'interfaccia
-    console.log('🔍 Popolo campo sede:', data.nome_sede);
     document.getElementById('sede-prenotazione').textContent = data.nome_sede || 'Caricamento...';
     
-    console.log('🔍 Popolo campo spazio:', data.nome_spazio);
     document.getElementById('spazio-prenotazione').textContent = data.nome_spazio || 'Caricamento...';
     
-    console.log('🔍 Popolo campo data inizio:', dataFormattata, 'dalle', orarioInizio);
     document.getElementById('data-inizio-prenotazione').textContent = `${dataFormattata} dalle ${orarioInizio}`;
     
-    console.log('🔍 Popolo campo data fine:', dataFine.toLocaleDateString('it-IT', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -251,12 +215,10 @@ function populatePrenotazioneDetails() {
     let durataOre;
     if (data.durata_ore && !isNaN(data.durata_ore)) {
         durataOre = data.durata_ore;
-        console.log('🔍 Durata ore dal database:', durataOre);
     } else {
         // Fallback: calcola dalle date
         const durataMs = dataFine.getTime() - dataInizio.getTime();
         durataOre = Math.round(durataMs / (1000 * 60 * 60));
-        console.log('🔍 Durata ore calcolata dalle date:', durataOre);
     }
     
     // Formatta la durata
@@ -274,59 +236,49 @@ function populatePrenotazioneDetails() {
         durataText = `${minuti}m`;
     }
 
-    console.log('🔍 Popolo campo durata:', durataText);
     document.getElementById('durata-prenotazione').textContent = durataText;
     
     // Calcola il totale usando la stessa logica della dashboard (€10/ora)
     const prezzoOrario = 10.00; // Stesso prezzo della dashboard
     const totale = durataOre * prezzoOrario;
     
-    console.log('🔍 Popolo campo totale:', totale, '€ (durata:', durataOre, 'ore ×', prezzoOrario, '€/ora)');
     document.getElementById('totale-prenotazione').textContent = `€${totale.toFixed(2)}`;
     
     // Salva il totale nei dati per usarlo nel pagamento
     prenotazioneData.importo = totale;
 
-    console.log('✅ Dettagli prenotazione popolati');
 }
 
 // Carica e precompila i dati utente nel form di pagamento
 async function loadAndPopulateUserData() {
     try {
-        console.log('👤 Carico dati utente per precompilazione form...');
         
         // Estrai i dati utente dal token JWT
         const token = localStorage.getItem('token');
         if (!token) {
-            console.log('⚠️ Nessun token trovato, form non precompilato');
             return;
         }
         
         // Decodifica il token JWT (parte payload)
         const tokenParts = token.split('.');
         if (tokenParts.length !== 3) {
-            console.log('⚠️ Token JWT non valido, form non precompilato');
             return;
         }
         
         // Decodifica la parte payload (seconda parte)
         const payload = JSON.parse(atob(tokenParts[1]));
-        console.log('🔍 Dati utente estratti dal token:', payload);
         
         // Precompila i campi del form
         populateUserFormFields(payload);
         
-        console.log('✅ Form precompilato con dati utente');
         
     } catch (error) {
         console.error('❌ Errore caricamento dati utente:', error);
-        console.log('⚠️ Form non precompilato a causa di errore');
     }
 }
 
 // Precompila i campi del form con i dati utente
 function populateUserFormFields(userData) {
-    console.log('🔍 Precompilo form con dati utente:', userData);
     
     // Campi da precompilare (sempre disponibili dal token JWT)
     const fieldsToPopulate = {
@@ -360,7 +312,6 @@ function populateUserFormFields(userData) {
     Object.entries(fieldsToPopulate).forEach(([fieldId, value]) => {
         const field = document.getElementById(fieldId);
         if (field && value) {
-            console.log(`🔍 Precompilo campo ${fieldId}:`, value);
             field.value = value;
             
             // Aggiungi classe per indicare che è precompilato
@@ -379,18 +330,14 @@ function populateUserFormFields(userData) {
             // Trigger evento input per attivare validazione
             field.dispatchEvent(new Event('input', { bubbles: true }));
         } else {
-            console.log(`⚠️ Campo ${fieldId} non trovato o valore mancante`);
         }
     });
     
     // Log dei campi trovati e non trovati
-    console.log('🔍 Riepilogo precompilazione:');
     Object.keys(fieldsToPopulate).forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
-            console.log(`✅ Campo ${fieldId}: trovato e precompilato`);
         } else {
-            console.log(`❌ Campo ${fieldId}: non trovato nel DOM`);
         }
     });
 }
@@ -421,7 +368,6 @@ function addPrefilledFieldsCSS() {
         }
     `;
     document.head.appendChild(style);
-    console.log('🎨 CSS per campi precompilati aggiunto');
 }
 
 // Configura gli event listener
@@ -435,7 +381,6 @@ function setupEventListeners() {
     // Event listener per i campi di input (validazione in tempo reale)
     setupInputValidation();
     
-    console.log('✅ Event listener configurati');
 }
 
 // Configura la validazione in tempo reale dei campi
@@ -575,7 +520,6 @@ function validateField(field, isValid, errorMessage) {
 async function handlePaymentSubmit(event) {
     event.preventDefault();
 
-    console.log('💳 Gestione pagamento reale...');
 
     // Valida tutti i campi
     if (!validateAllFields()) {
@@ -590,8 +534,6 @@ async function handlePaymentSubmit(event) {
 
     try {
         // Simulo il pagamento con i campi manuali
-        console.log('💳 Simulo pagamento con campi manuali...');
-        console.log('💳 Dati prenotazione per pagamento:', {
             id: prenotazioneData.id_prenotazione,
             importo: prenotazioneData.importo,
             spazio: prenotazioneData.nome_spazio,
@@ -729,8 +671,6 @@ async function handlePaymentSuccess(paymentIntent) {
         pagamentoCompletato = true;
 
         // Salva il pagamento nel database
-        console.log('💾 Salvo pagamento nel database...');
-        console.log('💾 Dati pagamento da salvare:', {
             id_prenotazione: prenotazioneData.id_prenotazione,
             payment_intent_id: paymentIntent.id,
             method: 'carta_credito'
@@ -741,7 +681,6 @@ async function handlePaymentSuccess(paymentIntent) {
         // Mostra la pagina di ringraziamento
         showThankYouPage();
 
-        console.log('✅ Pagamento completato con successo');
 
     } catch (error) {
         console.error('Errore gestione successo pagamento:', error);
@@ -752,7 +691,6 @@ async function handlePaymentSuccess(paymentIntent) {
 // Salva il pagamento nel database
 async function savePaymentToDatabase(paymentIntent) {
     try {
-        console.log('💾 Invio dati pagamento al backend:', {
             id_prenotazione: prenotazioneData.id_prenotazione,
             payment_intent_id: paymentIntent.id,
             method: 'carta_credito'
@@ -780,7 +718,6 @@ async function savePaymentToDatabase(paymentIntent) {
                 errorData.error.includes('duplicate key value violates unique constraint') ||
                 errorData.error.includes('duplicate key value violates unique constraint "unique_id_prenotazione"')
             )) {
-                console.log('⚠️ Pagamento già esistente per questa prenotazione, aggiorno solo lo stato');
                 
                 // Aggiorna solo lo stato della prenotazione a 'pagato'
                 await updatePrenotazioneStatus();
@@ -791,7 +728,6 @@ async function savePaymentToDatabase(paymentIntent) {
         }
 
         const result = await response.json();
-        console.log('✅ Pagamento salvato nel database:', result);
 
     } catch (error) {
         console.error('Errore salvataggio pagamento:', error);
@@ -802,7 +738,6 @@ async function savePaymentToDatabase(paymentIntent) {
 // Aggiorna solo lo stato della prenotazione a 'pagato'
 async function updatePrenotazioneStatus() {
     try {
-        console.log('🔄 Aggiorno stato prenotazione a pagato...');
         
         const response = await fetch(`${CONFIG.API_BASE}/prenotazioni/${prenotazioneData.id_prenotazione}/status`, {
             method: 'PATCH',
@@ -822,7 +757,6 @@ async function updatePrenotazioneStatus() {
         }
 
         const result = await response.json();
-        console.log('✅ Stato prenotazione aggiornato:', result);
         
     } catch (error) {
         console.error('Errore aggiornamento stato prenotazione:', error);

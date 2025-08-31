@@ -2,8 +2,6 @@
 // Configurazione API - usa quella globale da config.js
 
 // Debug: verifica configurazione
-console.log('main.js - window.CONFIG:', window.CONFIG);
-console.log('main.js - API_BASE:', window.CONFIG.API_BASE);
 
 // Funzioni di utilità
 function showAlert(message, type = 'info') {
@@ -21,7 +19,6 @@ function updateNavbar() {
   if (typeof window.updateNavbarUniversal === 'function') {
     window.updateNavbarUniversal();
   } else {
-    console.log('updateNavbar - Sistema universale non disponibile, fallback alla vecchia logica');
     // Fallback alla vecchia logica se il sistema universale non è disponibile
     updateNavbarFallback();
   }
@@ -29,13 +26,11 @@ function updateNavbar() {
 
 // Funzione di fallback per compatibilità
 function updateNavbarFallback() {
-  console.log('updateNavbarFallback - Usando logica legacy');
   const userStr = localStorage.getItem('user');
 
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
-      console.log('Utente autenticato:', user.nome, user.cognome);
 
       const authSection = $('#authSection');
       if (authSection.length) {
@@ -72,13 +67,11 @@ function updateNavbarFallback() {
 // Mostra navbar di default per utenti non autenticati
 function showDefaultNavbar() {
   // NON sostituire la navbar originale - mantieni quella dell'HTML
-  console.log('Navbar di default mantenuta - non modificare HTML esistente');
   return;
 }
 
 // Funzione per determinare la dashboard corretta in base al ruolo
 function getDashboardUrl(ruolo) {
-  console.log('🔍 getDashboardUrl chiamata con ruolo:', ruolo);
   let url;
   switch(ruolo) {
     case 'amministratore':
@@ -91,35 +84,29 @@ function getDashboardUrl(ruolo) {
       url = 'dashboard.html';
       break;
   }
-  console.log('🔍 getDashboardUrl restituisce URL:', url);
   return url;
 }
 
 // Funzione per navigare alle pagine protette verificando l'autenticazione
 function navigateToProtectedPage(pageUrl) {
-  console.log('Tentativo di navigazione a:', pageUrl);
 
   // ✅ Verifica se l'utente è autenticato (con logica migliorata per gestori)
   const userStr = localStorage.getItem('user');
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
-      console.log('Utente trovato:', user.nome, user.cognome, 'Ruolo:', user.ruolo);
 
       // ✅ Se l'utente è gestore o amministratore, mantieni la sessione anche senza token
       if (user.ruolo === 'gestore' || user.ruolo === 'amministratore') {
         if (user.id_utente) {
-          console.log('✅ Gestore/amministratore autenticato, navigazione consentita');
 
           // Verifica permessi per pagine specifiche
           if (pageUrl.includes('dashboard-responsabili.html')) {
-            console.log('🎯 Navigazione alla dashboard gestore consentita');
             window.location.href = pageUrl;
             return;
           }
 
           if (pageUrl.includes('dashboard.html') || pageUrl.includes('dashboard-amministratore.html')) {
-            console.log('🎯 Navigazione alla dashboard consentita');
             window.location.href = pageUrl;
             return;
           }
@@ -131,7 +118,6 @@ function navigateToProtectedPage(pageUrl) {
         // ✅ Gestisci la funzione asincrona
         window.isAuthenticated().then(isAuth => {
           if (isAuth) {
-            console.log('✅ Utente normale autenticato, navigazione consentita');
 
             // Verifica permessi per pagine specifiche
             if (pageUrl.includes('dashboard-responsabili.html') && user.ruolo !== 'gestore' && user.ruolo !== 'amministratore') {
@@ -139,11 +125,9 @@ function navigateToProtectedPage(pageUrl) {
               return;
             }
 
-            console.log('Navigazione consentita a:', pageUrl);
             window.location.href = pageUrl;
           } else {
             // ✅ Se arriviamo qui, l'utente ha user ma non è completamente autenticato
-            console.log('⚠️ Utente con user ma autenticazione incompleta, richiedo login');
             localStorage.setItem('redirectAfterLogin', pageUrl);
             window.location.href = 'login.html?message=' + encodeURIComponent('Sessione scaduta. Effettua nuovamente il login.');
           }
@@ -164,7 +148,6 @@ function navigateToProtectedPage(pageUrl) {
     }
   } else {
     // ✅ Utente completamente non autenticato
-    console.log('Utente non autenticato, reindirizzamento al login');
     localStorage.setItem('redirectAfterLogin', pageUrl);
     window.location.href = 'login.html?message=' + encodeURIComponent('Devi effettuare il login per accedere a questa pagina.');
   }
@@ -172,7 +155,6 @@ function navigateToProtectedPage(pageUrl) {
 
 // Logout locale - chiama la funzione centralizzata
 function handleLogout() {
-  console.log('handleLogout chiamato');
 
   // Usa la funzione centralizzata di config.js
   if (typeof window.logout === 'function') {
@@ -187,7 +169,6 @@ function handleLogout() {
 
 // Caricamento sedi
 function loadSedi(citta = '') {
-  console.log('Caricando sedi...', citta ? `Filtro: ${citta}` : 'Tutte');
   const url = citta ? `${window.CONFIG.API_BASE}/sedi?citta=${citta}` : `${window.CONFIG.API_BASE}/sedi`;
 
   $.ajax({
@@ -196,7 +177,6 @@ function loadSedi(citta = '') {
     // Rimuovo headers per endpoint pubblico che non richiede autenticazione
   })
     .done(function (sedi) {
-      console.log('Sedi caricate:', sedi);
       displaySedi(sedi);
       populateCittaFilter(sedi);
     })
@@ -299,43 +279,26 @@ window.handleLogin = function (event, email, password) {
     })
     .then(response => {
       // Debug: mostra la risposta del login
-      console.log('🔍 Risposta login ricevuta:', response);
-      console.log('🔍 Tipo risposta:', typeof response);
-      console.log('🔍 Chiavi disponibili:', Object.keys(response));
-      console.log('🔍 Token presente:', 'token' in response);
-      console.log('🔍 Valore token:', response.token);
-      console.log('🔍 Ruolo utente:', response.ruolo);
-      console.log('🔍 Risposta completa:', JSON.stringify(response, null, 2));
 
       // Salva l'utente
       localStorage.setItem('user', JSON.stringify(response));
 
       // Salva il token se presente nella risposta
       if (response.token) {
-        console.log('🔑 Token trovato, lo salvo in localStorage');
         localStorage.setItem('token', response.token);
 
         // Verifica che il token sia stato salvato
         const savedToken = localStorage.getItem('token');
-        console.log('🔍 Token salvato in localStorage:', savedToken ? 'SI' : 'NO');
-        console.log('🔍 Valore token salvato:', savedToken);
       } else {
-        console.log('⚠️ Nessun token nella risposta del login');
-        console.log('🔍 Controllo se il token è in un campo diverso...');
 
         // Controlla se il token è in un campo diverso
         if (response.access_token) {
-          console.log('🔑 Access token trovato, lo salvo come token');
           localStorage.setItem('token', response.access_token);
         } else if (response.jwt) {
-          console.log('🔑 JWT trovato, lo salvo come token');
           localStorage.setItem('token', response.jwt);
         } else if (response.authToken) {
-          console.log('🔑 Auth token trovato, lo salvo come token');
           localStorage.setItem('token', response.authToken);
         } else {
-          console.log('❌ Nessun tipo di token trovato nella risposta');
-          console.log('🚨 ERRORE: Il backend non ha restituito un token valido!');
 
           // Mostra errore all'utente
           showAlert('Errore: Il server non ha restituito un token di autenticazione. Riprova il login.', 'danger');
@@ -353,18 +316,15 @@ window.handleLogin = function (event, email, password) {
       if (redirectAfterLogin) {
         // Rimuovi l'URL salvato e vai alla pagina originale
         localStorage.removeItem('redirectAfterLogin');
-        console.log('handleLogin - Redirect alla pagina originale:', redirectAfterLogin);
 
         // Se il redirect è verso selezione-slot.html, vai direttamente al pagamento con i dati salvati
         if (redirectAfterLogin.includes('selezione-slot.html')) {
-          console.log('handleLogin - Redirect verso selezione-slot.html, vado direttamente al pagamento');
 
           // Controlla se c'è una prenotazione in attesa
           const pendingPrenotazione = localStorage.getItem('pendingPrenotazione');
           if (pendingPrenotazione) {
             try {
               const prenotazioneData = JSON.parse(pendingPrenotazione);
-              console.log('handleLogin - Dati prenotazione per pagamento:', prenotazioneData);
 
               // Vai direttamente al pagamento con tutti i parametri
               const pagamentoUrl = new URL('pagamento.html', window.location.origin);
@@ -395,8 +355,6 @@ window.handleLogin = function (event, email, password) {
           } else {
             // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (redirect fallback)
             const userRole = response.ruolo;
-            console.log('🔍 handleLogin - Ruolo utente (redirect fallback):', userRole);
-            console.log('🎯 handleLogin - Redirect fallback, vai alla dashboard appropriata');
 
             // Nessuna prenotazione in attesa, vai alla dashboard appropriata
             setTimeout(() => {
@@ -414,7 +372,6 @@ window.handleLogin = function (event, email, password) {
 
       // Controlla se c'è una prenotazione in attesa
       const pendingPrenotazione = localStorage.getItem('pendingPrenotazione');
-      console.log('🔍 handleLogin - Controllo pendingPrenotazione:', pendingPrenotazione);
 
       if (pendingPrenotazione) {
         // Controlla se l'utente è arrivato dalla home o da una prenotazione
@@ -425,12 +382,9 @@ window.handleLogin = function (event, email, password) {
           // Se l'utente si logga dalla home, non forzare il redirect al pagamento
           // Rimuovi i dati della prenotazione in attesa e vai alla dashboard appropriata
           localStorage.removeItem('pendingPrenotazione');
-          console.log('handleLogin - Login dalla home, rimuovo prenotazione in attesa e vado alla dashboard appropriata');
 
           // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (login dalla home)
           const userRole = response.ruolo;
-          console.log('🔍 handleLogin - Ruolo utente (login dalla home):', userRole);
-          console.log('🎯 handleLogin - Login dalla home, vai alla dashboard appropriata');
 
           // Mostra messaggio informativo
           showAlert('Login effettuato! Hai una prenotazione in attesa che puoi completare dalla dashboard.', 'info');
@@ -440,7 +394,6 @@ window.handleLogin = function (event, email, password) {
           }, 1000);
         } else {
           // Se l'utente si logga da una pagina di prenotazione, procedi al pagamento
-          console.log('handleLogin - Login durante prenotazione, procedo al pagamento');
 
           // Rimuovi i dati temporanei e vai direttamente al pagamento
           localStorage.removeItem('pendingPrenotazione');
@@ -455,7 +408,6 @@ window.handleLogin = function (event, email, password) {
           pagamentoUrl.searchParams.set('orarioInizio', prenotazioneData.orarioInizio);
           pagamentoUrl.searchParams.set('orarioFine', prenotazioneData.orarioFine);
 
-          console.log('🚀 handleLogin - Redirect al pagamento con URL:', pagamentoUrl.toString());
 
           setTimeout(() => {
             window.location.href = pagamentoUrl.toString();
@@ -464,9 +416,6 @@ window.handleLogin = function (event, email, password) {
       } else {
         // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (se non stanno prenotando)
         const userRole = response.ruolo;
-        console.log('🔍 handleLogin - Ruolo utente:', userRole);
-        console.log('🎯 handleLogin - Login come azione principale, vai alla dashboard appropriata');
-        console.log('🔍 handleLogin - URL dashboard calcolato:', getDashboardUrl(userRole));
 
         // Nessuna prenotazione in attesa, vai alla dashboard appropriata
         setTimeout(() => {
@@ -551,17 +500,14 @@ window.handleRegistration = function (event, nome, cognome, email, password, tel
     })
     .then(response => {
       // Debug: mostra la risposta della registrazione
-      console.log('🔍 Risposta registrazione ricevuta:', response);
 
       // Salva l'utente
       localStorage.setItem('user', JSON.stringify(response));
 
       // Salva il token se presente nella risposta
       if (response.token) {
-        console.log('🔑 Token trovato nella registrazione, lo salvo in localStorage');
         localStorage.setItem('token', response.token);
       } else {
-        console.log('⚠️ Nessun token nella risposta della registrazione');
       }
 
       showAlert('Login automatico effettuato! Reindirizzamento alla dashboard...', 'success');
@@ -580,12 +526,9 @@ window.handleRegistration = function (event, nome, cognome, email, password, tel
           // Se l'utente si registra dalla home, non forzare il redirect al pagamento
           // Rimuovi i dati della prenotazione in attesa e vai alla dashboard appropriata
           localStorage.removeItem('pendingPrenotazione');
-          console.log('handleRegistration - Registrazione dalla home, rimuovo prenotazione in attesa e vado alla dashboard appropriata');
 
           // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (registrazione dalla home)
           const userRole = response.ruolo;
-          console.log('🔍 handleRegistration - Ruolo utente (registrazione dalla home):', userRole);
-          console.log('🎯 handleRegistration - Registrazione dalla home, vai alla dashboard appropriata');
 
           // Mostra messaggio informativo
           showAlert('Registrazione completata! Hai una prenotazione in attesa che puoi completare dalla dashboard.', 'info');
@@ -595,7 +538,6 @@ window.handleRegistration = function (event, nome, cognome, email, password, tel
           }, 1500);
         } else {
           // Se l'utente si registra da una pagina di prenotazione, procedi al pagamento
-          console.log('handleRegistration - Registrazione durante prenotazione, procedo al pagamento');
 
           // Rimuovi i dati temporanei e vai direttamente al pagamento
           localStorage.removeItem('pendingPrenotazione');
@@ -617,8 +559,6 @@ window.handleRegistration = function (event, nome, cognome, email, password, tel
       } else {
         // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (nessuna prenotazione)
         const userRole = response.ruolo;
-        console.log('🔍 handleRegistration - Ruolo utente (nessuna prenotazione):', userRole);
-        console.log('🎯 handleRegistration - Nessuna prenotazione, vai alla dashboard appropriata');
 
         // Nessuna prenotazione in attesa, vai alla dashboard appropriata
         setTimeout(() => {
@@ -651,7 +591,6 @@ function cleanupPendingPrenotazioni() {
       const oreTrascorse = (ora - dataPrenotazione) / (1000 * 60 * 60);
 
       if (oreTrascorse > 1) {
-        console.log('🧹 Rimuovo prenotazione in attesa obsoleta (età:', oreTrascorse.toFixed(2), 'ore)');
         localStorage.removeItem('pendingPrenotazione');
       }
     } catch (error) {
@@ -664,7 +603,6 @@ function cleanupPendingPrenotazioni() {
 
 // Event handlers
 $(document).ready(function () {
-  console.log('DOM ready, inizializzazione...');
 
   // Pulisci prenotazioni in attesa obsolete
   cleanupPendingPrenotazioni();
@@ -673,7 +611,6 @@ $(document).ready(function () {
   if (typeof window.initializeNavbar === 'function') {
     window.initializeNavbar();
   } else {
-    console.log('main.js - Sistema navbar universale non disponibile, fallback alla vecchia logica');
     // Fallback alla vecchia logica
     validateTokenOnStartup().then(() => {
       const userStr = localStorage.getItem('user');
@@ -685,14 +622,12 @@ $(document).ready(function () {
 
   // Carica sedi all'avvio se siamo sulla home
   if ($('#catalogoSedi').length) {
-    console.log('Elemento catalogoSedi trovato, carico le sedi...');
     loadSedi();
   }
 
   // Pulsante Catalogo (ricarica le sedi)
   $('#btnCatalogo').click(function (e) {
     e.preventDefault();
-    console.log('Pulsante Catalogo cliccato');
     loadSedi();
     // Scroll verso il catalogo
     $('html, body').animate({
@@ -703,7 +638,6 @@ $(document).ready(function () {
   // Filtro sedi
   $('#btnFiltra').click(function () {
     const citta = $('#filtroCitta').val();
-    console.log('Filtro applicato:', citta);
     loadSedi(citta);
   });
 
@@ -726,7 +660,6 @@ $(document).ready(function () {
 
 // Inizializzazione quando il DOM è pronto
 $(document).ready(function () {
-  console.log('main.js - DOM ready, inizializzazione...');
 
   // Test connessione API
   testAPIConnection();
@@ -735,15 +668,12 @@ $(document).ready(function () {
   if (typeof window.initializeNavbar === 'function') {
     window.initializeNavbar();
   } else {
-    console.log('main.js - Sistema navbar universale non disponibile, fallback alla vecchia logica');
     // Fallback alla vecchia logica
     if (typeof window.validateTokenOnStartup === 'function') {
       window.validateTokenOnStartup().then(isValid => {
         if (isValid) {
-          console.log('Token valido, aggiorno navbar');
           updateNavbar();
         } else {
-          console.log('Token non valido - mantieni navbar originale');
         }
       });
     }
@@ -763,7 +693,6 @@ $(document).ready(function () {
 
 // Funzione per testare la connessione API
 function testAPIConnection() {
-  console.log('Test connessione API a:', window.CONFIG.API_BASE);
 
   fetch(`${window.CONFIG.API_BASE}/ping`, {
     method: 'GET',
@@ -774,14 +703,12 @@ function testAPIConnection() {
   })
     .then(response => {
       if (response.ok) {
-        console.log('✅ API raggiungibile');
         return response.json();
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     })
     .then(data => {
-      console.log('✅ Risposta API:', data);
     })
     .catch(error => {
       console.error('❌ Errore connessione API:', error);
@@ -792,7 +719,6 @@ function testAPIConnection() {
 
         // Riprova automaticamente dopo 5 secondi
         setTimeout(() => {
-          console.log('🔄 Riprovo connessione API...');
           testAPIConnection();
         }, 5000);
       } else {
@@ -803,7 +729,6 @@ function testAPIConnection() {
 
 // ===== PASSWORD TOGGLE SYSTEM =====
 function setupPasswordToggles() {
-  console.log('Setup password toggles...');
 
   // Toggle per login password
   const toggleLoginPassword = document.getElementById('toggleLoginPassword');
@@ -811,7 +736,6 @@ function setupPasswordToggles() {
   const loginPasswordIcon = document.getElementById('loginPasswordIcon');
 
   if (toggleLoginPassword && loginPassword && loginPasswordIcon) {
-    console.log('Setup toggle login password');
     // Aggiungi attributi ARIA
     toggleLoginPassword.setAttribute('aria-label', 'Mostra password');
     toggleLoginPassword.setAttribute('type', 'button');
@@ -820,7 +744,6 @@ function setupPasswordToggles() {
     toggleLoginPassword.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Toggle login password clicked');
       togglePasswordVisibility(loginPassword, loginPasswordIcon);
     });
 
@@ -832,7 +755,6 @@ function setupPasswordToggles() {
       }
     });
   } else {
-    console.log('Elementi login password non trovati:', { toggleLoginPassword, loginPassword, loginPasswordIcon });
   }
 
   // Toggle per registrazione password
@@ -841,7 +763,6 @@ function setupPasswordToggles() {
   const regPasswordIcon = document.getElementById('regPasswordIcon');
 
   if (toggleRegPassword && regPassword && regPasswordIcon) {
-    console.log('Setup toggle reg password');
     // Aggiungi attributi ARIA
     toggleRegPassword.setAttribute('aria-label', 'Mostra password');
     toggleRegPassword.setAttribute('type', 'button');
@@ -850,7 +771,6 @@ function setupPasswordToggles() {
     toggleRegPassword.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Toggle reg password clicked');
       togglePasswordVisibility(regPassword, regPasswordIcon);
     });
 
@@ -862,7 +782,6 @@ function setupPasswordToggles() {
       }
     });
   } else {
-    console.log('Elementi reg password non trovati:', { toggleRegPassword, regPassword, regPasswordIcon });
   }
 
   // Toggle per conferma password
@@ -871,7 +790,6 @@ function setupPasswordToggles() {
   const regConfirmPasswordIcon = document.getElementById('regConfirmPasswordIcon');
 
   if (toggleRegConfirmPassword && regConfirmPassword && regConfirmPasswordIcon) {
-    console.log('Setup toggle reg confirm password');
     // Aggiungi attributi ARIA
     toggleRegConfirmPassword.setAttribute('aria-label', 'Mostra password');
     toggleRegConfirmPassword.setAttribute('type', 'button');
@@ -880,7 +798,6 @@ function setupPasswordToggles() {
     toggleRegConfirmPassword.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Toggle reg confirm password clicked');
       togglePasswordVisibility(regConfirmPassword, regConfirmPasswordIcon);
     });
 
@@ -892,13 +809,11 @@ function setupPasswordToggles() {
       }
     });
   } else {
-    console.log('Elementi reg confirm password non trovati:', { toggleRegConfirmPassword, regConfirmPassword, regConfirmPasswordIcon });
   }
 }
 
 // Funzione per toggle della visibilità password
 function togglePasswordVisibility(passwordInput, iconElement) {
-  console.log('togglePasswordVisibility chiamata per:', passwordInput.id);
 
   if (passwordInput.type === 'password') {
     passwordInput.type = 'text';
@@ -907,7 +822,6 @@ function togglePasswordVisibility(passwordInput, iconElement) {
     iconElement.setAttribute('aria-label', 'Nascondi password');
     // Aggiungi classe per styling
     passwordInput.parentElement.classList.add('password-visible');
-    console.log('Password ora visibile');
   } else {
     passwordInput.type = 'password';
     iconElement.className = 'fas fa-eye';
@@ -915,7 +829,6 @@ function togglePasswordVisibility(passwordInput, iconElement) {
     iconElement.setAttribute('aria-label', 'Mostra password');
     // Rimuovi classe per styling
     passwordInput.parentElement.classList.remove('password-visible');
-    console.log('Password ora nascosta');
   }
 
   // Focus sul campo password per migliorare l'UX
@@ -1164,7 +1077,6 @@ function handlePrenotazioneRedirect() {
     const redirectMessage = document.getElementById('redirectMessage');
     if (redirectMessage) {
       redirectMessage.style.display = 'block';
-      console.log('✅ Messaggio redirect prenotazione mostrato');
     }
   }
 }

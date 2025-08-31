@@ -22,19 +22,16 @@ class SlotManager {
         this.currentSpazio = spazioId;
         this.currentDate = date;
 
-        console.log('🚀 SlotManager - Inizializzazione per:', { sedeId, spazioId, date });
 
         // Controlla se l'utente è autenticato
         const token = localStorage.getItem('token');
 
         if (token) {
-            console.log('🔐 SlotManager - Utente autenticato, attivo modalità SSE');
             // Carica stato iniziale degli slot
             this.loadInitialSlotsStatus();
             // Connessione SSE per aggiornamenti real-time
             this.connectSSE();
         } else {
-            console.log('👤 SlotManager - Utente non autenticato, carico stato slot senza SSE');
             // Utenti non autenticati vedono lo stato reale degli slot
             // ma non ricevono aggiornamenti real-time
             this.loadInitialSlotsStatus();
@@ -47,7 +44,6 @@ class SlotManager {
     async loadInitialSlotsStatus() {
         // Se gli slot sono già stati caricati con stati corretti, non ricaricare
         if (this.slotsStatus.size > 0) {
-            console.log('📋 SlotManager - Stati slot già caricati, aggiorno solo i bottoni');
             this.updateAllSlotButtons();
             return;
         }
@@ -76,7 +72,6 @@ class SlotManager {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('📋 SlotManager - Risposta ricevuta:', data);
 
                 // Gestisci entrambi i formati di risposta
                 let slotsArray;
@@ -95,7 +90,6 @@ class SlotManager {
                 }
 
                 this.updateSlotsFromStatus(slotsArray);
-                console.log('✅ SlotManager - Stato iniziale slot caricato:', slotsArray.length, 'slot');
             } else {
                 console.error('❌ SlotManager - Errore caricamento stato iniziale:', response.status);
             }
@@ -116,12 +110,10 @@ class SlotManager {
 
             // Crea URL con token nella query string per autenticazione SSE
             const url = `${window.CONFIG.API_BASE}/sse/status-stream?token=${encodeURIComponent(token)}`;
-            console.log('🔗 SlotManager - Connessione SSE con URL:', url);
 
             this.eventSource = new EventSource(url);
 
             this.eventSource.onopen = () => {
-                console.log('🔗 SlotManager - Connessione SSE stabilita');
                 this.isConnected = true;
                 this.reconnectAttempts = 0;
             };
@@ -150,7 +142,6 @@ class SlotManager {
     handleSSEMessage(data) {
         switch (data.type) {
             case 'connection':
-                console.log('🔗 SlotManager - Connessione SSE confermata:', data.message);
                 break;
 
             case 'heartbeat':
@@ -166,7 +157,6 @@ class SlotManager {
                 break;
 
             default:
-                console.log('📨 SlotManager - Messaggio SSE non gestito:', data.type);
         }
     }
 
@@ -174,7 +164,6 @@ class SlotManager {
     handleSlotUpdate(data) {
         const { slotId, status, data: slotData } = data;
 
-        console.log('🔄 SlotManager - Aggiornamento slot:', { slotId, status, slotData });
 
         // Aggiorna stato locale
         this.slotsStatus.set(slotId, {
@@ -188,8 +177,6 @@ class SlotManager {
 
     // Aggiorna tutti gli slot da stato completo
     updateSlotsFromStatus(slotsStatus) {
-        console.log('🔄 SlotManager - Aggiornamento completo slot:', slotsStatus.length, 'slot');
-        console.log('📋 Dettagli slot ricevuti:', slotsStatus);
 
         // Pulisci stato precedente
         this.slotsStatus.clear();
@@ -200,7 +187,6 @@ class SlotManager {
             const slotId = slot.id_slot || slot.id || slot.orario || (index + 1);
             if (slotId) {
                 this.slotsStatus.set(slotId, slot);
-                console.log(`📌 Slot ${slotId} mappato con status: ${slot.status}`);
             } else {
                 console.warn('⚠️ Slot senza ID valido:', slot);
             }
@@ -212,11 +198,8 @@ class SlotManager {
 
     // Aggiorna tutti i bottoni degli slot
     updateAllSlotButtons() {
-        console.log('🔄 SlotManager - Aggiornamento di tutti i bottoni');
-        console.log('📊 Stato slot corrente:', Array.from(this.slotsStatus.entries()));
 
         this.slotsStatus.forEach((slot, slotId) => {
-            console.log(`🔄 Aggiornamento bottone per slot ${slotId}:`, slot);
             this.updateSlotButton(slotId, slot.status, slot);
         });
     }
@@ -268,7 +251,6 @@ class SlotManager {
     handleSSEError() {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
-            console.log(`🔄 SlotManager - Tentativo riconnessione ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
 
             setTimeout(() => {
                 this.connectSSE();
@@ -281,7 +263,6 @@ class SlotManager {
 
     // Fallback semplificato - ricarica stato una volta
     fallbackToPolling() {
-        console.log('🔄 SlotManager - Fallback: ricarico stato slot');
         this.loadInitialSlotsStatus();
     }
 
@@ -347,12 +328,10 @@ class SlotManager {
             this.eventSource = null;
         }
         this.isConnected = false;
-        console.log('🧹 SlotManager - Pulizia completata');
     }
 
     // Gestione utenti non autenticati (VERSIONE SEMPLIFICATA)
     handleUnauthenticatedUser() {
-        console.log('👤 SlotManager - Utente non autenticato');
         // Gli slot rimangono visibili ma la prenotazione richiede login
     }
 }

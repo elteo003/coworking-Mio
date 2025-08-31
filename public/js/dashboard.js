@@ -238,14 +238,12 @@ function createTabs() {
 function loadInitialData() {
   if (currentUser.ruolo === 'gestore' || currentUser.ruolo === 'amministratore') {
     // ✅ PER GESTORI: Carica le sezioni speciali con bottoni per dashboard completa
-    console.log('Dashboard gestore - Carico sezioni speciali per gestori');
     loadSediGestore();
     loadPrenotazioniGestore();
     loadUtentiGestore();
     loadReportGestore();
   } else {
     // Per clienti: carica prenotazioni e pagamenti IN PARALLELO
-    console.log('🚀 Caricamento parallelo delle sezioni dashboard...');
 
     // Carica tutte le sezioni contemporaneamente
     Promise.all([
@@ -262,7 +260,6 @@ function loadInitialData() {
         resolve();
       })
     ]).then(() => {
-      console.log('✅ Tutte le sezioni dashboard caricate');
     }).catch(error => {
       console.error('❌ Errore caricamento sezioni:', error);
     });
@@ -426,7 +423,6 @@ function loadPrenotazioniUtente() {
       });
     })
     .fail(function (xhr) {
-      console.log('loadPrenotazioniUtente - Errore:', xhr.status, xhr.responseText);
       if (xhr.status === 401) {
         handleAuthError();
       } else {
@@ -446,7 +442,6 @@ function loadPrenotazioniScadute() {
       displayPrenotazioniScadute(data.prenotazioni);
     })
     .fail(function (xhr) {
-      console.log('loadPrenotazioniScadute - Errore:', xhr.status, xhr.responseText);
       if (xhr.status === 401) {
         handleAuthError();
       } else {
@@ -465,11 +460,9 @@ async function syncPrenotazioniWithPagamenti() {
 
     if (response.ok) {
       const result = await response.json();
-      console.log('Sincronizzazione completata:', result);
 
       // Se ci sono state modifiche, aggiorna solo i dati esistenti
       if (result.prenotazioni_aggiornate > 0 || result.prenotazioni_duplicate_cancellate > 0) {
-        console.log('Modifiche rilevate, aggiorno i dati esistenti...');
         // Non ricaricare tutto, solo aggiornare i dati esistenti
         // loadPrenotazioniUtente(); // RIMOSSO: causava loop infinito
       }
@@ -635,7 +628,6 @@ function cancellaPrenotazione(idPrenotazione) {
     headers: getAuthHeaders()
   })
     .done(function (response) {
-      console.log('Prenotazione cancellata:', response);
       showAlert('Prenotazione cancellata con successo!', 'success');
 
       // Ricarica le prenotazioni per mostrare l'aggiornamento
@@ -657,11 +649,9 @@ function cancellaPrenotazione(idPrenotazione) {
 function startCountdownUpdates() {
   // Se è già attivo, non riavviarlo
   if (window.countdownInterval) {
-    console.log('Countdown già attivo, salto inizializzazione');
     return;
   }
 
-  console.log('🚀 Avvio aggiornamenti countdown...');
 
   // Aggiorna i countdown ogni secondo
   window.countdownInterval = setInterval(updateCountdowns, 1000);
@@ -673,7 +663,6 @@ function startCountdownUpdates() {
 // Ferma gli aggiornamenti dei countdown
 function stopCountdownUpdates() {
   if (window.countdownInterval) {
-    console.log('⏹️ Fermo aggiornamenti countdown...');
     clearInterval(window.countdownInterval);
     window.countdownInterval = null;
   }
@@ -716,7 +705,6 @@ function loadPagamentiUtente() {
       displayPagamentiUtente(pagamenti);
     })
     .fail(function (xhr) {
-      console.log('loadPagamentiUtente - Errore:', xhr.status, xhr.responseText);
       if (xhr.status === 401) {
         handleAuthError();
       } else {

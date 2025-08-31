@@ -283,19 +283,16 @@
   <script>
     // Forza le dimensioni del modal per il catalogo
     document.addEventListener('DOMContentLoaded', function () {
-      console.log('Script modal caricato');
+
 
       // Aspetta che jQuery sia disponibile
       function waitForJQuery() {
         if (typeof $ !== 'undefined') {
-          console.log('jQuery disponibile');
+
 
           // Debug modal quando si apre e forza dimensioni
           $('#modalSede, #modalSpazio').on('show.bs.modal', function () {
-            console.log('Modal in apertura:', this.id);
             const modalDialog = $(this).find('.modal-dialog');
-            console.log('Modal dialog trovato:', modalDialog.length);
-            console.log('Classi del modal dialog:', modalDialog[0].className);
 
             // Forza le dimensioni con CSS inline usando ID specifico
             modalDialog.css({
@@ -323,12 +320,11 @@
             // Debug: verifica le dimensioni
             setTimeout(() => {
               const computedStyle = window.getComputedStyle(modalDialog[0]);
-              console.log('Larghezza effettiva:', computedStyle.width);
-              console.log(ax - ffettiva: ', computedStyle.maxWidth);
+
             }, 100);
           });
         } else {
-          console.log('jQuery non disponibile, riprovo...');
+
           setTimeout(waitForJQuery, 100);
         }
       }

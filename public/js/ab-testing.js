@@ -313,7 +313,6 @@ class ABTestingSystem {
     }
 
     applyVariant(test, variant) {
-        console.log(`🧪 A/B Test "${test.name}": Applicando variante "${variant.name}"`);
 
         // Apply CSS changes
         this.applyCSSChanges(test.id, variant.changes);
@@ -619,7 +618,6 @@ class ABTestingSystem {
             window.analytics.trackEvent('ab_test_goal', goalEvent);
         }
 
-        console.log(`🎯 A/B Test Goal raggiunto: ${testId} - ${goalId}`, goalEvent);
     }
 
     storeGoalEvent(goalEvent) {
@@ -749,7 +747,6 @@ class ABTestingSystem {
         this.userVariants.set(testId, variant);
         this.applyVariant(test, variant);
 
-        console.log(`🧪 Forzata variante ${variantId} per test ${testId}`);
         return true;
     }
 
@@ -763,7 +760,6 @@ class ABTestingSystem {
             style.remove();
         }
 
-        console.log(`🧪 Reset test ${testId}`);
     }
 }
 
@@ -803,5 +799,4 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
         resetTest: (testId) => window.abTesting?.resetTest(testId)
     };
 
-    console.log('🧪 A/B Testing Debug Mode attivo. Usa window.abTestingDebug per controllare i test.');
 }

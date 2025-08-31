@@ -23,18 +23,15 @@ class CacheManager {
     async get(key, fetcher, ttl = this.defaultTTL) {
         // Controlla se c'è una richiesta in corso per evitare duplicati
         if (this.pendingRequests.has(key)) {
-            console.log(`🔄 Richiesta duplicata evitata per: ${key}`);
             return this.pendingRequests.get(key);
         }
 
         // Controlla cache esistente
         const cached = this.cache.get(key);
         if (cached && Date.now() - cached.timestamp < ttl) {
-            console.log(`✅ Cache hit per: ${key}`);
             return cached.data;
         }
 
-        console.log(`❌ Cache miss per: ${key}, fetching...`);
 
         // Crea Promise condivisa per evitare richieste duplicate
         const promise = this.executeFetch(key, fetcher, ttl);
@@ -59,7 +56,6 @@ class CacheManager {
                 timestamp: Date.now(),
                 ttl
             });
-            console.log(`💾 Dati salvati in cache: ${key}`);
             return data;
         } catch (error) {
             console.error(`❌ Errore fetch per ${key}:`, error);
@@ -73,7 +69,6 @@ class CacheManager {
     invalidate(key) {
         if (this.cache.has(key)) {
             this.cache.delete(key);
-            console.log(`🗑️ Cache invalidata per: ${key}`);
         }
     }
 
@@ -91,7 +86,6 @@ class CacheManager {
             }
         }
 
-        console.log(`🗑️ Cache invalidata per pattern "${pattern}": ${count} elementi`);
     }
 
     /**
@@ -109,7 +103,6 @@ class CacheManager {
         }
 
         if (cleaned > 0) {
-            console.log(`🧹 Cache pulita: ${cleaned} elementi scaduti rimossi`);
         }
     }
 

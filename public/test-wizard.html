@@ -134,7 +134,6 @@
 
         // Funzioni per il wizard
         function showStep(step) {
-            console.log('showStep - Step richiesto:', step);
 
             // Nascondi tutti gli step
             for (let i = 1; i <= 4; i++) {
@@ -152,7 +151,6 @@
         }
 
         function updateStepIndicators(currentStep) {
-            console.log('updateStepIndicators - Aggiorno step:', currentStep);
 
             // Rimuovi tutte le classi
             $('.step').removeClass('active completed');
@@ -165,7 +163,6 @@
                 $(`#step${i}`).addClass('completed');
             }
 
-            console.log('Step indicators aggiornati');
         }
 
         function updateNavigationButtons() {
@@ -232,7 +229,6 @@
 
         // Inizializzazione
         $(document).ready(function () {
-            console.log('Test wizard inizializzato');
             showStep(1);
         });
     </script>

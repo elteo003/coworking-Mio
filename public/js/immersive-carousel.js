@@ -95,7 +95,6 @@ class ImmersiveCarousel {
         Array.from(images).forEach((img, index) => {
             const preloadImg = new Image();
             preloadImg.onload = () => {
-                console.log(`Immagine ${index + 1} precaricata con successo`);
             };
             preloadImg.onerror = () => {
                 console.warn(`Errore nel precaricamento dell'immagine ${index + 1}: ${img.src}`);

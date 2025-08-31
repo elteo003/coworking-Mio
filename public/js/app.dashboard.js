@@ -806,7 +806,6 @@ class DashboardApp {
 
             // Sottoscrivi ai cambiamenti
             this.realtimeClient.subscribe('reservations', (data) => {
-                console.log('Nuova prenotazione:', data);
                 this.refreshData();
             });
         }

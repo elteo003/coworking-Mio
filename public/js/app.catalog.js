@@ -219,12 +219,9 @@ class CatalogApp {
 
         // Inizializza i caroselli immersivi per le sedi
         setTimeout(() => {
-            console.log('🎠 Inizializzazione caroselli sedi...');
             const carousels = container.find('.immersive-carousel');
-            console.log(`🎠 Trovati ${carousels.length} caroselli da inizializzare`);
 
             carousels.each((index, element) => {
-                console.log(`🎠 Inizializzando carosello ${index + 1}...`);
                 if (window.ImmersiveCarousel) {
                     try {
                         new window.ImmersiveCarousel(element, {
@@ -236,7 +233,6 @@ class CatalogApp {
                             enableKeyboard: true,
                             enableTouch: true
                         });
-                        console.log(`✅ Carosello ${index + 1} inizializzato con successo`);
                     } catch (error) {
                         console.error(`❌ Errore inizializzazione carosello ${index + 1}:`, error);
                     }
