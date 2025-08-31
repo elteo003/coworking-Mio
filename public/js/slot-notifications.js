@@ -23,7 +23,16 @@ class SlotNotificationManager {
         }
 
         try {
-            const sseUrl = `${window.API_BASE_URL}/api/slots/events`;
+            // Usa la configurazione corretta
+            const apiBase = window.API_BASE_URL || window.CONFIG?.API_BASE || 'https://coworking-mio-1-backend.onrender.com/api';
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                console.warn('⚠️ Token non disponibile per connessione SSE slot');
+                return;
+            }
+            
+            const sseUrl = `${apiBase}/slots/events?token=${encodeURIComponent(token)}`;
             console.log('🔔 Connessione SSE a:', sseUrl);
             
             this.eventSource = new EventSource(sseUrl);

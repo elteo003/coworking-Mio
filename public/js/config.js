@@ -18,6 +18,7 @@ const CONFIG = {
 // Definisci API_BASE_URL per compatibilità con i file esistenti
 console.log('🔍 Prima di definire API_BASE_URL');
 const API_BASE_URL = CONFIG.API_BASE;
+window.API_BASE_URL = API_BASE_URL; // Esponi globalmente per compatibilità
 console.log('🔍 Dopo aver definito API_BASE_URL:', API_BASE_URL);
 
 // Debug: log della configurazione per verificare che sia caricata
