@@ -139,9 +139,9 @@ async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
 }
 
 // Funzione per applicare stato corretto a uno slot
-function applySlotState(slot, status) {
+function applySlotState(slot, status, slotData = {}) {
     // Rimuovi tutte le classi di stato precedenti
-    slot.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected', 'slot-start', 'slot-end');
+    slot.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past', 'slot-selected', 'slot-start', 'slot-end');
 
     // Applica nuovo stato
     switch (status) {
@@ -156,9 +156,19 @@ function applySlotState(slot, status) {
             slot.title = 'Prenotato';
             break;
         case 'occupied':
-            slot.classList.add('slot-occupied');
-            slot.disabled = true;
-            slot.title = 'Occupato';
+            // Distingui tra occupazione temporanea dell'utente corrente e occupazione da altri
+            const currentUserId = getCurrentUserId();
+            if (slotData.id_utente && slotData.id_utente === currentUserId) {
+                // Occupato dall'utente corrente - mantieni abilitato per selezione visiva
+                slot.classList.add('slot-occupied-temp');
+                slot.disabled = false;
+                slot.title = 'Occupato temporaneamente (tuo)';
+            } else {
+                // Occupato da altri utenti - disabilita
+                slot.classList.add('slot-occupied');
+                slot.disabled = true;
+                slot.title = slotData.title || 'Occupato';
+            }
             break;
         case 'past':
             slot.classList.add('slot-past');
@@ -855,18 +865,40 @@ async function createTimeSlots() {
     // Pulisci il container
     timeSlotsContainer.innerHTML = '';
 
-    // Gli stati degli slot verranno caricati dal SlotManagerSocketIO
-    // Per ora creiamo tutti gli slot come "available" di default
-    console.log('📋 Creazione slot con stato di default "available" - gli stati verranno aggiornati da Socket.IO');
-    let slotsStatus = []; // Array vuoto - stati gestiti da Socket.IO
+    // Carica gli stati iniziali degli slot dal backend
+    let slotsStatus = [];
+    try {
+        console.log('📋 Caricamento stati iniziali slot dal backend...');
+        const response = await fetch(`${window.CONFIG.API_BASE}/slots/${window.selectedSpazio.id_spazio}/${window.selectedDateInizio.toISOString().split('T')[0]}`, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            // Gestisci diversi formati di risposta
+            if (data.data && data.data.slots) {
+                slotsStatus = data.data.slots;
+            } else if (Array.isArray(data.data)) {
+                slotsStatus = data.data;
+            } else if (Array.isArray(data)) {
+                slotsStatus = data;
+            }
+            console.log('✅ Stati iniziali slot caricati:', slotsStatus.length, 'slot');
+        } else {
+            console.warn('⚠️ Errore nel caricare stati iniziali slot:', response.status);
+        }
+    } catch (error) {
+        console.warn('⚠️ Errore nel caricare stati iniziali slot:', error);
+    }
 
     // Crea gli slot temporali con stati corretti
     for (let i = 0; i < orariApertura.length; i++) {
         const orario = orariApertura[i];
         const slotId = i + 1;
 
-        // Tutti gli slot iniziano come "available" - stati aggiornati da Socket.IO
-        const status = 'available';
+        // Trova lo stato per questo slot
+        const slotData = slotsStatus.find(s => s.id_slot === slotId || s.orario === orario);
+        const status = slotData ? slotData.status : 'available';
 
         console.log('🔨 Creo slot per orario:', orario, 'con stato:', status);
 
@@ -877,7 +909,7 @@ async function createTimeSlots() {
         slot.dataset.slotId = slotId;
 
         // Applica stato corretto direttamente
-        applySlotState(slot, status);
+        applySlotState(slot, status, slotData);
 
         // Aggiungi event listener per tutti gli slot
         slot.addEventListener('click', (event) => selectTimeSlot(orario, slot, event));
