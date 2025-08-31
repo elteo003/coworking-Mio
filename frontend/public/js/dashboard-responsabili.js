@@ -86,6 +86,7 @@ class DashboardResponsabili {
     async init() {
         this.setupEventListeners();
         this.loadUserInfo();
+        this.setupNavbarLinks();
 
         // Prima carica le sedi, poi i dati overview
         await this.loadSedi();
@@ -97,6 +98,51 @@ class DashboardResponsabili {
 
         // Non chiamare updateAuthUI che non esiste più
         console.log('✅ Dashboard responsabili inizializzata completamente');
+    }
+
+    setupNavbarLinks() {
+        console.log('🔍 setupNavbarLinks chiamata...');
+        const user = localStorage.getItem('user');
+        console.log('🔍 User dal localStorage:', user ? 'presente' : 'non presente');
+        
+        if (user) {
+            try {
+                const userData = JSON.parse(user);
+                console.log('🔍 UserData:', userData);
+                console.log('🔍 Ruolo utente:', userData.ruolo);
+                
+                // ✅ Seguiamo lo stesso pattern della dashboard utente
+                // Modifichiamo il link "Dashboard Utente" per gli amministratori
+                const dashboardUtenteLink = document.querySelector('a[href="dashboard.html"]');
+                console.log('🔍 Dashboard Utente Link trovato:', dashboardUtenteLink ? 'sì' : 'no');
+                
+                if (userData.ruolo === 'amministratore' && dashboardUtenteLink) {
+                    // Per amministratori, trasforma il link "Dashboard Utente" in "Dashboard Amministratore"
+                    dashboardUtenteLink.href = 'dashboard-amministratore.html';
+                    dashboardUtenteLink.innerHTML = '<i class="fas fa-crown me-1"></i>Dashboard Amministratore';
+                    dashboardUtenteLink.classList.add('btn', 'btn-primary', 'ms-2');
+                    console.log('✅ Link Dashboard Utente trasformato in Dashboard Amministratore');
+                } else if (userData.ruolo === 'gestore' && dashboardUtenteLink) {
+                    // Per gestori, mantieni il link "Dashboard Utente" normale
+                    dashboardUtenteLink.href = 'dashboard.html';
+                    dashboardUtenteLink.innerHTML = 'Dashboard Utente';
+                    dashboardUtenteLink.classList.remove('btn', 'btn-primary', 'ms-2');
+                    console.log('✅ Link Dashboard Utente mantenuto per gestore');
+                }
+                
+                // Nascondi sempre l'adminLink originale (non serve più)
+                const adminLink = document.getElementById('adminLink');
+                if (adminLink) {
+                    adminLink.style.display = 'none';
+                    console.log('✅ AdminLink originale nascosto');
+                }
+                
+            } catch (error) {
+                console.error('❌ Errore parsing user per setup navbar:', error);
+            }
+        } else {
+            console.log('ℹ️ Nessun utente nel localStorage');
+        }
     }
 
     setupEventListeners() {

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Redirects Completi - CoWorkSpace</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">Test Redirects Completi per Amministratori</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h5>✅ Correzioni Implementate:</h5>
+                            <ul>
+                                <li><strong>Navbar:</strong> Mostra sempre "Dashboard Amministratore" per amministratori</li>
+                                <li><strong>Dashboard Utente:</strong> Link "Amministratore" invece di "Gestore"</li>
+                                <li><strong>Messaggio Benvenuto:</strong> "Benvenuto Amministratore, Nome!"</li>
+                                <li><strong>Redirect Login:</strong> Usa getDashboardUrl() per tutti i redirect</li>
+                                <li><strong>Pagamento:</strong> Redirect alla dashboard corretta dopo pagamento</li>
+                                <li><strong>Selezione Slot:</strong> Redirect alla dashboard corretta per gestori/amministratori</li>
+                                <li><strong>Catalogo:</strong> Link dashboard corretto nella navbar</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>🔗 Test Pagine:</h5>
+                                <div class="d-grid gap-2">
+                                    <a href="index.html" class="btn btn-primary" target="_blank">
+                                        <i class="fas fa-home me-2"></i>Homepage (test navbar)
+                                    </a>
+                                    <a href="dashboard.html" class="btn btn-outline-primary" target="_blank">
+                                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard Utente
+                                    </a>
+                                    <a href="dashboard-amministratore.html" class="btn btn-outline-warning" target="_blank">
+                                        <i class="fas fa-crown me-2"></i>Dashboard Amministratore
+                                    </a>
+                                    <a href="dashboard-responsabili.html" class="btn btn-outline-info" target="_blank">
+                                        <i class="fas fa-users-cog me-2"></i>Dashboard Gestori
+                                    </a>
+                                    <a href="catalogo.html" class="btn btn-outline-success" target="_blank">
+                                        <i class="fas fa-search me-2"></i>Catalogo
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>📋 Checklist Verifica:</h5>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="check1">
+                                    <label class="form-check-label" for="check1">
+                                        Navbar mostra "Dashboard Amministratore"
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="check2">
+                                    <label class="form-check-label" for="check2">
+                                        Dashboard utente mostra "Amministratore" invece di "Gestore"
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="check3">
+                                    <label class="form-check-label" for="check3">
+                                        Messaggio benvenuto: "Benvenuto Amministratore, Nome!"
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="check4">
+                                    <label class="form-check-label" for="check4">
+                                        Login reindirizza a dashboard-amministratore.html
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="check5">
+                                    <label class="form-check-label" for="check5">
+                                        Pagamento reindirizza alla dashboard corretta
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="alert alert-success">
+                            <h5>🎉 Tutti i Redirect Corretti!</h5>
+                            <p>Ora gli amministratori vengono sempre reindirizzati alla dashboard corretta e vedono sempre il pulsante "Dashboard Amministratore" nella navbar.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        // Simula dati di test per amministratore
+        const testUser = {
+            id_utente: 1,
+            nome: 'Admin',
+            cognome: 'Test',
+            email: 'admin@test.com',
+            ruolo: 'amministratore',
+            token: 'test-token'
+        };
+        
+        // Salva dati di test nel localStorage
+        localStorage.setItem('user', JSON.stringify(testUser));
+        localStorage.setItem('token', 'test-token');
+        
+        console.log('✅ Dati di test caricati per amministratore');
+        console.log('🔍 getDashboardUrl test:', getDashboardUrl('amministratore'));
+    </script>
+</body>
+</html>

@@ -161,6 +161,10 @@ app.use('/api/ab-testing', abTestingRoutes);
 const utentiRoutes = require('./routes/utenti');
 app.use('/api/utenti', utentiRoutes);
 
+// Rotte amministrative
+const adminRoutes = require('./routes/admin');
+app.use('/api/admin', adminRoutes);
+
 // Log delle route caricate
 console.log('🚀 Route spazi caricate:', spaziRoutes.stack?.map(r => r.route?.path).filter(Boolean));
 console.log('🚀 Route sedi caricate:', sediRoutes.stack?.map(r => r.route?.path).filter(Boolean));

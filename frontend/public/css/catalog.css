@@ -35,7 +35,6 @@
     max-height: 90vh !important;
     height: 90vh !important;
     min-height: 90vh !important;
-    margin: 0 !important;
 }
 
 /* Specificità ancora più alta */
@@ -47,7 +46,6 @@
     max-height: 90vh !important;
     height: 90vh !important;
     min-height: 90vh !important;
-    margin: 0 !important;
 }
 
 /* Specificità massima assoluta */
@@ -59,16 +57,13 @@
     max-height: 90vh !important;
     height: 90vh !important;
     min-height: 90vh !important;
-    margin: 0 !important;
 }
 
-/* Forza anche il container del modal - Rimuovi padding per eliminare bordi bianchi */
+/* Forza anche il container del modal */
 #modalSede,
 #modalSpazio {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
+    padding-left: 2.5vw !important;
+    padding-right: 2.5vw !important;
 }
 
 
@@ -92,21 +87,12 @@
 /* Carosello immersivo nei modal con classi Bootstrap corrette */
 #modalSede .modal-dialog.modal-xl .immersive-carousel,
 #modalSpazio .modal-dialog.modal-xl .immersive-carousel {
-    height: 70vh !important;
-    width: 100% !important;
+    height: 400px !important;
 }
 
 #modalSede .modal-dialog.modal-xl .immersive-carousel-image,
 #modalSpazio .modal-dialog.modal-xl .immersive-carousel-image {
-    height: 70vh !important;
-    width: 100% !important;
-    object-fit: cover !important;
-}
-
-/* Assicura che il carosello occupi tutto lo spazio disponibile */
-#caroselloSpazio {
-    height: 70vh !important;
-    width: 100% !important;
+    height: 400px !important;
 }
 
 /* Disabilita animazioni per card statiche nel catalogo */
