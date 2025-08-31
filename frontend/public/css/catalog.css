@@ -26,20 +26,38 @@
     transform: scale(1.05);
 }
 
-/* Modal personalizzato per catalogo - Usa classi Bootstrap corrette */
+/* Modal personalizzato per catalogo - Forza larghezza massima */
+#modalSede .modal-dialog,
+#modalSpazio .modal-dialog {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    min-width: 95vw !important;
+    max-height: 95vh !important;
+}
+
+/* Specificità ancora più alta */
 #modalSede .modal-dialog.modal-xl,
 #modalSpazio .modal-dialog.modal-xl {
     max-width: 95vw !important;
     width: 95vw !important;
+    min-width: 95vw !important;
     max-height: 95vh !important;
 }
 
-/* Specificità massima con ID e classi Bootstrap */
+/* Specificità massima assoluta */
 #modalSede .modal-dialog.modal-xl.modal-dialog-centered,
 #modalSpazio .modal-dialog.modal-xl.modal-dialog-centered {
     max-width: 95vw !important;
     width: 95vw !important;
+    min-width: 95vw !important;
     max-height: 95vh !important;
+}
+
+/* Forza anche il container del modal */
+#modalSede,
+#modalSpazio {
+    padding-left: 2.5vw !important;
+    padding-right: 2.5vw !important;
 }
 
 
@@ -48,6 +66,8 @@
 #modalSede .modal-dialog.modal-xl .modal-content,
 #modalSpazio .modal-dialog.modal-xl .modal-content {
     height: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
 }
