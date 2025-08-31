@@ -874,17 +874,17 @@ main {
 
 /* CSS per classi slot-button (nuovo sistema) */
 .slot-button.slot-occupied {
-    background-color: var(--danger) !important;
+    background-color: var(--warning) !important;
     color: white !important;
-    border-color: var(--danger) !important;
+    border-color: var(--warning) !important;
     cursor: not-allowed !important;
     opacity: 0.8 !important;
 }
 
 .slot-button.slot-booked {
-    background-color: var(--warning) !important;
+    background-color: var(--danger) !important;
     color: white !important;
-    border-color: var(--warning) !important;
+    border-color: var(--danger) !important;
     cursor: not-allowed !important;
     opacity: 0.8 !important;
 }
