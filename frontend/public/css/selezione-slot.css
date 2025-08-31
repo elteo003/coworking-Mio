@@ -1,5 +1,48 @@
 /* ===== SELEZIONE SLOT - STILI DEDICATI ===== */
 
+/* ===== NUOVO SISTEMA DI SELEZIONE ===== */
+.slot-start {
+    background-color: #007bff !important;
+    border-color: #0056b3 !important;
+    color: white !important;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5) !important;
+}
+
+.slot-start:hover {
+    background-color: #0056b3 !important;
+    border-color: #004085 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.6) !important;
+}
+
+.slot-end {
+    background-color: #007bff !important;
+    border-color: #0056b3 !important;
+    color: white !important;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5) !important;
+}
+
+.slot-end:hover {
+    background-color: #0056b3 !important;
+    border-color: #004085 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.6) !important;
+}
+
+.slot-selected {
+    background-color: #fd7e14 !important;
+    border-color: #e55100 !important;
+    color: white !important;
+    box-shadow: 0 0 8px rgba(253, 126, 20, 0.4) !important;
+}
+
+.slot-selected:hover {
+    background-color: #e55100 !important;
+    border-color: #cc4400 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(253, 126, 20, 0.5) !important;
+}
+
 /* ===== GLOBAL SCROLLBAR REMOVAL ===== */
 body {
     overflow-x: hidden !important;
