@@ -53,14 +53,6 @@ router.post('/goal', async (req, res) => {
     try {
         const { test_name, variant, goal_type, user_id, metadata } = req.body;
 
-            test_name,
-            variant,
-            goal_type,
-            user_id,
-            metadata,
-            timestamp: new Date().toISOString()
-        });
-
         // In un'implementazione reale, salveresti questi dati nel database
         // Per ora, restituiamo solo una conferma
         res.json({
