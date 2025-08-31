@@ -1,0 +1,1228 @@
+openapi: 3.0.3
+info:
+  title: CoworkSpace API v2.0
+  description: |
+    API complete per il sistema di gestione coworking CoworkSpace v2.0.
+    
+    ## Caratteristiche Principali
+    - **Real-time Communication**: Socket.IO per aggiornamenti istantanei
+    - **Redis Caching**: Performance ottimizzate con cache intelligente
+    - **Slot Management**: Sistema automatico di gestione slot con timer
+    - **Payment Integration**: Integrazione Stripe per pagamenti
+    - **Multi-role System**: Gestione utenti con ruoli diversi (utente, gestore, amministratore)
+    
+    ## Autenticazione
+    L'API utilizza JWT (JSON Web Tokens) per l'autenticazione. Includi il token nel header `Authorization: Bearer <token>` per le richieste protette.
+    
+    ## Real-time Events
+    Per gli aggiornamenti real-time, connettiti al server Socket.IO e ascolta gli eventi:
+    - `slot_update`: Aggiornamento singolo slot
+    - `slots_status_update`: Aggiornamento completo stato slot
+    - `slots_freed`: Slot liberati automaticamente
+    
+  version: 2.0.0
+  contact:
+    name: CoworkSpace Support
+    email: support@coworkspace.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001/api
+    description: Server di sviluppo locale
+  - url: https://coworkspace.onrender.com/api
+    description: Server di produzione
+
+tags:
+  - name: Autenticazione
+    description: Endpoint per registrazione, login e gestione utenti
+  - name: Slot
+    description: Gestione slot e prenotazioni real-time
+  - name: Prenotazioni
+    description: Gestione completa delle prenotazioni
+  - name: Spazi
+    description: Gestione spazi e sedi
+  - name: Pagamenti
+    description: Integrazione pagamenti Stripe
+  - name: Amministrazione
+    description: Endpoint per amministratori e gestori
+  - name: Analytics
+    description: Statistiche e analisi dati
+  - name: Webhook
+    description: Webhook per integrazioni esterne
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token ottenuto tramite login o registrazione
+  
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Messaggio di errore
+        code:
+          type: string
+          description: Codice errore specifico
+      required:
+        - error
+    
+    Success:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Messaggio di successo
+        data:
+          type: object
+          description: Dati restituiti
+      required:
+        - message
+    
+    User:
+      type: object
+      properties:
+        id_utente:
+          type: integer
+          description: ID univoco dell'utente
+        nome:
+          type: string
+          description: Nome dell'utente
+        cognome:
+          type: string
+          description: Cognome dell'utente
+        email:
+          type: string
+          format: email
+          description: Email dell'utente
+        ruolo:
+          type: string
+          enum: [utente, gestore, amministratore]
+          description: Ruolo dell'utente nel sistema
+        telefono:
+          type: string
+          description: Numero di telefono
+        created_at:
+          type: string
+          format: date-time
+          description: Data di creazione account
+      required:
+        - id_utente
+        - nome
+        - cognome
+        - email
+        - ruolo
+    
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email dell'utente
+        password:
+          type: string
+          description: Password dell'utente
+      required:
+        - email
+        - password
+    
+    RegisterRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+          description: Nome dell'utente
+        cognome:
+          type: string
+          description: Cognome dell'utente
+        email:
+          type: string
+          format: email
+          description: Email dell'utente
+        password:
+          type: string
+          description: Password dell'utente
+        ruolo:
+          type: string
+          enum: [utente, gestore, amministratore]
+          description: Ruolo dell'utente
+        telefono:
+          type: string
+          description: Numero di telefono
+        inviteCode:
+          type: string
+          description: Codice di invito (richiesto per amministratori)
+      required:
+        - nome
+        - cognome
+        - email
+        - password
+        - ruolo
+    
+    Slot:
+      type: object
+      properties:
+        id_slot:
+          type: integer
+          description: ID univoco dello slot
+        id_spazio:
+          type: integer
+          description: ID dello spazio
+        data:
+          type: string
+          format: date
+          description: Data dello slot
+        ora_inizio:
+          type: string
+          description: Ora di inizio (HH:MM)
+        ora_fine:
+          type: string
+          description: Ora di fine (HH:MM)
+        stato:
+          type: string
+          enum: [available, occupied, booked, expired]
+          description: Stato dello slot
+        id_utente:
+          type: integer
+          nullable: true
+          description: ID utente che ha prenotato (se occupato)
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Data di scadenza per slot temporaneamente occupati
+      required:
+        - id_slot
+        - id_spazio
+        - data
+        - ora_inizio
+        - ora_fine
+        - stato
+    
+    Prenotazione:
+      type: object
+      properties:
+        id_prenotazione:
+          type: integer
+          description: ID univoco della prenotazione
+        id_utente:
+          type: integer
+          description: ID dell'utente che ha fatto la prenotazione
+        id_spazio:
+          type: integer
+          description: ID dello spazio prenotato
+        data:
+          type: string
+          format: date
+          description: Data della prenotazione
+        ora_inizio:
+          type: string
+          description: Ora di inizio
+        ora_fine:
+          type: string
+          description: Ora di fine
+        stato:
+          type: string
+          enum: [pending, confirmed, cancelled, suspended]
+          description: Stato della prenotazione
+        prezzo:
+          type: number
+          description: Prezzo della prenotazione
+        created_at:
+          type: string
+          format: date-time
+          description: Data di creazione prenotazione
+      required:
+        - id_prenotazione
+        - id_utente
+        - id_spazio
+        - data
+        - ora_inizio
+        - ora_fine
+        - stato
+    
+    Spazio:
+      type: object
+      properties:
+        id_spazio:
+          type: integer
+          description: ID univoco dello spazio
+        nome:
+          type: string
+          description: Nome dello spazio
+        descrizione:
+          type: string
+          description: Descrizione dello spazio
+        id_sede:
+          type: integer
+          description: ID della sede
+        tipo:
+          type: string
+          enum: [sala_riunioni, postazione_lavoro, ufficio_privato]
+          description: Tipo di spazio
+        prezzo_ora:
+          type: number
+          description: Prezzo per ora
+        capacita:
+          type: integer
+          description: Capacità massima dello spazio
+      required:
+        - id_spazio
+        - nome
+        - id_sede
+        - tipo
+        - prezzo_ora
+
+paths:
+  # ========================================
+  # AUTENTICAZIONE
+  # ========================================
+  /auth/register:
+    post:
+      tags:
+        - Autenticazione
+      summary: Registrazione nuovo utente
+      description: Registra un nuovo utente nel sistema. Per gli amministratori è richiesto un codice di invito.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Utente registrato con successo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Registrazione avvenuta"
+                  id_utente:
+                    type: integer
+                    example: 123
+                  token:
+                    type: string
+                    description: JWT token per autenticazione
+                  nome:
+                    type: string
+                    example: "Mario"
+                  cognome:
+                    type: string
+                    example: "Rossi"
+                  ruolo:
+                    type: string
+                    example: "utente"
+        '400':
+          description: Dati mancanti o invalidi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email già registrata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /auth/login:
+    post:
+      tags:
+        - Autenticazione
+      summary: Login utente
+      description: Autentica un utente e restituisce un JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login effettuato con successo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Login effettuato"
+                  token:
+                    type: string
+                    description: JWT token per autenticazione
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Credenziali mancanti
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Credenziali non valide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ========================================
+  # SLOT MANAGEMENT
+  # ========================================
+  /slots/{idSpazio}/{date}:
+    get:
+      tags:
+        - Slot
+      summary: Ottieni stato slot per spazio e data
+      description: Restituisce lo stato di tutti gli slot per uno spazio specifico in una data specifica
+      parameters:
+        - name: idSpazio
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID dello spazio
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data nel formato YYYY-MM-DD
+      responses:
+        '200':
+          description: Stato slot recuperato con successo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  spazio:
+                    $ref: '#/components/schemas/Spazio'
+                  slots:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Slot'
+                  date:
+                    type: string
+                    format: date
+        '400':
+          description: Parametri invalidi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /slots/{id}/hold:
+    post:
+      tags:
+        - Slot
+      summary: Occupa temporaneamente uno slot
+      description: Occupa temporaneamente uno slot per 5 minuti. Richiede autenticazione.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID dello slot
+      responses:
+        '200':
+          description: Slot occupato temporaneamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Slot occupato temporaneamente"
+                  slot:
+                    $ref: '#/components/schemas/Slot'
+                  expires_at:
+                    type: string
+                    format: date-time
+                    description: Data di scadenza occupazione
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Slot non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Slot già occupato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /slots/{id}/book:
+    post:
+      tags:
+        - Slot
+      summary: Conferma prenotazione slot
+      description: Conferma la prenotazione di uno slot precedentemente occupato. Richiede autenticazione.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID dello slot
+      responses:
+        '200':
+          description: Prenotazione confermata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Prenotazione confermata"
+                  prenotazione:
+                    $ref: '#/components/schemas/Prenotazione'
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Slot non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Slot non occupato dall'utente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /slots/{id}/release:
+    post:
+      tags:
+        - Slot
+      summary: Rilascia uno slot
+      description: Rilascia uno slot precedentemente occupato. Richiede autenticazione.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID dello slot
+      responses:
+        '200':
+          description: Slot rilasciato
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Slot rilasciato"
+                  slot:
+                    $ref: '#/components/schemas/Slot'
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Slot non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ========================================
+  # PRENOTAZIONI
+  # ========================================
+  /prenotazioni/spazi/{id}/disponibilita:
+    get:
+      tags:
+        - Prenotazioni
+      summary: Verifica disponibilità spazio
+      description: Verifica la disponibilità di uno spazio per una data specifica
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID dello spazio
+        - name: data
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data nel formato YYYY-MM-DD
+      responses:
+        '200':
+          description: Disponibilità verificata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disponibile:
+                    type: boolean
+                  slot_disponibili:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Slot'
+        '400':
+          description: Parametri invalidi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /prenotazioni:
+    get:
+      tags:
+        - Prenotazioni
+      summary: Ottieni prenotazioni utente
+      description: Recupera le prenotazioni dell'utente autenticato
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: stato
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, cancelled, suspended]
+          description: Filtra per stato prenotazione
+        - name: data_inizio
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Data di inizio filtro
+        - name: data_fine
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Data di fine filtro
+      responses:
+        '200':
+          description: Prenotazioni recuperate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prenotazioni:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Prenotazione'
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    post:
+      tags:
+        - Prenotazioni
+      summary: Crea nuova prenotazione
+      description: Crea una nuova prenotazione per l'utente autenticato
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_spazio:
+                  type: integer
+                  description: ID dello spazio da prenotare
+                data:
+                  type: string
+                  format: date
+                  description: Data della prenotazione
+                ora_inizio:
+                  type: string
+                  description: Ora di inizio (HH:MM)
+                ora_fine:
+                  type: string
+                  description: Ora di fine (HH:MM)
+              required:
+                - id_spazio
+                - data
+                - ora_inizio
+                - ora_fine
+      responses:
+        '201':
+          description: Prenotazione creata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Prenotazione creata"
+                  prenotazione:
+                    $ref: '#/components/schemas/Prenotazione'
+        '400':
+          description: Dati invalidi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Slot non disponibile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /prenotazioni/{id}:
+    get:
+      tags:
+        - Prenotazioni
+      summary: Ottieni dettagli prenotazione
+      description: Recupera i dettagli di una singola prenotazione
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID della prenotazione
+      responses:
+        '200':
+          description: Dettagli prenotazione
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Prenotazione'
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Prenotazione non trovata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      tags:
+        - Prenotazioni
+      summary: Cancella prenotazione
+      description: Cancella una prenotazione (solo se in stato pending)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID della prenotazione
+      responses:
+        '200':
+          description: Prenotazione cancellata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Prenotazione cancellata"
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Prenotazione non trovata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Prenotazione non può essere cancellata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /prenotazioni/{id_prenotazione}/confirm:
+    put:
+      tags:
+        - Prenotazioni
+      summary: Conferma prenotazione
+      description: Conferma una prenotazione dopo il pagamento
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id_prenotazione
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID della prenotazione
+      responses:
+        '200':
+          description: Prenotazione confermata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Prenotazione confermata"
+                  prenotazione:
+                    $ref: '#/components/schemas/Prenotazione'
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Prenotazione non trovata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ========================================
+  # SPAZI E SEDI
+  # ========================================
+  /spazi:
+    get:
+      tags:
+        - Spazi
+      summary: Lista spazi disponibili
+      description: Recupera la lista di tutti gli spazi disponibili
+      parameters:
+        - name: id_sede
+          in: query
+          schema:
+            type: integer
+          description: Filtra per sede specifica
+        - name: tipo
+          in: query
+          schema:
+            type: string
+            enum: [sala_riunioni, postazione_lavoro, ufficio_privato]
+          description: Filtra per tipo di spazio
+      responses:
+        '200':
+          description: Lista spazi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  spazi:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Spazio'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /sedi:
+    get:
+      tags:
+        - Spazi
+      summary: Lista sedi
+      description: Recupera la lista di tutte le sedi
+      responses:
+        '200':
+          description: Lista sedi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sedi:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id_sede:
+                          type: integer
+                        nome:
+                          type: string
+                        indirizzo:
+                          type: string
+                        citta:
+                          type: string
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ========================================
+  # PAGAMENTI
+  # ========================================
+  /pagamenti/create-payment-intent:
+    post:
+      tags:
+        - Pagamenti
+      summary: Crea intent di pagamento
+      description: Crea un Payment Intent di Stripe per una prenotazione
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_prenotazione:
+                  type: integer
+                  description: ID della prenotazione
+                amount:
+                  type: number
+                  description: Importo in centesimi
+              required:
+                - id_prenotazione
+                - amount
+      responses:
+        '200':
+          description: Payment Intent creato
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  client_secret:
+                    type: string
+                    description: Client secret per completare il pagamento
+                  payment_intent_id:
+                    type: string
+                    description: ID del Payment Intent
+        '400':
+          description: Dati invalidi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ========================================
+  # WEBHOOK
+  # ========================================
+  /webhook/stripe:
+    post:
+      tags:
+        - Webhook
+      summary: Webhook Stripe
+      description: Endpoint per ricevere webhook da Stripe per aggiornamenti pagamenti
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Payload del webhook Stripe
+      responses:
+        '200':
+          description: Webhook processato
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+        '400':
+          description: Webhook invalido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ========================================
+  # AMMINISTRAZIONE
+  # ========================================
+  /admin/dashboard:
+    get:
+      tags:
+        - Amministrazione
+      summary: Dashboard amministratore
+      description: Recupera dati per la dashboard amministratore
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Dati dashboard
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_users:
+                    type: integer
+                    description: Numero totale utenti
+                  total_bookings:
+                    type: integer
+                    description: Numero totale prenotazioni
+                  revenue_today:
+                    type: number
+                    description: Ricavi di oggi
+                  occupancy_rate:
+                    type: number
+                    description: Tasso di occupazione
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Accesso negato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ========================================
+  # ANALYTICS
+  # ========================================
+  /analytics/occupancy:
+    get:
+      tags:
+        - Analytics
+      summary: Statistiche occupazione
+      description: Recupera statistiche di occupazione per periodo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: data_inizio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data di inizio periodo
+        - name: data_fine
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data di fine periodo
+        - name: id_spazio
+          in: query
+          schema:
+            type: integer
+          description: Filtra per spazio specifico
+      responses:
+        '200':
+          description: Statistiche occupazione
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  periodo:
+                    type: object
+                    properties:
+                      data_inizio:
+                        type: string
+                        format: date
+                      data_fine:
+                        type: string
+                        format: date
+                  statistiche:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        data:
+                          type: string
+                          format: date
+                        occupazione_percentuale:
+                          type: number
+                        prenotazioni_totali:
+                          type: integer
+        '400':
+          description: Parametri invalidi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+# ========================================
+# SOCKET.IO EVENTS (Documentazione aggiuntiva)
+# ========================================
+# 
+# Eventi Socket.IO supportati:
+# 
+# Client → Server:
+# - join_space: { spazioId: number } - Entra in room spazio
+# - leave_space: { spazioId: number } - Esce da room spazio
+# 
+# Server → Client:
+# - slot_update: { slot: Slot } - Aggiornamento singolo slot
+# - slots_status_update: { slots: Slot[] } - Aggiornamento completo
+# - slots_freed: { slotIds: number[] } - Slot liberati automaticamente
+# - connection_confirmed: { message: string } - Conferma connessione

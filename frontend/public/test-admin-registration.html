@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Admin Registration - CoWorkSpace</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">Test Admin Registration</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="testRegForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="nome" class="form-label">Nome</label>
+                                        <input type="text" class="form-control" id="nome" value="Test" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="cognome" class="form-label">Cognome</label>
+                                        <input type="text" class="form-control" id="cognome" value="Admin" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" value="testadmin@test.com" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" value="test123" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="telefono" class="form-label">Telefono</label>
+                                <input type="tel" class="form-control" id="telefono" value="1234567890">
+                            </div>
+                            <div class="mb-3">
+                                <label for="ruolo" class="form-label">Ruolo</label>
+                                <select class="form-select" id="ruolo" required onchange="toggleInviteCode()">
+                                    <option value="">Seleziona ruolo</option>
+                                    <option value="cliente">Cliente</option>
+                                    <option value="gestore">Gestore</option>
+                                    <option value="amministratore" selected>Amministratore</option>
+                                </select>
+                            </div>
+                            <div class="mb-3" id="inviteCodeContainer">
+                                <label for="inviteCode" class="form-label">Codice di Invito</label>
+                                <input type="text" class="form-control" id="inviteCode" placeholder="Inserisci il codice di invito" value="TEST-ADMIN-CODE">
+                                <div class="form-text text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Solo gli amministratori esistenti possono generare codici di invito per nuovi amministratori.
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Test Registration</button>
+                        </form>
+                        <div id="result" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        function toggleInviteCode() {
+            const ruolo = document.getElementById('ruolo').value;
+            const inviteCodeContainer = document.getElementById('inviteCodeContainer');
+            
+            if (ruolo === 'amministratore') {
+                inviteCodeContainer.style.display = 'block';
+            } else {
+                inviteCodeContainer.style.display = 'none';
+            }
+        }
+
+        document.getElementById('testRegForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const nome = document.getElementById('nome').value;
+            const cognome = document.getElementById('cognome').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const telefono = document.getElementById('telefono').value;
+            const ruolo = document.getElementById('ruolo').value;
+            const inviteCode = document.getElementById('inviteCode').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                resultDiv.innerHTML = '<div class="alert alert-info">Testando registrazione...</div>';
+                
+                // Usa la funzione handleRegistration esistente
+                await window.handleRegistration(null, nome, cognome, email, password, telefono, ruolo, inviteCode);
+                
+                resultDiv.innerHTML = '<div class="alert alert-success">Registrazione completata! Controlla la console per i log di debug.</div>';
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">Errore: ${error.message}</div>`;
+            }
+        });
+
+        // Inizializza il toggle del codice invito
+        toggleInviteCode();
+    </script>
+</body>
+</html>

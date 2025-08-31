@@ -191,11 +191,22 @@
                         <label for="regRuolo" class="form-label">
                           <i class="fas fa-user-tag me-2"></i>Ruolo
                         </label>
-                        <select class="form-select" id="regRuolo" required>
+                        <select class="form-select" id="regRuolo" required onchange="toggleInviteCode()">
                           <option value="">Seleziona ruolo</option>
                           <option value="cliente">Cliente</option>
                           <option value="gestore">Gestore</option>
+                          <option value="amministratore">Amministratore</option>
                         </select>
+                      </div>
+                      <div class="mb-4" id="inviteCodeContainer" style="display: none;">
+                        <label for="regInviteCode" class="form-label">
+                          <i class="fas fa-key me-2"></i>Codice di Invito
+                        </label>
+                        <input type="text" class="form-control" id="regInviteCode" placeholder="Inserisci il codice di invito per amministratori">
+                        <div class="form-text text-muted">
+                          <i class="fas fa-info-circle me-1"></i>
+                          Solo gli amministratori esistenti possono generare codici di invito per nuovi amministratori.
+                        </div>
                       </div>
                       <button type="submit" class="btn btn-primary btn-lg w-100">
                         <i class="fas fa-user-plus me-2"></i>Registrati

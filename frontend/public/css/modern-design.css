@@ -1349,6 +1349,11 @@ a:hover {
     transform: scale(1);
 }
 
+/* Fix semplice per centratura modal */
+.modal-dialog-centered {
+    margin: 0 auto !important;
+}
+
 .modal-header {
     padding: var(--space-lg);
     border-bottom: 1px solid var(--gray-200);

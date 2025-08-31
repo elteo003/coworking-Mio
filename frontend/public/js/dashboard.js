@@ -51,7 +51,8 @@ function handleLogout() {
   } else {
     // Fallback se la funzione non è disponibile
     localStorage.removeItem('user');
-    window.location.href = 'login.html';
+    localStorage.removeItem('token');
+    window.location.href = 'index.html?message=' + encodeURIComponent('Logout effettuato con successo.');
   }
 }
 
@@ -67,7 +68,10 @@ function updateUserInfo() {
   $('#userInfo').text(`${currentUser.nome} ${currentUser.cognome} (${currentUser.ruolo})`);
 
   // Aggiorna il titolo di benvenuto in base al ruolo
-  if (currentUser.ruolo === 'gestore' || currentUser.ruolo === 'amministratore') {
+  if (currentUser.ruolo === 'amministratore') {
+    $('#welcomeTitle').text(`Benvenuto Amministratore, ${currentUser.nome}!`);
+    $('#welcomeSubtitle').text('Gestisci il sistema completo e monitora tutte le sedi');
+  } else if (currentUser.ruolo === 'gestore') {
     $('#welcomeTitle').text(`Benvenuto Gestore, ${currentUser.nome}!`);
     $('#welcomeSubtitle').text('Gestisci le tue sedi e monitora le performance');
   } else {
@@ -83,8 +87,13 @@ function updateUserInfo() {
 function updateNavbarLink() {
   const prenotaLink = $('#prenotaLink');
 
-  if (currentUser.ruolo === 'gestore' || currentUser.ruolo === 'amministratore') {
-    // Per gestori e amministratori, mostra il link "Gestore" invece di "Prenota"
+  if (currentUser.ruolo === 'amministratore') {
+    // Per amministratori, mostra il link "Amministratore"
+    prenotaLink.attr('href', 'dashboard-amministratore.html');
+    prenotaLink.html('<i class="fas fa-crown me-1"></i>Amministratore');
+    prenotaLink.removeClass('nav-link').addClass('nav-link btn btn-primary ms-2');
+  } else if (currentUser.ruolo === 'gestore') {
+    // Per gestori, mostra il link "Gestore"
     prenotaLink.attr('href', 'dashboard-responsabili.html');
     prenotaLink.html('<i class="fas fa-chart-line me-1"></i>Gestore');
     prenotaLink.removeClass('nav-link').addClass('nav-link btn btn-primary ms-2');
@@ -151,7 +160,7 @@ function createTabs() {
                       <i class="fas fa-building fa-2x text-primary mb-3"></i>
                       <h5>Gestione Sedi</h5>
                       <p class="text-muted small">Gestisci sedi, spazi e disponibilità</p>
-                      <a href="dashboard-responsabili.html" class="btn btn-outline-primary">
+                      <a href="${getDashboardUrl(currentUser.ruolo)}" class="btn btn-outline-primary">
                         <i class="fas fa-arrow-right me-2"></i>Accedi
                       </a>
                     </div>
@@ -163,7 +172,7 @@ function createTabs() {
                       <i class="fas fa-chart-bar fa-2x text-success mb-3"></i>
                       <h5>Report e Analytics</h5>
                       <p class="text-muted small">Statistiche avanzate e performance</p>
-                      <a href="dashboard-responsabili.html" class="btn btn-outline-success">
+                      <a href="${getDashboardUrl(currentUser.ruolo)}" class="btn btn-outline-success">
                         <i class="fas fa-arrow-right me-2"></i>Accedi
                       </a>
                     </div>
@@ -171,7 +180,7 @@ function createTabs() {
                 </div>
               </div>
               
-              <a href="dashboard-responsabili.html" class="btn btn-primary btn-lg">
+              <a href="${getDashboardUrl(currentUser.ruolo)}" class="btn btn-primary btn-lg">
                 <i class="fas fa-chart-line me-2"></i>Accedi alla Dashboard Completa
               </a>
             </div>
@@ -303,7 +312,7 @@ function loadSediGestore() {
             </div>
           </div>
           
-          <a href="dashboard-responsabili.html" class="btn btn-primary btn-lg">
+          <a href="${getDashboardUrl(currentUser.ruolo)}" class="btn btn-primary btn-lg">
             <i class="fas fa-arrow-right me-2"></i>Accedi alla Dashboard Completa
           </a>
         </div>
@@ -355,7 +364,7 @@ function loadPrenotazioniGestore() {
             </div>
           </div>
           
-          <a href="dashboard-responsabili.html" class="btn btn-success btn-lg">
+          <a href="${getDashboardUrl(currentUser.ruolo)}" class="btn btn-success btn-lg">
             <i class="fas fa-arrow-right me-2"></i>Accedi alla Dashboard Completa
           </a>
         </div>
@@ -371,7 +380,7 @@ function loadReportGestore() {
     <div class="text-center py-4">
       <h4>Report e Analytics</h4>
       <p class="text-muted">Per accedere ai report completi e alle statistiche avanzate</p>
-      <a href="dashboard-responsabili.html" class="btn btn-primary">
+      <a href="${getDashboardUrl(currentUser.ruolo)}" class="btn btn-primary">
         <i class="fas fa-chart-bar me-2"></i>Dashboard Completa
       </a>
     </div>
@@ -385,7 +394,7 @@ function loadUtentiGestore() {
     <div class="text-center py-4">
       <h4>Gestione Utenti</h4>
       <p class="text-muted">Per gestire utenti, ruoli e permessi</p>
-      <a href="dashboard-responsabili.html" class="btn btn-primary">
+      <a href="${getDashboardUrl(currentUser.ruolo)}" class="btn btn-primary">
         <i class="fas fa-users me-2"></i>Dashboard Completa
       </a>
     </div>

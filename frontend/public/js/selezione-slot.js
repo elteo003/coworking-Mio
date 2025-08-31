@@ -1376,7 +1376,10 @@ function checkUserAccess() {
             const user = JSON.parse(userStr);
             if (user.ruolo === 'gestore' || user.ruolo === 'amministratore') {
                 showError('I gestori non possono effettuare prenotazioni. Reindirizzamento alla dashboard...');
-                setTimeout(() => window.location.href = '/dashboard.html', 3000);
+                setTimeout(() => {
+                    const dashboardUrl = getDashboardUrl(user.ruolo);
+                    window.location.href = dashboardUrl;
+                }, 3000);
                 return false;
             }
             return true;

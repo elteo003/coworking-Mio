@@ -871,9 +871,21 @@ function showThankYouPage() {
 
     document.querySelector('.card-body').appendChild(thankYouMessage);
 
-    // Redirect automatico alla dashboard dopo 10 secondi
+    // Redirect automatico alla dashboard appropriata dopo 10 secondi
     setTimeout(() => {
-        window.location.href = 'dashboard.html';
+        const user = localStorage.getItem('user');
+        if (user) {
+            try {
+                const userData = JSON.parse(user);
+                const dashboardUrl = getDashboardUrl(userData.ruolo);
+                window.location.href = dashboardUrl;
+            } catch (error) {
+                console.error('Errore parsing user per redirect:', error);
+                window.location.href = 'dashboard.html';
+            }
+        } else {
+            window.location.href = 'dashboard.html';
+        }
     }, 10000);
 }
 
@@ -903,7 +915,13 @@ function showError(message) {
 
 // Logout
 function handleLogout() {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    window.location.href = 'login.html';
+    // Usa la funzione centralizzata di config.js
+    if (typeof window.logout === 'function') {
+        window.logout();
+    } else {
+        // Fallback se la funzione non è disponibile
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        window.location.href = 'index.html?message=' + encodeURIComponent('Logout effettuato con successo.');
+    }
 }
