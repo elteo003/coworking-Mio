@@ -48,7 +48,7 @@ function updateNavbarFallback() {
 
       const newItems = `
         <li class="nav-item">
-          <a class="nav-link" href="dashboard.html">Dashboard</a>
+          <a class="nav-link" href="${getDashboardUrl(user.ruolo)}">Dashboard</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#" onclick="handleLogout()">Logout</a>

@@ -159,11 +159,22 @@ class AuthModal {
                                             <label for="regRuolo" class="form-label">
                                                 <i class="fas fa-user-tag me-2"></i>Ruolo
                                             </label>
-                                            <select class="form-select" id="regRuolo" required>
+                                            <select class="form-select" id="regRuolo" required onchange="toggleInviteCode()">
                                                 <option value="">Seleziona ruolo</option>
                                                 <option value="cliente">Cliente</option>
                                                 <option value="gestore">Gestore</option>
+                                                <option value="amministratore">Amministratore</option>
                                             </select>
+                                        </div>
+                                        <div class="mb-4" id="inviteCodeContainer" style="display: none;">
+                                            <label for="regInviteCode" class="form-label">
+                                                <i class="fas fa-key me-2"></i>Codice di Invito
+                                            </label>
+                                            <input type="text" class="form-control" id="regInviteCode" placeholder="Inserisci il codice di invito per amministratori">
+                                            <div class="form-text text-muted">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Solo gli amministratori esistenti possono generare codici di invito per nuovi amministratori.
+                                            </div>
                                         </div>
                                         <button type="submit" class="btn btn-primary btn-lg w-100">
                                             <i class="fas fa-user-plus me-2"></i>Registrati
@@ -209,6 +220,12 @@ class AuthModal {
         authTabs.forEach(tab => {
             tab.addEventListener('click', (e) => this.switchTab(e.target.getAttribute('data-bs-target')));
         });
+
+        // Gestione toggle codice invito
+        const regRuolo = document.getElementById('regRuolo');
+        if (regRuolo) {
+            regRuolo.addEventListener('change', () => this.toggleInviteCode());
+        }
     }
 
     /**
@@ -225,6 +242,20 @@ class AuthModal {
         const registrazioneForm = document.getElementById('registrazioneForm');
         if (registrazioneForm) {
             registrazioneForm.addEventListener('submit', this.handleRegistrationSubmit);
+        }
+    }
+
+    /**
+     * Toggle mostra/nascondi campo codice di invito
+     */
+    toggleInviteCode() {
+        const ruolo = document.getElementById('regRuolo').value;
+        const inviteCodeContainer = document.getElementById('inviteCodeContainer');
+        
+        if (ruolo === 'amministratore') {
+            inviteCodeContainer.style.display = 'block';
+        } else {
+            inviteCodeContainer.style.display = 'none';
         }
     }
 
@@ -321,6 +352,7 @@ class AuthModal {
         const confirmPassword = document.getElementById('regConfirmPassword').value;
         const telefono = document.getElementById('regTelefono').value;
         const ruolo = document.getElementById('regRuolo').value;
+        const inviteCode = document.getElementById('regInviteCode') ? document.getElementById('regInviteCode').value : '';
 
         // Validazione
         if (password !== confirmPassword) {
@@ -332,7 +364,7 @@ class AuthModal {
             // Usa la funzione di registrazione esistente da main.js
             if (window.handleRegistration) {
                 // Passa i parametri direttamente alla funzione
-                const result = await window.handleRegistration(null, nome, cognome, email, password, telefono, ruolo);
+                const result = await window.handleRegistration(null, nome, cognome, email, password, telefono, ruolo, inviteCode);
                 if (result && result.success) {
                     this.showSuccess('Registrazione completata! Ora puoi effettuare il login.');
                     // Passa al tab login
@@ -452,6 +484,11 @@ window.authModal = new AuthModal();
 // Funzione globale per mostrare il modal
 window.showLoginModal = function () {
     window.authModal.show();
+};
+
+// Funzione globale per toggle codice invito
+window.toggleInviteCode = function () {
+    window.authModal.toggleInviteCode();
 };
 
 console.log('🔐 AuthModal caricato e pronto per l\'uso');
