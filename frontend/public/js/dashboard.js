@@ -235,10 +235,28 @@ function loadInitialData() {
     loadUtentiGestore();
     loadReportGestore();
   } else {
-    // Per clienti: carica prenotazioni e pagamenti
-    loadPrenotazioniUtente();
-    loadPagamentiUtente();
-    loadPrenotazioniScadute();
+    // Per clienti: carica prenotazioni e pagamenti IN PARALLELO
+    console.log('🚀 Caricamento parallelo delle sezioni dashboard...');
+
+    // Carica tutte le sezioni contemporaneamente
+    Promise.all([
+      new Promise(resolve => {
+        loadPrenotazioniUtente();
+        resolve();
+      }),
+      new Promise(resolve => {
+        loadPagamentiUtente();
+        resolve();
+      }),
+      new Promise(resolve => {
+        loadPrenotazioniScadute();
+        resolve();
+      })
+    ]).then(() => {
+      console.log('✅ Tutte le sezioni dashboard caricate');
+    }).catch(error => {
+      console.error('❌ Errore caricamento sezioni:', error);
+    });
   }
 }
 
@@ -385,24 +403,17 @@ function loadPrenotazioniUtente() {
       // Salva le prenotazioni globalmente per i countdown
       window.currentPrenotazioni = prenotazioni;
 
-      // Prima sincronizza prenotazioni con pagamenti
-      syncPrenotazioniWithPagamenti().then(() => {
-        // Poi mostra le prenotazioni aggiornate
-        displayPrenotazioniUtente(prenotazioni);
+      // Mostra subito le prenotazioni per velocizzare il caricamento
+      displayPrenotazioniUtente(prenotazioni);
 
-        // Avvia l'aggiornamento dei countdown solo se non è già attivo
-        if (!window.countdownInterval) {
-          startCountdownUpdates();
-        }
-      }).catch(error => {
-        console.error('Errore sincronizzazione:', error);
-        // Mostra comunque le prenotazioni anche se la sincronizzazione fallisce
-        displayPrenotazioniUtente(prenotazioni);
+      // Avvia l'aggiornamento dei countdown solo se non è già attivo
+      if (!window.countdownInterval) {
+        startCountdownUpdates();
+      }
 
-        // Avvia l'aggiornamento dei countdown solo se non è già attivo
-        if (!window.countdownInterval) {
-          startCountdownUpdates();
-        }
+      // Sincronizza in background (non bloccante)
+      syncPrenotazioniWithPagamenti().catch(error => {
+        console.error('Errore sincronizzazione (non critico):', error);
       });
     })
     .fail(function (xhr) {
@@ -447,11 +458,11 @@ async function syncPrenotazioniWithPagamenti() {
       const result = await response.json();
       console.log('Sincronizzazione completata:', result);
 
-      // Se ci sono state modifiche, ricarica le prenotazioni
+      // Se ci sono state modifiche, aggiorna solo i dati esistenti
       if (result.prenotazioni_aggiornate > 0 || result.prenotazioni_duplicate_cancellate > 0) {
-        console.log('Modifiche rilevate, ricarico prenotazioni...');
-        // Ricarica le prenotazioni per mostrare gli aggiornamenti
-        loadPrenotazioniUtente();
+        console.log('Modifiche rilevate, aggiorno i dati esistenti...');
+        // Non ricaricare tutto, solo aggiornare i dati esistenti
+        // loadPrenotazioniUtente(); // RIMOSSO: causava loop infinito
       }
     }
   } catch (error) {
@@ -541,21 +552,33 @@ function displayPrenotazioniUtente(prenotazioni) {
         </span>
       `;
     } else if (p.stato === 'in attesa' || p.stato === 'pendente') {
-      // Evidenzia slot bloccati
-      if (tempoRimanente && tempoRimanente !== 'SCADUTO') {
-        rowClass = 'slot-bloccato';
-      }
+      // Controlla se la prenotazione è scaduta nel tempo
+      if (tempoRimanente === 'SCADUTO') {
+        // Prenotazione scaduta nel tempo - non permettere pagamento
+        rowClass = 'table-danger';
+        azioniHtml = `
+          <span class="badge bg-danger">
+            <i class="fas fa-clock me-1"></i>Scaduta
+          </span>
+        `;
+      } else {
+        // Prenotazione ancora valida - permettere pagamento
+        // Evidenzia slot bloccati
+        if (tempoRimanente && tempoRimanente !== 'SCADUTO') {
+          rowClass = 'slot-bloccato';
+        }
 
-      azioniHtml = `
-        <div class="btn-group" role="group">
-          <button class="btn btn-success btn-sm" onclick="pagaPrenotazione(${p.id_prenotazione})">
-            💳 Paga Ora (€${importo.toFixed(2)})
-          </button>
-          <button class="btn btn-danger btn-sm" onclick="cancellaPrenotazione(${p.id_prenotazione})">
-            ❌ Cancella
-          </button>
-        </div>
-      `;
+        azioniHtml = `
+          <div class="btn-group" role="group">
+            <button class="btn btn-success btn-sm" onclick="pagaPrenotazione(${p.id_prenotazione})">
+              💳 Paga Ora (€${importo.toFixed(2)})
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="cancellaPrenotazione(${p.id_prenotazione})">
+              ❌ Cancella
+            </button>
+          </div>
+        `;
+      }
     } else if (p.stato === 'confermata') {
       azioniHtml = '<span class="badge bg-success">✅ Pagato</span>';
     } else if (p.stato === 'in sospeso') {
