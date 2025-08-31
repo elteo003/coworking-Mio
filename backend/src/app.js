@@ -98,8 +98,7 @@ app.get('/test', (req, res) => {
 // Connessione DB
 require('./db');
 
-// Inizializza Socket.IO
-socketService.initialize(server);
+// Socket.IO verrà inizializzato nella funzione initializeServices()
 
 // Middleware per gestione timer slot automatica
 const { updateExpiredSlots, startSlotTimer } = require('./middleware/slotTimer');
@@ -357,16 +356,16 @@ async function initializeServices() {
   try {
     // Inizializza Redis
     await redisService.initialize();
-    
+
     // Inizializza Socket.IO
     socketService.initialize(server);
-    
+
     // Configura route per Socket.IO client
     app.get('/socket.io/socket.io.js', (req, res) => {
       res.setHeader('Content-Type', 'application/javascript');
       res.sendFile(path.join(__dirname, '../node_modules/socket.io/client-dist/socket.io.js'));
     });
-    
+
     console.log('✅ Servizi inizializzati con successo');
   } catch (error) {
     console.error('❌ Errore inizializzazione servizi:', error);

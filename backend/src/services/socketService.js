@@ -22,6 +22,12 @@ class SocketService {
      * @param {http.Server} server - Server HTTP
      */
     initialize(server) {
+        // Protezione contro inizializzazioni multiple
+        if (this.io) {
+            console.log('⚠️ Socket.IO già inizializzato, skip...');
+            return;
+        }
+
         this.io = new Server(server, {
             cors: {
                 origin: [
