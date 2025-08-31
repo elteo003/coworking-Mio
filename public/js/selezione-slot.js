@@ -12,9 +12,12 @@ let datePicker = null;
 // Nuovo Slot Manager per gestione real-time degli slot con SSE
 let slotManager = null;
 
-// Gestione selezione multipla slot
-let selectedSlots = new Set(); // Set per mantenere gli slot selezionati
-let lastSelectedSlot = null; // Ultimo slot selezionato per selezione con Shift
+// Nuovo sistema di selezione con START/END
+let selectionState = {
+    startSlot: null,    // ID del slot di inizio (blu)
+    endSlot: null,      // ID del slot di fine (blu)
+    allSelected: new Set() // Tutti gli slot selezionati (per calcoli)
+};
 
 // Inizializza il nuovo Slot Manager
 async function initializeSlotManager() {
@@ -67,7 +70,7 @@ async function initializeSlotManager() {
     return false;
 }
 
-// Funzione unificata per verificare disponibilità (VERSIONE SEMPLIFICATA)
+// Verifica disponibilità (NUOVO SISTEMA)
 async function checkAvailability(orarioInizio, orarioFine) {
     console.log('🔍 Verifica disponibilità:', { orarioInizio, orarioFine });
 
@@ -84,7 +87,7 @@ async function checkAvailability(orarioInizio, orarioFine) {
     }
 }
 
-// Verifica disponibilità usando SlotManager (VERSIONE SEMPLIFICATA)
+// Verifica disponibilità usando SlotManager (NUOVO SISTEMA)
 async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
     const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
     const orarioFineHour = parseInt(orarioFine.split(':')[0]);
@@ -104,7 +107,7 @@ async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
 // Funzione per applicare stato corretto a uno slot
 function applySlotState(slot, status) {
     // Rimuovi tutte le classi di stato precedenti
-    slot.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected');
+    slot.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected', 'slot-start', 'slot-end');
     
     // Applica nuovo stato
     switch (status) {
@@ -135,7 +138,177 @@ function applySlotState(slot, status) {
     }
 }
 
-// Verifica disponibilità usando API (VERSIONE SEMPLIFICATA)
+// ===== NUOVO SISTEMA DI SELEZIONE =====
+
+// Gestisce il click su uno slot
+function handleSlotClick(slotId, slotElement) {
+    console.log('🎯 handleSlotClick chiamata per slot:', slotId);
+    console.log('📊 Stato attuale:', selectionState);
+
+    if (selectionState.startSlot === null) {
+        // Nessun slot selezionato → diventa START
+        setAsStart(slotId, slotElement);
+    } else if (selectionState.endSlot === null) {
+        // Solo START selezionato → diventa END
+        setAsEnd(slotId, slotElement);
+    } else {
+        // Entrambi selezionati → gestisci deselezione o nuovo START
+        handleFullSelection(slotId, slotElement);
+    }
+}
+
+// Imposta uno slot come START (blu)
+function setAsStart(slotId, slotElement) {
+    console.log('🔵 Imposto slot come START:', slotId);
+    
+    // Pulisci selezione precedente
+    clearAllSelections();
+    
+    // Imposta nuovo START
+    selectionState.startSlot = slotId;
+    selectionState.allSelected.add(slotId);
+    
+    // Applica stile START
+    slotElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past');
+    slotElement.classList.add('slot-start');
+    slotElement.title = 'Inizio selezione';
+    
+    updateSelectionUI();
+}
+
+// Imposta uno slot come END (blu)
+function setAsEnd(slotId, slotElement) {
+    console.log('🔵 Imposto slot come END:', slotId);
+    
+    const startId = selectionState.startSlot;
+    const startElement = document.querySelector(`[data-slot-id="${startId}"]`);
+    
+    if (!startElement) {
+        console.error('❌ Elemento START non trovato:', startId);
+        return;
+    }
+    
+    // Determina range
+    const minId = Math.min(startId, slotId);
+    const maxId = Math.max(startId, slotId);
+    
+    // Pulisci selezione precedente
+    clearAllSelections();
+    
+    // Imposta START e END
+    selectionState.startSlot = minId;
+    selectionState.endSlot = maxId;
+    
+    // Aggiungi tutti gli slot nel range
+    for (let id = minId; id <= maxId; id++) {
+        selectionState.allSelected.add(id);
+    }
+    
+    // Applica stili
+    startElement.classList.add('slot-start');
+    startElement.title = 'Inizio selezione';
+    
+    slotElement.classList.add('slot-end');
+    slotElement.title = 'Fine selezione';
+    
+    // Applica stile SELECTED agli slot intermedi
+    for (let id = minId + 1; id < maxId; id++) {
+        const element = document.querySelector(`[data-slot-id="${id}"]`);
+        if (element) {
+            element.classList.add('slot-selected');
+            element.title = 'Slot selezionato';
+        }
+    }
+    
+    updateSelectionUI();
+}
+
+// Gestisce selezione quando START e END sono già impostati
+function handleFullSelection(slotId, slotElement) {
+    console.log('🔄 Gestisco selezione completa per slot:', slotId);
+    
+    if (slotId === selectionState.startSlot) {
+        // Deseleziono START → END diventa nuovo START
+        deselectStart();
+    } else if (slotId === selectionState.endSlot) {
+        // Deseleziono END → START rimane
+        deselectEnd();
+    } else {
+        // Clicco su nuovo slot → diventa nuovo START
+        setAsNewStart(slotId, slotElement);
+    }
+}
+
+// Deseleziona START, END diventa nuovo START
+function deselectStart() {
+    console.log('❌ Deseleziono START, END diventa nuovo START');
+    
+    const oldStartId = selectionState.startSlot;
+    const endId = selectionState.endSlot;
+    
+    // Pulisci selezione
+    clearAllSelections();
+    
+    // END diventa nuovo START
+    selectionState.startSlot = endId;
+    selectionState.endSlot = null;
+    selectionState.allSelected.add(endId);
+    
+    // Applica stile START al nuovo START
+    const newStartElement = document.querySelector(`[data-slot-id="${endId}"]`);
+    if (newStartElement) {
+        newStartElement.classList.add('slot-start');
+        newStartElement.title = 'Inizio selezione';
+    }
+    
+    updateSelectionUI();
+}
+
+// Deseleziona END, START rimane
+function deselectEnd() {
+    console.log('❌ Deseleziono END, START rimane');
+    
+    const startId = selectionState.startSlot;
+    const oldEndId = selectionState.endSlot;
+    
+    // Pulisci selezione
+    clearAllSelections();
+    
+    // START rimane
+    selectionState.startSlot = startId;
+    selectionState.endSlot = null;
+    selectionState.allSelected.add(startId);
+    
+    // Applica stile START
+    const startElement = document.querySelector(`[data-slot-id="${startId}"]`);
+    if (startElement) {
+        startElement.classList.add('slot-start');
+        startElement.title = 'Inizio selezione';
+    }
+    
+    updateSelectionUI();
+}
+
+// Imposta nuovo slot come START quando c'è già una selezione completa
+function setAsNewStart(slotId, slotElement) {
+    console.log('🔄 Imposto nuovo START:', slotId);
+    
+    // Pulisci selezione precedente
+    clearAllSelections();
+    
+    // Imposta nuovo START
+    selectionState.startSlot = slotId;
+    selectionState.endSlot = null;
+    selectionState.allSelected.add(slotId);
+    
+    // Applica stile START
+    slotElement.classList.add('slot-start');
+    slotElement.title = 'Inizio selezione';
+    
+    updateSelectionUI();
+}
+
+// Verifica disponibilità usando API (NUOVO SISTEMA)
 async function checkAvailabilityFromAPI(orarioInizio, orarioFine) {
     try {
         const formatDate = (date) => {
@@ -778,48 +951,16 @@ async function displayTimeSlots(disponibilita) {
     }
 }
 
-// Seleziona uno slot temporale (VERSIONE SEMPLIFICATA)
+// Seleziona uno slot temporale (NUOVO SISTEMA)
 async function selectTimeSlot(orario, slotElement, event = null) {
-    const slotId = slotElement.dataset.slotId;
-    const isSelected = selectedSlots.has(slotId);
-
-    // Se è già selezionato, lo deseleziona
-    if (isSelected) {
-        deselectSlot(slotId, slotElement);
-        await updateSelectionUI();
-        return;
-    }
-
-    // Se non c'è nessun slot selezionato, seleziona questo come inizio
-    if (selectedSlots.size === 0) {
-        selectSingleSlot(slotId, slotElement, orario);
-        lastSelectedSlot = slotId;
-        await updateSelectionUI();
-        return;
-    }
-
-    // Se c'è già un slot selezionato, questo diventa la fine dell'intervallo
-    if (selectedSlots.size === 1) {
-        const firstSlot = parseInt(Array.from(selectedSlots)[0]);
-        const secondSlot = parseInt(slotId);
-
-        if (secondSlot <= firstSlot) {
-            showError('L\'orario di fine deve essere successivo all\'orario di inizio');
-            return;
-        }
-
-        selectSlotRange(firstSlot.toString(), slotId);
-        await updateSelectionUI();
-        return;
-    }
-
-    // Se ci sono già 2+ slot selezionati, resetta e seleziona questo
-    if (selectedSlots.size >= 2) {
-        clearAllSelections();
-        selectSingleSlot(slotId, slotElement, orario);
-        lastSelectedSlot = slotId;
-        await updateSelectionUI();
-    }
+    const slotId = parseInt(slotElement.dataset.slotId);
+    
+    console.log('🎯 selectTimeSlot chiamata per slot:', slotId, 'orario:', orario);
+    
+    // Usa il nuovo sistema di selezione
+    handleSlotClick(slotId, slotElement);
+    
+    await updateSelectionUI();
 }
 
 // Seleziona un singolo slot (VERSIONE SEMPLIFICATA)
@@ -869,11 +1010,11 @@ function selectSlotRange(startSlotId, endSlotId) {
     }
 }
 
-// Aggiorna UI dopo selezione (VERSIONE SEMPLIFICATA)
+// Aggiorna UI dopo selezione (NUOVO SISTEMA)
 async function updateSelectionUI() {
     const btnBook = document.getElementById('btnBook');
 
-    if (selectedSlots.size === 0) {
+    if (selectionState.allSelected.size === 0) {
         hideSummary();
         hideTimeSelectionMessage();
         btnBook.disabled = true;
@@ -882,9 +1023,9 @@ async function updateSelectionUI() {
     }
 
     // Calcola intervallo di tempo
-    const sortedSlots = Array.from(selectedSlots).sort((a, b) => parseInt(a) - parseInt(b));
-    const firstSlot = Math.min(...sortedSlots.map(s => parseInt(s)));
-    const lastSlot = Math.max(...sortedSlots.map(s => parseInt(s)));
+    const sortedSlots = Array.from(selectionState.allSelected).sort((a, b) => a - b);
+    const firstSlot = Math.min(...sortedSlots);
+    const lastSlot = Math.max(...sortedSlots);
 
     const firstHour = firstSlot + 8; // slot 1 = 9:00, slot 2 = 10:00
     const lastHour = lastSlot + 9;   // slot 1 = 10:00, slot 2 = 11:00
@@ -927,35 +1068,44 @@ async function updateSelectionUI() {
     showSummary();
 }
 
-// Deseleziona tutti gli slot (VERSIONE SEMPLIFICATA)
+// Deseleziona tutti gli slot (NUOVO SISTEMA)
 function clearAllSelections() {
-    selectedSlots.clear();
-    lastSelectedSlot = null;
+    console.log('🧹 Pulisco tutte le selezioni');
+    
+    // Pulisci stato
+    selectionState.startSlot = null;
+    selectionState.endSlot = null;
+    selectionState.allSelected.clear();
 
+    // Pulisci UI - rimuovi solo le classi di selezione
     document.querySelectorAll('.slot-button').forEach(slot => {
-        if (slot.classList.contains('slot-selected')) {
-            slot.classList.remove('slot-selected');
-            slot.classList.add('slot-available');
-            slot.title = 'Disponibile';
-        }
+        slot.classList.remove('slot-selected', 'slot-start', 'slot-end');
+        // Mantieni le classi di stato originale (available, booked, etc.)
     });
 
     updateSelectionUI();
+    console.log('✅ Tutte le selezioni pulite');
 }
 
-// Undo ultima selezione (VERSIONE SEMPLIFICATA)
+// Undo ultima selezione (NUOVO SISTEMA)
 function undoLastSelection() {
-    if (selectedSlots.size > 0) {
-        const lastSlot = Array.from(selectedSlots).pop();
-        const slotElement = document.querySelector(`[data-slot-id="${lastSlot}"]`);
-        if (slotElement) {
-            deselectSlot(lastSlot, slotElement);
-            updateSelectionUI();
-        }
+    if (selectionState.allSelected.size === 0) {
+        return;
+    }
+
+    // Se c'è solo START, deseleziona tutto
+    if (selectionState.endSlot === null) {
+        clearAllSelections();
+        return;
+    }
+
+    // Se ci sono START e END, deseleziona END
+    if (selectionState.endSlot !== null) {
+        deselectEnd();
     }
 }
 
-// Selezioni rapide preset (VERSIONE SEMPLIFICATA)
+// Selezioni rapide preset (NUOVO SISTEMA)
 async function selectPreset(presetType) {
     clearAllSelections();
 
@@ -969,21 +1119,22 @@ async function selectPreset(presetType) {
         default: return;
     }
 
-    // Seleziona slot nel range
-    for (let hour = startHour; hour <= endHour; hour++) {
-        const slotId = hour - 8;
-        const slotElement = document.querySelector(`[data-slot-id="${slotId}"]`);
+    // Converti ore in slot ID
+    const startSlotId = startHour - 8;
+    const endSlotId = endHour - 8;
 
-        if (slotElement && !slotElement.disabled && slotElement.classList.contains('slot-available')) {
-            selectedSlots.add(slotId.toString());
-            slotElement.classList.remove('slot-available');
-            slotElement.classList.add('slot-selected');
-            slotElement.title = 'Selezionato';
+    // Trova gli elementi
+    const startElement = document.querySelector(`[data-slot-id="${startSlotId}"]`);
+    const endElement = document.querySelector(`[data-slot-id="${endSlotId}"]`);
 
-            if (window.slotManager) {
-                window.slotManager.selectSlot(slotId.toString());
-            }
-        }
+    if (startElement && endElement && 
+        !startElement.disabled && !endElement.disabled &&
+        startElement.classList.contains('slot-available') && 
+        endElement.classList.contains('slot-available')) {
+        
+        // Usa il nuovo sistema per impostare START e END
+        setAsStart(startSlotId, startElement);
+        setAsEnd(endSlotId, endElement);
     }
 
     await updateSelectionUI();
@@ -1037,10 +1188,10 @@ function showInfo(message) {
 
 // Calcola il prezzo della prenotazione (VERSIONE SEMPLIFICATA)
 function calculatePrice() {
-    if (selectedSlots.size === 0) return 0;
+    if (selectionState.allSelected.size === 0) return 0;
 
     const prezzoPerOra = 10; // €10/ora
-    return selectedSlots.size * prezzoPerOra;
+    return selectionState.allSelected.size * prezzoPerOra;
 }
 
 // Aggiorna riepilogo (VERSIONE SEMPLIFICATA)
@@ -1056,7 +1207,7 @@ function updateSummary() {
     if (summaryData) summaryData.textContent = window.selectedDateInizio ? window.selectedDateInizio.toLocaleDateString('it-IT') : '-';
 
     if (summaryOrario && window.selectedTimeInizio && window.selectedTimeFine) {
-        const oreTotali = selectedSlots.size;
+        const oreTotali = selectionState.allSelected.size;
         summaryOrario.textContent = `${window.selectedTimeInizio} - ${window.selectedTimeFine} (${oreTotali} ${oreTotali === 1 ? 'ora' : 'ore'})`;
     } else if (summaryOrario) {
         summaryOrario.textContent = '-';
