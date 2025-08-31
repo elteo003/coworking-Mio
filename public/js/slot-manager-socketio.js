@@ -1,6 +1,7 @@
 /**
  * Slot Manager con Socket.IO - Gestione slot in tempo reale
  * Versione migliorata che sostituisce SSE con Socket.IO
+ * Supporta optimistic UI e gestione errori robusta
  */
 
 class SlotManagerSocketIO {
@@ -267,6 +268,7 @@ class SlotManagerSocketIO {
                 button.disabled = false;
                 button.title = 'Disponibile';
                 button.setAttribute('aria-label', 'Slot disponibile per la prenotazione');
+                button.setAttribute('role', 'button');
                 break;
             case 'booked':
                 button.classList.add('slot-booked');
@@ -277,8 +279,8 @@ class SlotManagerSocketIO {
             case 'occupied':
                 button.classList.add('slot-occupied');
                 button.disabled = true;
-                button.title = 'Occupato';
-                button.setAttribute('aria-label', 'Slot temporaneamente occupato');
+                button.title = slotData.title || 'Occupato';
+                button.setAttribute('aria-label', slotData.title || 'Slot temporaneamente occupato');
                 break;
             case 'past':
                 button.classList.add('slot-past');
@@ -319,12 +321,12 @@ class SlotManagerSocketIO {
     fallbackToPolling() {
         console.log('🔄 SlotManagerSocketIO - Fallback: ricarico stato slot');
         this.loadInitialSlotsStatus();
-
+        
         // Avvia polling ogni 30 secondi
         if (this.connectionCheckInterval) {
             clearInterval(this.connectionCheckInterval);
         }
-
+        
         this.connectionCheckInterval = setInterval(() => {
             this.loadInitialSlotsStatus();
         }, 30000);
@@ -406,12 +408,12 @@ class SlotManagerSocketIO {
             this.socket.disconnect();
             this.socket = null;
         }
-
+        
         if (this.connectionCheckInterval) {
             clearInterval(this.connectionCheckInterval);
             this.connectionCheckInterval = null;
         }
-
+        
         this.isConnected = false;
         console.log('🧹 SlotManagerSocketIO - Pulizia completata');
     }
