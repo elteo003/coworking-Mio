@@ -53,6 +53,31 @@
     box-shadow: 0 3px 12px rgba(253, 126, 20, 0.5);
 }
 
+/* Slot occupato temporaneamente dall'utente corrente */
+.slot-button.slot-occupied-temp {
+    background-color: #ffc107;
+    border-color: #ffb300;
+    color: #212529;
+    box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+    position: relative;
+}
+
+.slot-button.slot-occupied-temp:hover {
+    background-color: #ffb300;
+    border-color: #ff8f00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.5);
+}
+
+.slot-button.slot-occupied-temp::after {
+    content: "⏳";
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 10px;
+    opacity: 0.7;
+}
+
 /* ===== GLOBAL SCROLLBAR REMOVAL ===== */
 body {
     overflow-x: hidden !important;

@@ -259,7 +259,7 @@ class SlotManagerSocketIO {
         }
 
         // Rimuovi tutte le classi di stato precedenti
-        button.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected');
+        button.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past', 'slot-selected');
 
         // Applica nuovo stato (solo 4 stati principali)
         switch (status) {
@@ -278,10 +278,21 @@ class SlotManagerSocketIO {
                 button.setAttribute('aria-label', 'Slot già prenotato');
                 break;
             case 'occupied':
-                button.classList.add('slot-occupied');
-                button.disabled = true;
-                button.title = slotData.title || 'Occupato';
-                button.setAttribute('aria-label', slotData.title || 'Slot temporaneamente occupato');
+                // Distingui tra occupazione temporanea dell'utente corrente e occupazione da altri
+                const currentUserId = this.getCurrentUserId();
+                if (slotData.id_utente && slotData.id_utente === currentUserId) {
+                    // Occupato dall'utente corrente - mantieni abilitato per selezione visiva
+                    button.classList.add('slot-occupied-temp');
+                    button.disabled = false;
+                    button.title = 'Occupato temporaneamente (tuo)';
+                    button.setAttribute('aria-label', 'Slot temporaneamente occupato da te');
+                } else {
+                    // Occupato da altri utenti - disabilita
+                    button.classList.add('slot-occupied');
+                    button.disabled = true;
+                    button.title = slotData.title || 'Occupato';
+                    button.setAttribute('aria-label', slotData.title || 'Slot temporaneamente occupato');
+                }
                 break;
             case 'past':
                 button.classList.add('slot-past');
@@ -322,12 +333,12 @@ class SlotManagerSocketIO {
     fallbackToPolling() {
         console.log('🔄 SlotManagerSocketIO - Fallback: ricarico stato slot');
         this.loadInitialSlotsStatus();
-        
+
         // Avvia polling ogni 30 secondi
         if (this.connectionCheckInterval) {
             clearInterval(this.connectionCheckInterval);
         }
-        
+
         this.connectionCheckInterval = setInterval(() => {
             this.loadInitialSlotsStatus();
         }, 30000);
@@ -345,12 +356,12 @@ class SlotManagerSocketIO {
         }
 
         try {
-            // Aggiornamento ottimistico UI
+            // Aggiornamento ottimistico UI - NON disabilitare per permettere selezione visiva
             const originalStatus = button.className;
             button.classList.remove('slot-available');
-            button.classList.add('slot-occupied');
-            button.disabled = true;
-            button.title = 'Occupato';
+            button.classList.add('slot-occupied-temp'); // Nuova classe per occupazione temporanea
+            button.disabled = false; // Mantieni abilitato per selezione visiva
+            button.title = 'Occupato temporaneamente';
 
             // Chiamata API
             const response = await fetch(`${window.CONFIG.API_BASE}/slots/${slotId}/hold`, {
@@ -387,6 +398,20 @@ class SlotManagerSocketIO {
         }
     }
 
+    // Ottieni ID utente corrente
+    getCurrentUserId() {
+        try {
+            const user = localStorage.getItem('user');
+            if (user) {
+                const userData = JSON.parse(user);
+                return userData.id_utente;
+            }
+        } catch (error) {
+            console.error('❌ Errore nel recuperare ID utente:', error);
+        }
+        return null;
+    }
+
     // Ottieni stato corrente di uno slot
     getSlotStatus(slotId) {
         return this.slotsStatus.get(slotId);
@@ -409,12 +434,12 @@ class SlotManagerSocketIO {
             this.socket.disconnect();
             this.socket = null;
         }
-        
+
         if (this.connectionCheckInterval) {
             clearInterval(this.connectionCheckInterval);
             this.connectionCheckInterval = null;
         }
-        
+
         this.isConnected = false;
         console.log('🧹 SlotManagerSocketIO - Pulizia completata');
     }
