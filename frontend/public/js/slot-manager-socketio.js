@@ -259,7 +259,7 @@ class SlotManagerSocketIO {
         }
 
         // Rimuovi tutte le classi di stato precedenti
-        button.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past', 'slot-selected');
+        button.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected');
 
         // Applica nuovo stato (solo 4 stati principali)
         switch (status) {
@@ -278,21 +278,11 @@ class SlotManagerSocketIO {
                 button.setAttribute('aria-label', 'Slot già prenotato');
                 break;
             case 'occupied':
-                // Distingui tra occupazione temporanea dell'utente corrente e occupazione da altri
-                const currentUserId = this.getCurrentUserId();
-                if (slotData.id_utente && slotData.id_utente === currentUserId) {
-                    // Occupato dall'utente corrente - mantieni abilitato per selezione visiva
-                    button.classList.add('slot-occupied-temp');
-                    button.disabled = false;
-                    button.title = 'Occupato temporaneamente (tuo)';
-                    button.setAttribute('aria-label', 'Slot temporaneamente occupato da te');
-                } else {
-                    // Occupato da altri utenti - disabilita
-                    button.classList.add('slot-occupied');
-                    button.disabled = true;
-                    button.title = slotData.title || 'Occupato';
-                    button.setAttribute('aria-label', slotData.title || 'Slot temporaneamente occupato');
-                }
+                // Tutti gli slot occupati sono non cliccabili
+                button.classList.add('slot-occupied');
+                button.disabled = true;
+                button.title = slotData.title || 'Occupato';
+                button.setAttribute('aria-label', slotData.title || 'Slot temporaneamente occupato');
                 break;
             case 'past':
                 button.classList.add('slot-past');
@@ -356,11 +346,11 @@ class SlotManagerSocketIO {
         }
 
         try {
-            // Aggiornamento ottimistico UI - NON disabilitare per permettere selezione visiva
+            // Aggiornamento ottimistico UI - disabilita lo slot
             const originalStatus = button.className;
             button.classList.remove('slot-available');
-            button.classList.add('slot-occupied-temp'); // Nuova classe per occupazione temporanea
-            button.disabled = false; // Mantieni abilitato per selezione visiva
+            button.classList.add('slot-occupied');
+            button.disabled = true;
             button.title = 'Occupato temporaneamente';
 
             // Chiamata API
@@ -427,7 +417,7 @@ class SlotManagerSocketIO {
             if (response.ok) {
                 console.log('✅ Slot rilasciato con successo');
                 // Aggiorna UI - ripristina stato originale
-                button.classList.remove('slot-occupied-temp');
+                button.classList.remove('slot-occupied');
                 button.classList.add('slot-available');
                 button.disabled = false;
                 button.title = 'Disponibile';

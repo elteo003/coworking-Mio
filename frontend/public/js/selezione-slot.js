@@ -122,17 +122,12 @@ async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
             return false;
         }
 
-        // Slot disponibile
+        // Solo slot disponibili sono considerati disponibili per prenotazione
         if (slot.status === 'available') {
             continue;
         }
 
-        // Slot occupato dall'utente corrente (considerato disponibile per prenotazione)
-        if (slot.status === 'occupied' && slot.id_utente === currentUserId) {
-            continue;
-        }
-
-        // Slot occupato da altri utenti o prenotato (non disponibile)
+        // Tutti gli altri stati (occupied, booked, past) non sono disponibili
         return false;
     }
     return true;
@@ -141,7 +136,7 @@ async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
 // Funzione per applicare stato corretto a uno slot
 function applySlotState(slot, status, slotData = {}) {
     // Rimuovi tutte le classi di stato precedenti
-    slot.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past', 'slot-selected', 'slot-start', 'slot-end');
+    slot.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected', 'slot-start', 'slot-end');
 
     // Applica nuovo stato
     switch (status) {
@@ -156,19 +151,10 @@ function applySlotState(slot, status, slotData = {}) {
             slot.title = 'Prenotato';
             break;
         case 'occupied':
-            // Distingui tra occupazione temporanea dell'utente corrente e occupazione da altri
-            const currentUserId = getCurrentUserId();
-            if (slotData.id_utente && slotData.id_utente === currentUserId) {
-                // Occupato dall'utente corrente - mantieni abilitato per selezione visiva
-                slot.classList.add('slot-occupied-temp');
-                slot.disabled = false;
-                slot.title = 'Occupato temporaneamente (tuo)';
-            } else {
-                // Occupato da altri utenti - disabilita
-                slot.classList.add('slot-occupied');
-                slot.disabled = true;
-                slot.title = slotData.title || 'Occupato';
-            }
+            // Tutti gli slot occupati sono non cliccabili, indipendentemente dall'utente
+            slot.classList.add('slot-occupied');
+            slot.disabled = true;
+            slot.title = slotData.title || 'Occupato';
             break;
         case 'past':
             slot.classList.add('slot-past');
@@ -216,7 +202,7 @@ function setAsStart(slotId, slotElement) {
     selectionState.allSelected.add(slotId);
 
     // Applica stile START
-    slotElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past');
+    slotElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past');
     slotElement.classList.add('slot-start');
     slotElement.title = 'Inizio selezione';
 
@@ -252,11 +238,11 @@ function setAsEnd(slotId, slotElement) {
     }
 
     // Applica stili
-    startElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past');
+    startElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past');
     startElement.classList.add('slot-start');
     startElement.title = 'Inizio selezione';
 
-    slotElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past');
+    slotElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past');
     slotElement.classList.add('slot-end');
     slotElement.title = 'Fine selezione';
 
@@ -264,7 +250,7 @@ function setAsEnd(slotId, slotElement) {
     for (let id = minId + 1; id < maxId; id++) {
         const element = document.querySelector(`[data-slot-id="${id}"]`);
         if (element) {
-            element.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-occupied-temp', 'slot-past');
+            element.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past');
             element.classList.add('slot-selected');
             element.title = 'Slot selezionato';
         }
