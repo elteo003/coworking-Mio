@@ -36,4 +36,7 @@ router.post('/prenotazioni/sync-with-pagamenti', authenticateToken, prenotazioni
 // Gestisce prenotazioni multiple stessa sala
 router.post('/prenotazioni/handle-multiple-sala', authenticateToken, prenotazioniController.handleMultiplePrenotazioniSala);
 
+// Debug endpoint per analizzare prenotazioni
+router.get('/debug/:spazioId/:data', authenticateToken, prenotazioniController.debugPrenotazioni);
+
 module.exports = router; 

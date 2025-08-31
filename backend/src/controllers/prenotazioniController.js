@@ -114,6 +114,8 @@ exports.creaPrenotazione = async (req, res) => {
     // Lo stato viene determinato dalle prenotazioni specifiche per l'intervallo richiesto
 
     // Controllo disponibilità per prenotazioni confermate e in attesa
+    console.log('🔍 Controllo prenotazioni per spazio:', id_spazio, 'intervallo:', data_inizio, 'a', data_fine);
+    
     const checkConfermate = await pool.query(
       `SELECT COUNT(*) FROM Prenotazione
        WHERE id_spazio = $1
@@ -130,6 +132,27 @@ exports.creaPrenotazione = async (req, res) => {
          AND (data_inizio, data_fine) OVERLAPS ($2::timestamp, $3::timestamp)`,
       [id_spazio, data_inizio, data_fine]
     );
+
+    // Debug: mostra tutte le prenotazioni per questo spazio e data
+    const debugPrenotazioni = await pool.query(
+      `SELECT 
+         id_prenotazione, 
+         data_inizio, 
+         data_fine, 
+         stato, 
+         scadenza_slot,
+         EXTRACT(HOUR FROM data_inizio) as orario_inizio,
+         EXTRACT(HOUR FROM data_fine) as orario_fine
+       FROM Prenotazione 
+       WHERE id_spazio = $1 
+         AND DATE(data_inizio) = DATE($2::timestamp)
+       ORDER BY data_inizio`,
+      [id_spazio, data_inizio]
+    );
+
+    console.log('🔍 Debug prenotazioni esistenti:', debugPrenotazioni.rows);
+    console.log('🔍 Prenotazioni confermate sovrapposte:', checkConfermate.rows[0].count);
+    console.log('🔍 Prenotazioni in attesa sovrapposte:', checkInAttesa.rows[0].count);
 
     if (checkConfermate.rows[0].count !== '0') {
       console.log('❌ Prenotazioni confermate sovrapposte per spazio:', id_spazio);
@@ -627,5 +650,65 @@ exports.getPrenotazioniSpazio = async (req, res) => {
   } catch (err) {
     console.error('Errore recupero prenotazioni spazio:', err);
     res.status(500).json({ error: 'Errore server: ' + err.message });
+  }
+};
+
+// Debug endpoint per analizzare prenotazioni
+exports.debugPrenotazioni = async (req, res) => {
+  const { spazioId, data } = req.params;
+  
+  try {
+    console.log(`🔍 Debug prenotazioni per spazio: ${spazioId}, data: ${data}`);
+    
+    // Query per ottenere tutte le prenotazioni per questo spazio e data
+    const prenotazioniQuery = `
+      SELECT 
+        p.id_prenotazione,
+        p.data_inizio,
+        p.data_fine,
+        p.stato,
+        p.scadenza_slot,
+        EXTRACT(HOUR FROM p.data_inizio) as orario_inizio,
+        EXTRACT(HOUR FROM p.data_fine) as orario_fine,
+        u.nome,
+        u.cognome,
+        NOW() as ora_corrente
+      FROM Prenotazione p
+      JOIN Utente u ON p.id_utente = u.id_utente
+      WHERE p.id_spazio = $1 
+        AND DATE(p.data_inizio) = $2
+      ORDER BY p.data_inizio
+    `;
+
+    const prenotazioniResult = await pool.query(prenotazioniQuery, [spazioId, data]);
+    
+    // Query per verificare lo spazio
+    const spazioQuery = `
+      SELECT s.id_spazio, s.nome, s.id_sede, se.nome as nome_sede
+      FROM Spazio s
+      JOIN Sede se ON s.id_sede = se.id_sede
+      WHERE s.id_spazio = $1
+    `;
+    
+    const spazioResult = await pool.query(spazioQuery, [spazioId]);
+
+    res.json({
+      success: true,
+      debug: {
+        spazioId: parseInt(spazioId),
+        data: data,
+        spazio: spazioResult.rows[0] || null,
+        prenotazioni: prenotazioniResult.rows,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Errore nel debug prenotazioni:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Errore nel debug prenotazioni',
+      details: error.message
+    });
   }
 }; 
