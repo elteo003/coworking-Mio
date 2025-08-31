@@ -5,14 +5,6 @@ const trackEvent = async (req, res) => {
     try {
         const { eventName, eventData, timestamp, userId, sessionId } = req.body;
         
-        // Log dell'evento per debugging
-            eventName,
-            eventData,
-            timestamp,
-            userId,
-            sessionId
-        });
-
         // Per ora, rispondiamo con successo senza salvare nel DB
         // In futuro si può implementare il salvataggio in una tabella analytics
         res.status(200).json({
