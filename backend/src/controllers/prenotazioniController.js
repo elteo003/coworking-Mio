@@ -115,7 +115,7 @@ exports.creaPrenotazione = async (req, res) => {
 
     // Controllo disponibilità per prenotazioni confermate e in attesa
     console.log('🔍 Controllo prenotazioni per spazio:', id_spazio, 'intervallo:', data_inizio, 'a', data_fine);
-    
+
     const checkConfermate = await pool.query(
       `SELECT COUNT(*) FROM Prenotazione
        WHERE id_spazio = $1
@@ -156,7 +156,7 @@ exports.creaPrenotazione = async (req, res) => {
 
     if (checkConfermate.rows[0].count !== '0') {
       console.log('❌ Prenotazioni confermate sovrapposte per spazio:', id_spazio);
-      return res.status(409).json({ 
+      return res.status(409).json({
         error: 'Spazio non disponibile',
         reason: 'Prenotazioni confermate sovrapposte',
         details: 'Gli slot selezionati sono già prenotati e confermati'
@@ -165,7 +165,7 @@ exports.creaPrenotazione = async (req, res) => {
 
     if (checkInAttesa.rows[0].count !== '0') {
       console.log('❌ Prenotazioni in attesa sovrapposte per spazio:', id_spazio);
-      return res.status(409).json({ 
+      return res.status(409).json({
         error: 'Spazio non disponibile',
         reason: 'Prenotazioni in attesa sovrapposte',
         details: 'Gli slot selezionati sono temporaneamente occupati da altre prenotazioni in attesa di pagamento'
@@ -213,7 +213,7 @@ exports.creaPrenotazione = async (req, res) => {
           data_fine,
           id_sede
         );
-        
+
         // Notifica tutti i client via Socket.IO che lo slot è ora occupato
         socketService.broadcastSlotUpdate(
           result.rows[0].id_prenotazione,
@@ -656,10 +656,10 @@ exports.getPrenotazioniSpazio = async (req, res) => {
 // Debug endpoint per analizzare prenotazioni
 exports.debugPrenotazioni = async (req, res) => {
   const { spazioId, data } = req.params;
-  
+
   try {
     console.log(`🔍 Debug prenotazioni per spazio: ${spazioId}, data: ${data}`);
-    
+
     // Query per ottenere tutte le prenotazioni per questo spazio e data
     const prenotazioniQuery = `
       SELECT 
@@ -681,7 +681,7 @@ exports.debugPrenotazioni = async (req, res) => {
     `;
 
     const prenotazioniResult = await pool.query(prenotazioniQuery, [spazioId, data]);
-    
+
     // Query per verificare lo spazio
     const spazioQuery = `
       SELECT s.id_spazio, s.nome, s.id_sede, se.nome as nome_sede
@@ -689,7 +689,7 @@ exports.debugPrenotazioni = async (req, res) => {
       JOIN Sede se ON s.id_sede = se.id_sede
       WHERE s.id_spazio = $1
     `;
-    
+
     const spazioResult = await pool.query(spazioQuery, [spazioId]);
 
     res.json({

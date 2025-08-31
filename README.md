@@ -75,15 +75,15 @@ CoworkSpace v2.0 è un sistema completo per la gestione di spazi di coworking co
 ### Setup Locale
 
 1. **Clone e installa dipendenze**
-```bash
+   ```bash
 git clone <repository>
 cd Coworking
-npm install
+   npm install
 cd backend && npm install
-```
+   ```
 
 2. **Setup Database**
-```bash
+   ```bash
 # Crea database PostgreSQL
 createdb coworkspace
 
@@ -94,10 +94,10 @@ psql coworkspace < database/add-expires-at-field.sql
 ```
 
 3. **Avvia servizi**
-```bash
+   ```bash
 # Backend
-cd backend
-npm start
+   cd backend
+   npm start
 
 # Frontend (Live Server o simile)
 # Apri frontend/public/index.html
@@ -136,13 +136,20 @@ CoworkSpace/
 │   ├── schema.sql             # Schema principale
 │   ├── migration-*.sql        # Migrazioni
 │   └── seed.sql               # Dati di test
-├── 📁 docs/                   # Documentazione
-│   ├── 📁 backend/            # Docs backend
-│   ├── 📁 frontend/           # Docs frontend
-│   └── 📁 database/           # Docs database
+├── 📁 docs/                   # Documentazione tecnica
+│   ├── 📁 backend/            # Docs backend dettagliate
+│   ├── 📁 frontend/           # Docs frontend dettagliate
+│   ├── 📁 database/           # Docs database dettagliate
+│   └── README.md              # Panoramica documentazione
+├── 📁 backend/                # Backend Node.js
+│   └── README.md              # Documentazione backend
+├── 📁 frontend/               # Frontend
+│   └── README.md              # Documentazione frontend
+├── 📁 database/               # Database
+│   └── README.md              # Documentazione database
 ├── 📁 devops/                 # DevOps
 │   └── docker-compose.yml     # Orchestrazione servizi
-└── README_COWORKSPACE_V2.md   # Questo file
+└── README.md                  # Questo file
 ```
 
 ## 🔧 Configurazione
@@ -280,10 +287,23 @@ docker run -d \
 
 ## 📚 Documentazione
 
+### README Principali
+- **[Backend](backend/README.md)** - Documentazione completa backend
+- **[Frontend](frontend/README.md)** - Documentazione completa frontend  
+- **[Database](database/README.md)** - Documentazione completa database
+- **[Documentazione Generale](docs/README.md)** - Panoramica documentazione
+
+### Documentazione Tecnica
 - **[Socket.IO Migration](docs/backend/SOCKET_IO_MIGRATION.md)** - Migrazione da SSE
-- **[Redis Caching](docs/backend/REDIS_CACHING.md)** - Strategia caching
-- **[Slot Management](docs/frontend/SLOT_MANAGEMENT_SYSTEM.md)** - Sistema slot
+- **[Slot Timer System](docs/backend/SLOT_TIMER_SYSTEM.md)** - Sistema timer automatico
+- **[Socket.IO Integration](docs/backend/SOCKET_IO_INTEGRATION.md)** - Integrazione real-time
+- **[Configuration Guide](docs/backend/CONFIGURAZIONE.md)** - Configurazione backend
+- **[Render Setup](docs/backend/RENDER_SETUP.md)** - Setup deployment
+- **[Slot Management](docs/frontend/SLOT_MANAGEMENT_SYSTEM.md)** - Sistema slot frontend
+- **[Optimistic UI](docs/frontend/OPTIMISTIC_UI_SYSTEM.md)** - Sistema optimistic UI
 - **[Database Schema](docs/database/SLOTS_SCHEMA.md)** - Schema database
+- **[Database Setup](docs/database/SETUP_DATABASE.md)** - Setup database
+- **[Fix Prenotazioni](docs/database/README_FIX_PRENOTAZIONE.md)** - Fix constraint prenotazioni
 
 ## 🤝 Contribuire
 

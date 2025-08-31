@@ -19,6 +19,7 @@ Questa cartella contiene tutta la documentazione del sistema di gestione coworki
 ### **Database** (`/database/`)
 - **[SLOTS_SCHEMA.md](database/SLOTS_SCHEMA.md)** - Schema database per gestione slot
 - **[SETUP_DATABASE.md](database/SETUP_DATABASE.md)** - Setup e configurazione database
+- **[README_FIX_PRENOTAZIONE.md](database/README_FIX_PRENOTAZIONE.md)** - Fix constraint prenotazioni
 
 ## 🚀 Funzionalità Principali
 
