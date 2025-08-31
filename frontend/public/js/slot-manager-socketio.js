@@ -264,6 +264,7 @@ class SlotManagerSocketIO {
         // Applica nuovo stato (solo 4 stati principali)
         switch (status) {
             case 'available':
+            case 'scaduta': // Slot scaduto = disponibile
                 button.classList.add('slot-available');
                 button.disabled = false;
                 button.title = 'Disponibile';

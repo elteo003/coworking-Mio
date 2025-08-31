@@ -27,6 +27,7 @@ Questo documento descrive il sistema completo per la gestione degli slot tempora
 | `booked` | `slot-booked` | Rosso | ❌ No | Slot prenotato e pagato |
 | `occupied` | `slot-occupied` | Arancione | ❌ No | Slot temporaneamente occupato (hold 15min) |
 | `past` | `slot-past` | Grigio | ❌ No | Orario già passato |
+| `scaduta` | `slot-available` | Verde | ✅ Sì | Slot scaduto, torna disponibile |
 
 ### **Flusso di Caricamento Stati:**
 
