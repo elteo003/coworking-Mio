@@ -113,21 +113,23 @@ async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
     for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
         const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
         
-        // Cerca slot per orario o per ID
-        let slot = window.slotManager.slotsStatus.find(s => s.orario === orarioSlot);
+        // Converti orario in slot ID (9:00 = slot 1, 10:00 = slot 2, etc.)
+        const slotId = hour - 8;
+        
+        // Cerca lo slot per ID
+        let slot = window.slotManager.slotsStatus.find(s => s.id_slot === slotId);
         if (!slot) {
-            // Prova a cercare per ID slot (basato sull'indice)
-            const slotIndex = hour - 9; // Gli slot iniziano da 9:00
-            slot = window.slotManager.slotsStatus.find(s => s.id_slot === slotIndex + 1);
+            // Fallback: cerca per orario
+            slot = window.slotManager.slotsStatus.find(s => s.orario === orarioSlot);
         }
 
         if (!slot) {
-            console.log(`❌ Slot ${orarioSlot} non trovato nel SlotManager`);
+            console.log(`❌ Slot ${orarioSlot} (ID: ${slotId}) non trovato nel SlotManager`);
             return false;
         }
 
         if (slot.status !== 'available') {
-            console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
+            console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot.status);
             return false;
         }
     }
@@ -204,23 +206,25 @@ async function checkAvailabilityFromAPI(orarioInizio, orarioFine) {
         for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
             const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
             
-            // Cerca slot per orario o per ID
-            let slot = disponibilita.data.slots.find(s => s.orario === orarioSlot);
+            // Converti orario in slot ID (9:00 = slot 1, 10:00 = slot 2, etc.)
+            const slotId = hour - 8;
+            
+            // Cerca lo slot per ID
+            let slot = disponibilita.data.slots.find(s => s.id_slot === slotId);
             if (!slot) {
-                // Prova a cercare per ID slot (basato sull'indice)
-                const slotIndex = hour - 9; // Gli slot iniziano da 9:00
-                slot = disponibilita.data.slots.find(s => s.id_slot === slotIndex + 1);
+                // Fallback: cerca per orario
+                slot = disponibilita.data.slots.find(s => s.orario === orarioSlot);
             }
 
-            console.log(`🔍 Controllo slot ${orarioSlot}:`, slot);
+            console.log(`🔍 Controllo slot ${orarioSlot} (ID: ${slotId}):`, slot);
 
             if (!slot) {
-                console.log(`❌ Slot ${orarioSlot} non trovato nei dati API`);
+                console.log(`❌ Slot ${orarioSlot} (ID: ${slotId}) non trovato nei dati API`);
                 return false;
             }
 
             if (slot.status !== 'available') {
-                console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
+                console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot.status);
                 return false;
             }
         }
@@ -891,17 +895,19 @@ function deselectSlot(slotId, slotElement) {
 function selectSlotRange(startSlotId, endSlotId) {
     console.log('🎯 Seleziono intervallo:', startSlotId, '→', endSlotId);
     
-    const startHour = parseInt(startSlotId);
-    const endHour = parseInt(endSlotId);
-    const minHour = Math.min(startHour, endHour);
-    const maxHour = Math.max(startHour, endHour);
+    const startSlot = parseInt(startSlotId);
+    const endSlot = parseInt(endSlotId);
+    const minSlot = Math.min(startSlot, endSlot);
+    const maxSlot = Math.max(startSlot, endSlot);
     
-    // Seleziona tutti gli slot nell'intervallo
-    for (let hour = minHour; hour <= maxHour; hour++) {
-        const slotElement = document.querySelector(`[data-slot-id="${hour}"]`);
+    // Seleziona tutti gli slot disponibili nell'intervallo
+    for (let slotId = minSlot; slotId <= maxSlot; slotId++) {
+        const slotElement = document.querySelector(`[data-slot-id="${slotId}"]`);
         if (slotElement && !slotElement.disabled && slotElement.classList.contains('slot-available')) {
+            // Converti slot ID in orario (slot 1 = 09:00, slot 2 = 10:00, etc.)
+            const hour = slotId + 8;
             const orario = `${hour.toString().padStart(2, '0')}:00`;
-            selectSingleSlot(hour.toString(), slotElement, orario);
+            selectSingleSlot(slotId.toString(), slotElement, orario);
         }
     }
 }
@@ -919,13 +925,17 @@ async function updateSelectionUI() {
         return;
     }
 
-    // Calcola intervallo di tempo
+    // Calcola intervallo di tempo basato sugli orari reali
     const sortedSlots = Array.from(selectedSlots).sort((a, b) => parseInt(a) - parseInt(b));
     const firstSlot = Math.min(...sortedSlots.map(s => parseInt(s)));
     const lastSlot = Math.max(...sortedSlots.map(s => parseInt(s)));
     
-    window.selectedTimeInizio = `${firstSlot.toString().padStart(2, '0')}:00`;
-    window.selectedTimeFine = `${(lastSlot + 1).toString().padStart(2, '0')}:00`;
+    // Converti slot ID in orari reali (slot 1 = 09:00, slot 2 = 10:00, etc.)
+    const firstHour = firstSlot + 8; // slot 1 = 9:00, slot 2 = 10:00
+    const lastHour = lastSlot + 9;   // slot 1 = 10:00, slot 2 = 11:00
+    
+    window.selectedTimeInizio = `${firstHour.toString().padStart(2, '0')}:00`;
+    window.selectedTimeFine = `${lastHour.toString().padStart(2, '0')}:00`;
 
     console.log('⏰ Intervallo selezionato:', window.selectedTimeInizio, '→', window.selectedTimeFine);
     console.log('📊 Slot selezionati:', selectedSlots.size, 'ore totali:', lastSlot - firstSlot + 1);
@@ -1029,12 +1039,15 @@ function selectPreset(presetType) {
             return;
     }
     
-    // Seleziona tutti gli slot nel range
+    // Seleziona solo gli slot disponibili nel range
     for (let hour = startHour; hour <= endHour; hour++) {
-        const slotElement = document.querySelector(`[data-slot-id="${hour}"]`);
+        // Converti orario in slot ID (9:00 = slot 1, 10:00 = slot 2, etc.)
+        const slotId = hour - 8;
+        const slotElement = document.querySelector(`[data-slot-id="${slotId}"]`);
+        
         if (slotElement && !slotElement.disabled && slotElement.classList.contains('slot-available')) {
             const orario = `${hour.toString().padStart(2, '0')}:00`;
-            selectSingleSlot(hour.toString(), slotElement, orario);
+            selectSingleSlot(slotId.toString(), slotElement, orario);
         }
     }
     
