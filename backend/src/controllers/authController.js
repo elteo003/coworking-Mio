@@ -132,12 +132,6 @@ exports.login = async (req, res) => {
       token: token
     };
 
-      message: response.message,
-      id_utente: response.id_utente,
-      nome: response.nome,
-      token_presente: !!response.token
-    });
-
     res.json(response);
   } catch (err) {
     console.error('❌ Errore database durante login:', err.message);
