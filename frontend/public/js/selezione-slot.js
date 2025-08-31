@@ -189,19 +189,8 @@ async function handleSlotClick(slotId, slotElement) {
     console.log('🎯 handleSlotClick chiamata per slot:', slotId);
     console.log('📊 Stato attuale:', selectionState);
 
-    // Controlla se l'utente è autenticato
-    const token = localStorage.getItem('token');
-    if (!token) {
-        console.log('👤 Utente non autenticato, procedo con selezione normale');
-        // Procedi con selezione normale per utenti non autenticati
-    } else {
-        // Utente autenticato: occupa lo slot ottimisticamente
-        console.log('🔐 Utente autenticato, occupo slot ottimisticamente');
-        const success = await slotManager.holdSlot(slotId);
-        if (!success) {
-            console.warn('⚠️ Impossibile occupare slot, procedo con selezione normale');
-        }
-    }
+    // Selezione visiva - NON occupare lo slot nel database
+    console.log('🎯 Selezione visiva slot - nessuna occupazione nel database');
 
     if (selectionState.startSlot === null) {
         // Nessun slot selezionato → diventa START
@@ -732,7 +721,31 @@ function setupEventListeners() {
                 return;
             }
 
-            // Crea la prenotazione nel database prima del pagamento
+            // PRIMA: Occupa temporaneamente gli slot selezionati
+            console.log('🔒 Occupazione temporanea slot selezionati...');
+            const holdPromises = Array.from(selectionState.allSelected).map(async (slotId) => {
+                try {
+                    const success = await slotManager.holdSlot(slotId);
+                    if (!success) {
+                        throw new Error(`Impossibile occupare slot ${slotId}`);
+                    }
+                    return slotId;
+                } catch (error) {
+                    console.error(`❌ Errore occupazione slot ${slotId}:`, error);
+                    throw error;
+                }
+            });
+
+            try {
+                await Promise.all(holdPromises);
+                console.log('✅ Tutti gli slot occupati temporaneamente');
+            } catch (error) {
+                console.error('❌ Errore occupazione slot:', error);
+                showError('Impossibile occupare gli slot selezionati. Riprova.');
+                return;
+            }
+
+            // POI: Crea la prenotazione nel database
             // Mantieni il timezone locale invece di convertire in UTC
             const formatDate = (date) => {
                 const year = date.getFullYear();
@@ -786,6 +799,18 @@ function setupEventListeners() {
 
             } catch (error) {
                 console.error('❌ Errore creazione prenotazione:', error);
+
+                // Rilascia gli slot occupati temporaneamente in caso di errore
+                console.log('🔄 Rilascio slot occupati temporaneamente...');
+                const releasePromises = Array.from(selectionState.allSelected).map(async (slotId) => {
+                    try {
+                        await slotManager.releaseSlot(slotId);
+                        console.log(`✅ Slot ${slotId} rilasciato`);
+                    } catch (releaseError) {
+                        console.error(`❌ Errore rilascio slot ${slotId}:`, releaseError);
+                    }
+                });
+                await Promise.all(releasePromises);
 
                 // Usa ErrorHandler per gestione intelligente degli errori
                 const errorInfo = await window.ErrorHandler.handlePrenotazioneError(error, {
