@@ -26,23 +26,7 @@
     transform: scale(1.05);
 }
 
-/* Modal personalizzato per catalogo - Personalizza .modal-dialog con alta specificità */
-.modal .modal-dialog {
-    max-width: 95vw !important;
-    width: 95vw !important;
-    max-height: 95vh !important;
-    margin: 1rem auto !important;
-}
-
-/* Specificità ancora più alta per Bootstrap 5 */
-.modal.fade .modal-dialog {
-    max-width: 95vw !important;
-    width: 95vw !important;
-    max-height: 95vh !important;
-    margin: 1rem auto !important;
-}
-
-/* Specificità massima per modal del catalogo */
+/* Modal personalizzato per catalogo - Specificità massima con ID */
 #modalSede .modal-dialog,
 #modalSpazio .modal-dialog {
     max-width: 95vw !important;
@@ -51,26 +35,49 @@
     margin: 1rem auto !important;
 }
 
-
-
-.modal-dialog .modal-content {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+/* Specificità ancora più alta con ID e classe */
+#modalSede.modal .modal-dialog,
+#modalSpazio.modal .modal-dialog {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    max-height: 95vh !important;
+    margin: 1rem auto !important;
 }
 
-.modal-dialog .modal-body {
-    flex: 1;
-    overflow-y: auto;
+/* Specificità massima assoluta con ID, classe e stato */
+#modalSede.modal.fade .modal-dialog,
+#modalSpazio.modal.fade .modal-dialog {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    max-height: 95vh !important;
+    margin: 1rem auto !important;
 }
 
-/* Carosello immersivo nei modal */
-.modal-dialog .immersive-carousel {
-    height: 400px;
+
+
+/* Contenuto modal con specificità ID */
+#modalSede .modal-dialog .modal-content,
+#modalSpazio .modal-dialog .modal-content {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 
-.modal-dialog .immersive-carousel-image {
-    height: 400px;
+#modalSede .modal-dialog .modal-body,
+#modalSpazio .modal-dialog .modal-body {
+    flex: 1 !important;
+    overflow-y: auto !important;
+}
+
+/* Carosello immersivo nei modal con specificità ID */
+#modalSede .modal-dialog .immersive-carousel,
+#modalSpazio .modal-dialog .immersive-carousel {
+    height: 400px !important;
+}
+
+#modalSede .modal-dialog .immersive-carousel-image,
+#modalSpazio .modal-dialog .immersive-carousel-image {
+    height: 400px !important;
 }
 
 /* Disabilita animazioni per card statiche nel catalogo */

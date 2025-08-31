@@ -297,19 +297,19 @@
             console.log('Modal dialog trovato:', modalDialog.length);
             console.log('Classi del modal dialog:', modalDialog[0].className);
 
-            // Forza le dimensioni con CSS inline
+            // Forza le dimensioni con CSS inline usando ID specifico
             modalDialog.css({
-              'max-width': '95vw',
-              'width': '95vw',
-              'max-height': '95vh',
-              'margin': '1rem auto'
+              'max-width': '95vw !important',
+              'width': '95vw !important',
+              'max-height': '95vh !important',
+              'margin': '1rem auto !important'
             });
 
             // Debug: verifica le dimensioni
             setTimeout(() => {
               const computedStyle = window.getComputedStyle(modalDialog[0]);
               console.log('Larghezza effettiva:', computedStyle.width);
-              console.log(ax-ffettiva:', computedStyle.maxWidth);
+              console.log(ax - ffettiva: ', computedStyle.maxWidth);
             }, 100);
           });
         } else {
