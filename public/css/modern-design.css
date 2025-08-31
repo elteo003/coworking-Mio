@@ -481,7 +481,7 @@ a:hover {
 
 /* ===== LOGO ANIMATION ===== */
 .navbar-brand:hover {
-    transform: scale(1.05);
+    transform: none;
     color: var(--primary-dark);
 }
 
@@ -1021,13 +1021,13 @@ a:hover {
 
 .step.active .step-number {
     background: var(--primary);
-    transform: scale(1.1);
+    transform: none;
     box-shadow: var(--shadow-lg);
 }
 
 .step.completed .step-number {
     background: var(--success);
-    transform: scale(1.05);
+    transform: none;
     color: transparent;
     font-size: 0;
 }
@@ -2559,7 +2559,7 @@ footer .app-column h6 *,
 }
 
 .input-group .btn-outline-secondary:hover i {
-    transform: scale(1.1);
+    transform: none;
 }
 
 /* Assicura che i campi password abbiano la giusta altezza */
