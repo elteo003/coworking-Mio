@@ -138,14 +138,6 @@ app.use('/api', scadenzeRoutes);
 const concorrenzaRoutes = require('./routes/concorrenza');
 app.use('/api/concorrenza', concorrenzaRoutes);
 
-// Rotte per Server-Sent Events (SSE) - Sistema real-time
-const sseRoutes = require('./routes/sse');
-app.use('/api/sse', sseRoutes);
-
-// Route per notifiche slot real-time
-const slotNotificationsRoutes = require('./routes/slotNotifications');
-app.use('/api/slots', slotNotificationsRoutes);
-
 // Route per gestione slot con timer automatico
 const slotsRoutes = require('./routes/slots');
 app.use('/api/slots', slotsRoutes);

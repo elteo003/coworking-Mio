@@ -1,5 +1,5 @@
 const pool = require('../db');
-const SSEController = require('./sseController');
+const socketService = require('../services/socketService');
 const SlotTimerService = require('../services/slotTimerService');
 
 // Verifica se uno spazio è disponibile in un intervallo
@@ -214,8 +214,8 @@ exports.creaPrenotazione = async (req, res) => {
           id_sede
         );
         
-        // Notifica tutti i client via SSE che lo slot è ora occupato
-        await SSEController.broadcastSlotUpdate(
+        // Notifica tutti i client via Socket.IO che lo slot è ora occupato
+        socketService.broadcastSlotUpdate(
           result.rows[0].id_prenotazione,
           'occupied',
           {
@@ -225,10 +225,10 @@ exports.creaPrenotazione = async (req, res) => {
         );
 
         // Aggiorna stato completo per tutti gli slot della data
-        const slotsStatus = await SSEController.getSlotsStatus(id_sede, spazioId, data);
-        SSEController.broadcastSlotsStatusUpdate(id_sede, spazioId, data, slotsStatus);
+        // Notifica aggiornamento stato slot via Socket.IO
+        socketService.broadcastSlotsStatusUpdate(id_sede, spazioId, data);
       } catch (sseError) {
-        console.warn('⚠️ Errore notifica SSE (non critico):', sseError);
+        console.warn('⚠️ Errore notifica Socket.IO (non critico):', sseError);
       }
     }
 
