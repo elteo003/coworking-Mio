@@ -68,9 +68,21 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
     try {
         console.log(`🚀 fetchSlotsFromDatabase chiamato per spazio: ${idSpazio}, data: ${date}`);
 
-        // Prima libera slot scaduti automaticamente
-        await pool.query('SELECT free_expired_slots()');
-        await pool.query('SELECT update_past_slots()');
+        // Prima libera slot scaduti automaticamente (se le funzioni esistono)
+        try {
+            await pool.query('SELECT free_expired_slots()');
+            await pool.query('SELECT update_past_slots()');
+        } catch (error) {
+            console.log('⚠️ Funzioni database slot non disponibili, continuo senza...');
+            // Fallback: libera slot scaduti manualmente
+            await pool.query(`
+                UPDATE Prenotazione 
+                SET stato = 'disponibile', expires_at = NULL
+                WHERE stato = 'in attesa' 
+                AND expires_at IS NOT NULL 
+                AND expires_at < CURRENT_TIMESTAMP
+            `);
+        }
 
         // Verifica che lo spazio esista
         const spazioQuery = 'SELECT id_spazio, nome FROM Spazio WHERE id_spazio = $1';
