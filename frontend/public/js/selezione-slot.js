@@ -855,48 +855,18 @@ async function createTimeSlots() {
     // Pulisci il container
     timeSlotsContainer.innerHTML = '';
 
-    // PRIMA: Carica gli stati degli slot dal backend
-    let slotsStatus = [];
-    try {
-        const token = localStorage.getItem('token');
-        let response;
-
-        if (token) {
-            // Utente autenticato: usa endpoint protetto
-            response = await fetch(`${window.CONFIG.API_BASE}/sse/slots-status/${window.selectedSede.id_sede}/${window.selectedSpazio.id_spazio}/${window.selectedDateInizio.toISOString().split('T')[0]}?token=${encodeURIComponent(token)}`, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-        } else {
-            // Utente non autenticato: usa endpoint pubblico
-            response = await fetch(`${window.CONFIG.API_BASE}/spazi/${window.selectedSpazio.id_spazio}/disponibilita-slot/${window.selectedDateInizio.toISOString().split('T')[0]}`, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
-
-        if (response.ok) {
-            const data = await response.json();
-            // Gestisci diversi formati di risposta
-            if (data.data && data.data.slots) {
-                slotsStatus = data.data.slots;
-            } else if (Array.isArray(data.data)) {
-                slotsStatus = data.data;
-            } else if (Array.isArray(data)) {
-                slotsStatus = data;
-            }
-            console.log('📋 Stati slot caricati:', slotsStatus);
-        }
-    } catch (error) {
-        console.warn('⚠️ Errore caricamento stati slot, uso stati default:', error);
-    }
+    // Gli stati degli slot verranno caricati dal SlotManagerSocketIO
+    // Per ora creiamo tutti gli slot come "available" di default
+    console.log('📋 Creazione slot con stato di default "available" - gli stati verranno aggiornati da Socket.IO');
+    let slotsStatus = []; // Array vuoto - stati gestiti da Socket.IO
 
     // Crea gli slot temporali con stati corretti
     for (let i = 0; i < orariApertura.length; i++) {
         const orario = orariApertura[i];
         const slotId = i + 1;
 
-        // Trova lo stato per questo slot
-        const slotData = slotsStatus.find(s => s.id_slot === slotId || s.orario === orario);
-        const status = slotData ? slotData.status : 'available';
+        // Tutti gli slot iniziano come "available" - stati aggiornati da Socket.IO
+        const status = 'available';
 
         console.log('🔨 Creo slot per orario:', orario, 'con stato:', status);
 
