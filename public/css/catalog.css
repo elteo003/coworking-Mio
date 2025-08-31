@@ -26,12 +26,29 @@
     transform: scale(1.05);
 }
 
-/* Modal personalizzato per catalogo - Personalizza .modal-dialog */
-.modal-dialog {
-    max-width: 95vw;
-    width: 95vw;
-    max-height: 95vh;
-    margin: 1rem auto;
+/* Modal personalizzato per catalogo - Personalizza .modal-dialog con alta specificità */
+.modal .modal-dialog {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    max-height: 95vh !important;
+    margin: 1rem auto !important;
+}
+
+/* Specificità ancora più alta per Bootstrap 5 */
+.modal.fade .modal-dialog {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    max-height: 95vh !important;
+    margin: 1rem auto !important;
+}
+
+/* Specificità massima per modal del catalogo */
+#modalSede .modal-dialog,
+#modalSpazio .modal-dialog {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    max-height: 95vh !important;
+    margin: 1rem auto !important;
 }
 
 
