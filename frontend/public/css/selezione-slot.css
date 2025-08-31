@@ -302,20 +302,19 @@ div.slot-button.slot-occupied,
     box-shadow: 0 0 8px rgba(253, 126, 20, 0.4) !important;
 }
 
-/* CSS ULTRA SPECIFICO per slot prenotati - DEVE ESSERE ARANCIONE */
+/* CSS ULTRA SPECIFICO per slot prenotati - DEVE ESSERE ROSSO */
 .time-slot.booked,
 div.time-slot.booked,
 .time-slot.booked:hover,
 .time-slot.booked:focus,
 .time-slot.booked:active {
-    background-color: var(--warning) !important;
+    background-color: var(--danger) !important;
     background-image: none !important;
     color: white !important;
-    border-color: var(--warning) !important;
+    border-color: var(--danger) !important;
     cursor: not-allowed !important;
     opacity: 0.8 !important;
-    animation: pulse-orange 2s infinite !important;
-    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3) !important;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3) !important;
 }
 
 .time-slot.expired {
@@ -351,7 +350,7 @@ div.time-slot.booked,
 }
 
 .time-slot.booked:hover {
-    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3) !important;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3) !important;
 }
 
 /* Personalizzazione Flatpickr */
