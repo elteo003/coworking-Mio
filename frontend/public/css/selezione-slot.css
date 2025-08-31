@@ -180,7 +180,7 @@ section::-webkit-scrollbar,
 .slot-button.slot-occupied {
     background-color: #fd7e14;
     color: white;
-    border-color: #e55100;
+    border-color: #fd7e14;
     cursor: not-allowed;
     opacity: 0.8;
     box-shadow: 0 0 8px rgba(253, 126, 20, 0.4);
@@ -246,7 +246,7 @@ section::-webkit-scrollbar,
 .time-slot.occupied {
     background: #fd7e14 !important;
     color: white !important;
-    border-color: #e55100 !important;
+    border-color: #fd7e14 !important;
     cursor: not-allowed !important;
     opacity: 0.8 !important;
     box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3) !important;
@@ -278,7 +278,7 @@ button.time-slot.occupied,
 input.time-slot.occupied {
     background: #fd7e14 !important;
     color: white !important;
-    border-color: #e55100 !important;
+    border-color: #fd7e14 !important;
 }
 
 .btn.time-slot.booked,
@@ -306,7 +306,7 @@ input.time-slot.occupied,
     background-color: #fd7e14 !important;
     background-image: none !important;
     color: white !important;
-    border-color: #e55100 !important;
+    border-color: #fd7e14 !important;
     cursor: not-allowed !important;
     opacity: 0.8 !important;
     box-shadow: 0 0 8px rgba(253, 126, 20, 0.4) !important;
@@ -891,7 +891,7 @@ main {
 .slot-button.slot-occupied {
     background-color: #fd7e14 !important;
     color: white !important;
-    border-color: #e55100 !important;
+    border-color: #fd7e14 !important;
     cursor: not-allowed !important;
     opacity: 0.8 !important;
     box-shadow: 0 0 8px rgba(253, 126, 20, 0.4) !important;
@@ -902,8 +902,8 @@ main {
 .slot-button.slot-occupied:focus,
 .slot-button.slot-occupied:active,
 .slot-button.slot-occupied:hover {
-    border: 2px solid #e55100 !important;
-    border-color: #e55100 !important;
+    border: 2px solid #fd7e14 !important;
+    border-color: #fd7e14 !important;
 }
 
 .slot-button.slot-booked {
