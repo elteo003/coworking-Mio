@@ -290,18 +290,26 @@
         if (typeof $ !== 'undefined') {
           console.log('jQuery disponibile');
 
-          // Debug modal quando si apre
+          // Debug modal quando si apre e forza dimensioni
           $('#modalSede, #modalSpazio').on('show.bs.modal', function () {
             console.log('Modal in apertura:', this.id);
             const modalDialog = $(this).find('.modal-dialog');
             console.log('Modal dialog trovato:', modalDialog.length);
             console.log('Classi del modal dialog:', modalDialog[0].className);
 
+            // Forza le dimensioni con CSS inline
+            modalDialog.css({
+              'max-width': '95vw',
+              'width': '95vw',
+              'max-height': '95vh',
+              'margin': '1rem auto'
+            });
+
             // Debug: verifica le dimensioni
             setTimeout(() => {
               const computedStyle = window.getComputedStyle(modalDialog[0]);
               console.log('Larghezza effettiva:', computedStyle.width);
-              console.log('Max-width effettiva:', computedStyle.maxWidth);
+              console.log(ax-ffettiva:', computedStyle.maxWidth);
             }, 100);
           });
         } else {
