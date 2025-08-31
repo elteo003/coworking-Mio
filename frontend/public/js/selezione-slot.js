@@ -807,58 +807,61 @@ async function displayTimeSlots(disponibilita) {
     }
 }
 
-// Seleziona uno slot temporale (NUOVA LOGICA: selezione multipla avanzata)
+// Seleziona uno slot temporale (LOGICA SEMPLIFICATA)
 async function selectTimeSlot(orario, slotElement, event = null) {
     console.log('🎯 selectTimeSlot chiamata:', { 
         orario, 
         slotElement, 
-        classList: slotElement.classList.toString(),
-        event: event ? { shiftKey: event.shiftKey, ctrlKey: event.ctrlKey, altKey: event.altKey } : null
+        classList: slotElement.classList.toString()
     });
 
     const slotId = slotElement.dataset.slotId;
     const isSelected = selectedSlots.has(slotId);
-    const isShiftClick = event && event.shiftKey;
-    const isCtrlClick = event && event.ctrlKey;
-    const isAltClick = event && event.altKey;
 
-    // Gestione deselezione
-    if (isSelected && !isShiftClick && !isCtrlClick && !isAltClick) {
+    // Se è già selezionato, lo deseleziona
+    if (isSelected) {
         console.log('🔄 Deseleziono slot:', orario);
         deselectSlot(slotId, slotElement);
+        await updateSelectionUI();
         return;
     }
 
-    // Gestione selezione con Shift (intervallo continuo)
-    if (isShiftClick && lastSelectedSlot && lastSelectedSlot !== slotId) {
-        console.log('🎯 Selezione intervallo con Shift:', lastSelectedSlot, '→', slotId);
-        selectSlotRange(lastSelectedSlot, slotId);
-        return;
-    }
-
-    // Gestione selezione con Ctrl (aggiungi/rimuovi singoli)
-    if (isCtrlClick) {
-        console.log('🎯 Selezione con Ctrl:', orario);
-        if (isSelected) {
-            deselectSlot(slotId, slotElement);
-        } else {
-            selectSingleSlot(slotId, slotElement, orario);
-        }
-        return;
-    }
-
-    // Gestione selezione normale (singola o multipla)
-    if (isSelected) {
-        deselectSlot(slotId, slotElement);
-    } else {
+    // Se non c'è nessun slot selezionato, seleziona questo come inizio
+    if (selectedSlots.size === 0) {
+        console.log('🎯 Primo slot selezionato (inizio):', orario);
         selectSingleSlot(slotId, slotElement, orario);
+        lastSelectedSlot = slotId;
+        await updateSelectionUI();
+        return;
     }
 
-    // Aggiorna ultimo slot selezionato
-    lastSelectedSlot = slotId;
+    // Se c'è già un slot selezionato, questo diventa la fine dell'intervallo
+    if (selectedSlots.size === 1) {
+        console.log('🎯 Secondo slot selezionato (fine):', orario);
+        
+        // Verifica che sia successivo al primo
+        const firstSlot = parseInt(Array.from(selectedSlots)[0]);
+        const secondSlot = parseInt(slotId);
+        
+        if (secondSlot <= firstSlot) {
+            showError('L\'orario di fine deve essere successivo all\'orario di inizio');
+            return;
+        }
+        
+        // Seleziona l'intervallo completo
+        selectSlotRange(firstSlot.toString(), slotId);
+        await updateSelectionUI();
+        return;
+    }
 
-    // Verifica disponibilità e aggiorna UI
-    await updateSelectionUI();
+    // Se ci sono già 2+ slot selezionati, resetta e seleziona questo
+    if (selectedSlots.size >= 2) {
+        console.log('🎯 Reset selezione e seleziono nuovo slot:', orario);
+        clearAllSelections();
+        selectSingleSlot(slotId, slotElement, orario);
+        lastSelectedSlot = slotId;
+        await updateSelectionUI();
+    }
 }
 
 // Seleziona un singolo slot
@@ -907,7 +910,17 @@ function selectSlotRange(startSlotId, endSlotId) {
             // Converti slot ID in orario (slot 1 = 09:00, slot 2 = 10:00, etc.)
             const hour = slotId + 8;
             const orario = `${hour.toString().padStart(2, '0')}:00`;
-            selectSingleSlot(slotId.toString(), slotElement, orario);
+            
+            // Seleziona lo slot
+            selectedSlots.add(slotId.toString());
+            slotElement.classList.remove('slot-available');
+            slotElement.classList.add('slot-selected');
+            slotElement.title = 'Click per deselezionare';
+            
+            // Aggiorna SlotManager se disponibile
+            if (window.slotManager) {
+                window.slotManager.selectSlot(slotId.toString());
+            }
         }
     }
 }
@@ -940,6 +953,13 @@ async function updateSelectionUI() {
     console.log('⏰ Intervallo selezionato:', window.selectedTimeInizio, '→', window.selectedTimeFine);
     console.log('📊 Slot selezionati:', selectedSlots.size, 'ore totali:', lastSlot - firstSlot + 1);
 
+    // Mostra messaggio appropriato
+    if (selectedSlots.size === 1) {
+        showTimeSelectionMessage('Seleziona l\'orario di fine per completare l\'intervallo');
+    } else {
+        hideTimeSelectionMessage();
+    }
+
     // Controlla se l'utente è autenticato
     const token = localStorage.getItem('token');
 
@@ -953,7 +973,6 @@ async function updateSelectionUI() {
 
         updateSummary();
         showSummary();
-        hideTimeSelectionMessage();
         showInfo(`${selectedSlots.size} slot selezionati! Effettua il login per completare la prenotazione.`);
         return;
     }
@@ -977,7 +996,6 @@ async function updateSelectionUI() {
 
     updateSummary();
     showSummary();
-    hideTimeSelectionMessage();
 }
 
 // Deseleziona tutti gli slot
@@ -1011,7 +1029,7 @@ function undoLastSelection() {
 }
 
 // Selezioni rapide preset
-function selectPreset(presetType) {
+async function selectPreset(presetType) {
     console.log('🎯 Selezione preset:', presetType);
     
     clearAllSelections();
@@ -1047,11 +1065,21 @@ function selectPreset(presetType) {
         
         if (slotElement && !slotElement.disabled && slotElement.classList.contains('slot-available')) {
             const orario = `${hour.toString().padStart(2, '0')}:00`;
-            selectSingleSlot(slotId.toString(), slotElement, orario);
+            
+            // Seleziona lo slot
+            selectedSlots.add(slotId.toString());
+            slotElement.classList.remove('slot-available');
+            slotElement.classList.add('slot-selected');
+            slotElement.title = 'Click per deselezionare';
+            
+            // Aggiorna SlotManager se disponibile
+            if (window.slotManager) {
+                window.slotManager.selectSlot(slotId.toString());
+            }
         }
     }
     
-    updateSelectionUI();
+    await updateSelectionUI();
 }
 
 // Blocca gli slot intermedi
