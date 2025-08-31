@@ -1,503 +1,420 @@
-# 🎯 Sistema di Gestione Slot - Stati e Colorazione
+# 🎯 Sistema di Gestione Slot e Selezione
 
 ## 📋 Panoramica
 
-Documentazione completa del sistema di gestione degli slot di prenotazione, con focus sulla gestione degli stati (disponibili, occupati, passati, prenotati) e sul sistema di colorazione dinamica dei bottoni.
+Questo documento descrive il sistema completo per la gestione degli slot temporali e la selezione degli orari nel sistema di coworking. Il sistema è stato progettato per essere **fluido**, **intuitivo** e **visivamente chiaro**.
 
-## 🎨 Sistema di Stati degli Slot
+## 🏗️ Architettura del Sistema
 
-### Stati Possibili
+### **Componenti Principali:**
 
-| Stato | Colore | Cliccabile | Descrizione | Durata |
-|-------|--------|------------|-------------|---------|
-| `available` | 🟢 Verde | ✅ Sì | Slot disponibile per prenotazione | Permanente |
-| `occupied` | 🟠 Arancione | ❌ No | Slot in attesa di pagamento | 15 minuti |
-| `booked` | 🔴 Rosso | ❌ No | Slot prenotato e confermato | Permanente |
-| `past` | ⚫ Grigio | ❌ No | Slot nel passato | Permanente |
+1. **SlotManager** (`slot-manager.js`) - Gestione real-time degli stati slot
+2. **Sistema di Selezione** (`selezione-slot.js`) - Logica di selezione START/END
+3. **CSS Personalizzato** (`selezione-slot.css`) - Stili visivi per gli stati
+4. **Backend API** - Endpoint per disponibilità e aggiornamenti real-time
 
-## 🔄 Flusso di Transizione Stati
+---
 
-```mermaid
-graph TD
-    A[available] -->|Utente prenota| B[occupied]
-    B -->|Pagamento completato| C[booked]
-    B -->|Timer scade 15min| A
-    A -->|Data passata| D[past]
-    C -->|Data passata| D
-```
+## 🔄 Gestione Stati degli Slot
 
-## 🎨 Sistema di Colorazione CSS
+### **Stati Disponibili:**
 
-### 1. **Slot Disponibili (Verde)**
-```css
-.slot-available {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    border: 2px solid #10b981;
-    cursor: pointer;
-}
+| **Stato** | **Classe CSS** | **Colore** | **Cliccabile** | **Significato** |
+|-----------|----------------|------------|----------------|-----------------|
+| `available` | `slot-available` | Verde | ✅ Sì | Slot libero e prenotabile |
+| `booked` | `slot-booked` | Rosso | ❌ No | Slot prenotato e pagato |
+| `occupied` | `slot-occupied` | Arancione | ❌ No | Slot temporaneamente occupato (hold 15min) |
+| `past` | `slot-past` | Grigio | ❌ No | Orario già passato |
 
-.slot-available:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-```
+### **Flusso di Caricamento Stati:**
 
-### 2. **Slot Occupati (Arancione)**
-```css
-.slot-occupied {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: white;
-    border: 2px solid #f59e0b;
-    cursor: not-allowed;
-    opacity: 0.8;
-}
-
-.slot-occupied:hover {
-    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-}
-```
-
-### 3. **Slot Prenotati (Rosso)**
-```css
-.slot-booked {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: white;
-    border: 2px solid #ef4444;
-    cursor: not-allowed;
-    opacity: 0.9;
-}
-
-.slot-booked:hover {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-```
-
-### 4. **Slot Passati (Grigio)**
-```css
-.slot-past {
-    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-    color: #d1d5db;
-    border: 2px solid #6b7280;
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-.slot-past:hover {
-    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
-    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
-}
-```
-
-## 🔧 Logica di Gestione Stati
-
-### 1. **Rilevamento Slot Passati**
 ```javascript
-function isPastSlot(orario, data) {
-    const now = new Date();
-    const slotDateTime = new Date(`${data}T${orario}:00`);
+// 1. Caricamento iniziale con stati corretti
+async function createTimeSlots() {
+    // PRIMA: Carica stati dal backend
+    const slotsStatus = await fetchSlotsStatus();
     
-    return slotDateTime < now;
-}
-```
-
-### 2. **Rilevamento Slot Occupati**
-```javascript
-function isOccupiedSlot(orario, prenotazioni) {
-    return prenotazioni.some(p => {
-        const inizio = new Date(p.data_inizio);
-        const fine = new Date(p.data_fine);
-        const slotTime = new Date(`${p.data_inizio.split('T')[0]}T${orario}:00`);
+    // POI: Crea bottoni con stati corretti
+    for (let i = 0; i < orariApertura.length; i++) {
+        const slotData = slotsStatus.find(s => s.id_slot === slotId);
+        const status = slotData ? slotData.status : 'available';
         
-        return slotTime >= inizio && slotTime < fine && p.stato === 'in attesa';
-    });
-}
-```
-
-### 3. **Rilevamento Slot Prenotati**
-```javascript
-function isBookedSlot(orario, prenotazioni) {
-    return prenotazioni.some(p => {
-        const inizio = new Date(p.data_inizio);
-        const fine = new Date(p.data_fine);
-        const slotTime = new Date(`${p.data_inizio.split('T')[0]}T${orario}:00`);
-        
-        return slotTime >= inizio && slotTime < fine && p.stato === 'confermata';
-    });
-}
-```
-
-## 🎯 Sistema di Aggiornamento UI
-
-### 1. **Aggiornamento Dinamico Colori**
-```javascript
-function updateSlotButton(slotButton, status, extraData = {}) {
-    // Rimuovi tutte le classi di stato precedenti
-    slotButton.classList.remove('slot-available', 'slot-occupied', 'slot-booked', 'slot-past');
-    
-    // Aggiungi nuova classe di stato
-    slotButton.classList.add(`slot-${status}`);
-    
-    // Aggiorna attributi
-    slotButton.setAttribute('data-status', status);
-    
-    // Aggiorna testo e tooltip
-    switch (status) {
-        case 'available':
-            slotButton.title = 'Slot disponibile';
-            slotButton.disabled = false;
-            break;
-        case 'occupied':
-            slotButton.title = `Slot occupato - scadenza in ${extraData.minutesRemaining} minuti`;
-            slotButton.disabled = true;
-            break;
-        case 'booked':
-            slotButton.title = 'Slot prenotato';
-            slotButton.disabled = true;
-            break;
-        case 'past':
-            slotButton.title = 'Slot nel passato';
-            slotButton.disabled = true;
-            break;
+        // Applica stato corretto direttamente
+        applySlotState(slot, status);
     }
 }
 ```
 
-### 2. **Aggiornamento Real-Time**
+### **Aggiornamenti Real-time:**
+
 ```javascript
-// Aggiorna tutti gli slot quando arriva notifica SSE
-function updateAllSlotsStatus(slotsStatus) {
-    slotsStatus.forEach(slot => {
-        const slotButton = document.querySelector(`[data-orario="${slot.orario}"]`);
-        if (slotButton) {
-            updateSlotButton(slotButton, slot.status, {
-                title: slot.title,
-                minutesRemaining: slot.minutesRemaining
-            });
-        }
-    });
-}
-```
+// Server-Sent Events per aggiornamenti in tempo reale
+this.eventSource = new EventSource(`/sse/status-stream?token=${token}`);
 
-## ⏰ Sistema Timer per Slot Occupati
-
-### 1. **Avvio Timer**
-```javascript
-// Quando slot diventa "in attesa"
-SlotTimerService.startTimer(prenotazioneId, idSpazio, dataInizio, dataFine, sedeId);
-
-// Timer di 15 minuti
-const timeoutMs = 15 * 60 * 1000;
-const timer = setTimeout(async () => {
-    await handleSlotExpiration(prenotazioneId, idSpazio, dataInizio, dataFine, sedeId);
-}, timeoutMs);
-```
-
-### 2. **Gestione Scadenza**
-```javascript
-async function handleSlotExpiration(prenotazioneId, idSpazio, dataInizio, dataFine, sedeId) {
-    // Verifica se prenotazione è ancora in attesa
-    const prenotazione = await pool.query(
-        'SELECT stato FROM Prenotazione WHERE id_prenotazione = $1',
-        [prenotazioneId]
-    );
-    
-    if (prenotazione.rows[0].stato === 'in attesa') {
-        // Aggiorna stato a "scaduta"
-        await pool.query(
-            'UPDATE Prenotazione SET stato = $1 WHERE id_prenotazione = $2',
-            ['scaduta', prenotazioneId]
-        );
-        
-        // Notifica che slot è tornato disponibile
-        await notifySlotAvailable(prenotazioneId, idSpazio, sedeId, dataInizio);
+this.eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    switch (data.type) {
+        case 'slot_update':
+            this.handleSlotUpdate(data); // Aggiorna singolo slot
+            break;
+        case 'slots_status_update':
+            this.updateSlotsFromStatus(data.slotsStatus); // Aggiorna tutti
+            break;
     }
-}
-```
-
-## 🔔 Sistema Notifiche Real-Time
-
-### 1. **Notifica Slot Occupato**
-```javascript
-function notifySlotOccupied(prenotazioneId, idSpazio, sedeId, minutesRemaining) {
-    const update = {
-        type: 'slot_occupied',
-        prenotazioneId: prenotazioneId,
-        idSpazio: idSpazio,
-        sedeId: sedeId,
-        status: 'occupied',
-        minutesRemaining: minutesRemaining,
-        message: `Slot occupato - scadenza in ${minutesRemaining} minuti`,
-        timestamp: new Date().toISOString()
-    };
-    
-    SSEController.broadcastUpdate(update);
-}
-```
-
-### 2. **Notifica Slot Disponibile**
-```javascript
-async function notifySlotAvailable(prenotazioneId, idSpazio, sedeId, dataInizio) {
-    const data = dataInizio.split('T')[0];
-    const slotsStatus = await SSEController.getSlotsStatus(sedeId, idSpazio, data);
-    
-    const update = {
-        type: 'slot_available',
-        prenotazioneId: prenotazioneId,
-        idSpazio: idSpazio,
-        sedeId: sedeId,
-        status: 'available',
-        message: 'Slot tornato disponibile',
-        slotsStatus: slotsStatus,
-        timestamp: new Date().toISOString()
-    };
-    
-    SSEController.broadcastUpdate(update);
-}
-```
-
-## 🎨 Animazioni e Transizioni
-
-### 1. **Transizioni Smooth**
-```css
-.time-slot {
-    transition: all 0.3s ease;
-    transform: none; /* Rimosso per evitare ingrandimenti */
-}
-
-.time-slot:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transform: none; /* Rimosso per evitare ingrandimenti */
-}
-```
-
-### 2. **Effetti Hover Specifici per Stato**
-```css
-.slot-available:hover {
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.slot-occupied:hover {
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-}
-
-.slot-booked:hover {
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-.slot-past:hover {
-    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
-}
-```
-
-## 🔍 Debug e Monitoraggio
-
-### 1. **Endpoint Debug Slot**
-```
-GET /api/slots/debug/:sedeId/:spazioId/:data
-```
-
-**Risposta:**
-```json
-{
-    "success": true,
-    "debug": {
-        "sedeId": 1,
-        "spazioId": 1,
-        "data": "2025-09-02",
-        "spazio": {
-            "id_spazio": 1,
-            "nome": "Stanza Privata 1",
-            "id_sede": 1,
-            "nome_sede": "CoWork Milano Centro"
-        },
-        "prenotazioni": [
-            {
-                "id_prenotazione": 123,
-                "data_inizio": "2025-09-02T09:00:00",
-                "data_fine": "2025-09-02T12:00:00",
-                "stato": "in attesa",
-                "orario_inizio": 9,
-                "orario_fine": 12,
-                "nome": "Mario",
-                "cognome": "Rossi"
-            }
-        ],
-        "slotsStatus": [
-            {
-                "orario": "09:00",
-                "status": "occupied",
-                "title": "Slot occupato - scadenza in 14 minuti"
-            },
-            {
-                "orario": "10:00",
-                "status": "occupied",
-                "title": "Slot occupato - scadenza in 14 minuti"
-            }
-        ],
-        "timestamp": "2025-09-02T10:15:30.000Z"
-    }
-}
-```
-
-### 2. **Log Console Frontend**
-```javascript
-// Log per ogni cambio stato
-console.log(`🔔 Slot ${orario} aggiornato a stato: ${status}`);
-
-// Log per notifiche ricevute
-console.log('🔔 Notifica slot ricevuta:', data);
-
-// Log per errori
-console.error('❌ Errore aggiornamento slot:', error);
-```
-
-### 3. **Log Backend**
-```javascript
-// Log timer
-console.log(`⏰ Timer avviato per prenotazione ${prenotazioneId}, scadenza: ${expiresAt}`);
-
-// Log notifiche
-console.log(`🔔 Notifica slot occupato inviata per prenotazione ${prenotazioneId}`);
-
-// Log errori
-console.error('❌ Errore nella gestione scadenza slot:', error);
-```
-
-## 🚀 Utilizzo Pratico
-
-### 1. **Inizializzazione Sistema**
-```javascript
-// Auto-connessione SSE
-document.addEventListener('DOMContentLoaded', () => {
-    window.SlotNotificationManager.connect();
-});
-
-// Caricamento stato iniziale slot
-loadSlotsStatus();
-```
-
-### 2. **Gestione Eventi Slot**
-```javascript
-// Ascolta eventi slot
-window.SlotNotificationManager.on('slot_occupied', (data) => {
-    console.log('Slot occupato:', data);
-    // Aggiorna UI
-    updateSlotButton(data.idSpazio, 'occupied', data);
-});
-
-window.SlotNotificationManager.on('slot_available', (data) => {
-    console.log('Slot disponibile:', data);
-    // Aggiorna UI
-    updateSlotButton(data.idSpazio, 'available');
-});
-```
-
-### 3. **Test Sistema**
-```javascript
-// Test endpoint debug
-fetch('/api/slots/debug/1/1/2025-09-02')
-    .then(response => response.json())
-    .then(data => {
-        console.log('Debug slot:', data);
-        // Verifica stati slot
-        data.debug.slotsStatus.forEach(slot => {
-            console.log(`Slot ${slot.orario}: ${slot.status}`);
-        });
-    });
-```
-
-## 🔧 Configurazione Avanzata
-
-### 1. **Personalizzazione Colori**
-```css
-:root {
-    --slot-available: #10b981;
-    --slot-occupied: #f59e0b;
-    --slot-booked: #ef4444;
-    --slot-past: #6b7280;
-}
-```
-
-### 2. **Personalizzazione Timer**
-```javascript
-// Timer personalizzabile
-const SLOT_TIMEOUT_MS = 15 * 60 * 1000; // 15 minuti
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minuti
-```
-
-### 3. **Personalizzazione Notifiche**
-```javascript
-// Durata notifiche toast
-const NOTIFICATION_DURATION = 5000; // 5 secondi
-
-// Tipi notifica
-const NOTIFICATION_TYPES = {
-    success: 'alert-success',
-    warning: 'alert-warning',
-    info: 'alert-info',
-    error: 'alert-danger'
 };
 ```
 
-## 📊 Metriche e Analytics
+---
 
-### 1. **Metriche Slot**
-- Slot disponibili vs occupati
-- Tempo medio di occupazione
-- Tasso di conversione (occupato → prenotato)
-- Slot scaduti vs confermati
+## 🎯 Sistema di Selezione START/END
 
-### 2. **Metriche Performance**
-- Tempo risposta notifiche SSE
-- Connessioni SSE attive
-- Timer attivi
-- Errori di connessione
+### **Concetto Base:**
 
-## 🔒 Sicurezza e Validazione
+Il sistema utilizza **due bottoni blu sempre visibili** per indicare chiaramente l'inizio e la fine della selezione:
 
-### 1. **Validazione Stati**
+- **🔵 START (Blu)**: Primo slot selezionato
+- **🔵 END (Blu)**: Ultimo slot selezionato  
+- **🟠 INTERMEDI (Arancione)**: Slot tra START e END
+
+### **Struttura Dati:**
+
 ```javascript
-function validateSlotStatus(status) {
-    const validStatuses = ['available', 'occupied', 'booked', 'past'];
-    return validStatuses.includes(status);
-}
+let selectionState = {
+    startSlot: null,    // ID del slot di inizio (blu)
+    endSlot: null,      // ID del slot di fine (blu)
+    allSelected: new Set() // Tutti gli slot selezionati (per calcoli)
+};
 ```
 
-### 2. **Sanitizzazione Input**
+### **Logica di Selezione:**
+
 ```javascript
-function sanitizeSlotData(data) {
-    return {
-        orario: data.orario.replace(/[^0-9:]/g, ''),
-        status: validateSlotStatus(data.status) ? data.status : 'available',
-        title: data.title ? data.title.substring(0, 100) : ''
-    };
+function handleSlotClick(slotId, slotElement) {
+    if (selectionState.startSlot === null) {
+        // Nessun slot selezionato → diventa START
+        setAsStart(slotId, slotElement);
+    } else if (selectionState.endSlot === null) {
+        // Solo START selezionato → diventa END
+        setAsEnd(slotId, slotElement);
+    } else {
+        // Entrambi selezionati → gestisci deselezione o nuovo START
+        handleFullSelection(slotId, slotElement);
+    }
 }
 ```
 
 ---
 
-## 📞 Supporto e Troubleshooting
+## 🎨 Comportamenti di Selezione
 
-### Problemi Comuni
+### **1. Prima Selezione:**
+```
+Click 10:00 → [9:00] [10:00🔵] [11:00] [12:00] [13:00] [14:00] [15:00]
+              (START)
+```
 
-1. **Slot non cambia colore**
-   - Verifica connessione SSE
-   - Controlla log console
-   - Usa endpoint debug
+### **2. Seconda Selezione:**
+```
+Click 14:00 → [9:00] [10:00🔵] [11:00🟠] [12:00🟠] [13:00🟠] [14:00🔵] [15:00]
+              (START)          (SELECTED) (SELECTED) (SELECTED) (END)
+```
 
-2. **Timer non funziona**
-   - Verifica stato prenotazione
-   - Controlla log backend
-   - Verifica timer attivi
+### **3. Deselezione START:**
+```
+Click 10:00 → [9:00] [10:00] [11:00🟠] [12:00🟠] [13:00🟠] [14:00🔵] [15:00]
+              (deselezionato)  (SELECTED) (SELECTED) (SELECTED) (nuovo START)
+```
 
-3. **Notifiche non arrivano**
-   - Verifica CORS
-   - Controlla connessione SSE
-   - Verifica endpoint
+### **4. Deselezione END:**
+```
+Click 14:00 → [9:00] [10:00🔵] [11:00🟠] [12:00🟠] [13:00🟠] [14:00] [15:00]
+              (START)          (SELECTED) (SELECTED) (SELECTED) (deselezionato)
+```
 
-**Sistema implementato da**: AI Assistant  
-**Data**: Settembre 2025  
-**Versione**: 1.0.0
+### **5. Nuovo START:**
+```
+Click 12:00 → [9:00] [10:00] [11:00] [12:00🔵] [13:00🟠] [14:00🔵] [15:00]
+              (nuovo START)    (SELECTED) (END)
+```
+
+---
+
+## 🛠️ Funzioni Principali
+
+### **Gestione Selezione:**
+
+```javascript
+// Imposta uno slot come START (blu)
+function setAsStart(slotId, slotElement) {
+    selectionState.startSlot = slotId;
+    selectionState.allSelected.add(slotId);
+    slotElement.classList.add('slot-start');
+    slotElement.title = 'Inizio selezione';
+}
+
+// Imposta uno slot come END (blu)
+function setAsEnd(slotId, slotElement) {
+    const minId = Math.min(selectionState.startSlot, slotId);
+    const maxId = Math.max(selectionState.startSlot, slotId);
+    
+    selectionState.startSlot = minId;
+    selectionState.endSlot = maxId;
+    
+    // Colora slot intermedi
+    for (let id = minId + 1; id < maxId; id++) {
+        const element = document.querySelector(`[data-slot-id="${id}"]`);
+        element.classList.add('slot-selected');
+    }
+}
+
+// Deseleziona START, END diventa nuovo START
+function deselectStart() {
+    const endId = selectionState.endSlot;
+    clearAllSelections();
+    selectionState.startSlot = endId;
+    selectionState.endSlot = null;
+    selectionState.allSelected.add(endId);
+}
+
+// Deseleziona END, START rimane
+function deselectEnd() {
+    const startId = selectionState.startSlot;
+    clearAllSelections();
+    selectionState.startSlot = startId;
+    selectionState.endSlot = null;
+    selectionState.allSelected.add(startId);
+}
+```
+
+### **Gestione Stati:**
+
+```javascript
+// Applica stato corretto a uno slot
+function applySlotState(slot, status) {
+    slot.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past');
+    
+    switch (status) {
+        case 'available':
+            slot.classList.add('slot-available');
+            slot.disabled = false;
+            slot.title = 'Disponibile';
+            break;
+        case 'booked':
+            slot.classList.add('slot-booked');
+            slot.disabled = true;
+            slot.title = 'Prenotato';
+            break;
+        case 'occupied':
+            slot.classList.add('slot-occupied');
+            slot.disabled = true;
+            slot.title = 'Occupato';
+            break;
+        case 'past':
+            slot.classList.add('slot-past');
+            slot.disabled = true;
+            slot.title = 'Passato';
+            break;
+    }
+}
+```
+
+---
+
+## 🎨 Stili CSS
+
+### **Stati di Selezione:**
+
+```css
+/* START e END - Entrambi blu */
+.slot-start, .slot-end {
+    background-color: #007bff !important;
+    border-color: #0056b3 !important;
+    color: white !important;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5) !important;
+}
+
+.slot-start:hover, .slot-end:hover {
+    background-color: #0056b3 !important;
+    border-color: #004085 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.6) !important;
+}
+
+/* Slot intermedi - Arancione */
+.slot-selected {
+    background-color: #fd7e14 !important;
+    border-color: #e55100 !important;
+    color: white !important;
+    box-shadow: 0 0 8px rgba(253, 126, 20, 0.4) !important;
+}
+
+.slot-selected:hover {
+    background-color: #e55100 !important;
+    border-color: #cc4400 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(253, 126, 20, 0.5) !important;
+}
+```
+
+### **Stati di Disponibilità:**
+
+```css
+/* Disponibile - Verde */
+.slot-available {
+    background-color: #28a745 !important;
+    border-color: #1e7e34 !important;
+}
+
+/* Prenotato - Rosso */
+.slot-booked {
+    background-color: #dc3545 !important;
+    border-color: #c82333 !important;
+}
+
+/* Occupato - Arancione */
+.slot-occupied {
+    background-color: #ffc107 !important;
+    border-color: #e0a800 !important;
+}
+
+/* Passato - Grigio */
+.slot-past {
+    background-color: #6c757d !important;
+    border-color: #5a6268 !important;
+}
+```
+
+---
+
+## 🔄 Flusso Completo
+
+### **1. Inizializzazione:**
+```
+Utente seleziona data/spazio
+         ↓
+Carica stati slot dal backend
+         ↓
+Crea bottoni con stati corretti
+         ↓
+SlotManager si connette per aggiornamenti real-time
+```
+
+### **2. Selezione:**
+```
+Click su slot disponibile
+         ↓
+handleSlotClick() determina azione
+         ↓
+setAsStart() o setAsEnd() o handleFullSelection()
+         ↓
+Aggiorna UI e stato
+         ↓
+updateSelectionUI() aggiorna riepilogo
+```
+
+### **3. Aggiornamenti Real-time:**
+```
+SSE riceve aggiornamento
+         ↓
+SlotManager.handleSlotUpdate()
+         ↓
+updateSlotButton() aggiorna singolo slot
+         ↓
+UI riflette nuovo stato
+```
+
+---
+
+## 📊 Mappatura Slot
+
+### **Conversione Orario ↔ Slot ID:**
+
+```javascript
+// Orari: 9:00, 10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00
+// Slot ID: 1,   2,   3,   4,   5,   6,   7,   8,   9
+
+// Conversione: slotId = hour - 8
+// 9:00 → slotId = 1
+// 10:00 → slotId = 2
+// 11:00 → slotId = 3
+// etc.
+```
+
+### **Calcolo Range:**
+
+```javascript
+// Per un intervallo 10:00 - 14:00
+const startSlotId = 10 - 8; // = 2
+const endSlotId = 14 - 8;   // = 6
+
+// Slot selezionati: 2, 3, 4, 5, 6
+// START: 2 (10:00)
+// END: 6 (14:00)  
+// INTERMEDI: 3, 4, 5 (11:00, 12:00, 13:00)
+```
+
+---
+
+## 🚀 Vantaggi del Sistema
+
+### **1. Visibilità Chiara:**
+- START e END sempre visibili in blu
+- Slot intermedi chiaramente identificati in arancione
+- Stati di disponibilità immediatamente riconoscibili
+
+### **2. Logica Intuitiva:**
+- Comportamento prevedibile e coerente
+- Deselezione intelligente che mantiene la logica
+- Transizioni fluide tra stati
+
+### **3. Performance Ottimizzata:**
+- Caricamento diretto con stati corretti (no flickering)
+- Aggiornamenti real-time efficienti
+- Gestione stato semplificata
+
+### **4. UX Migliorata:**
+- Feedback visivo immediato
+- Controllo granulare della selezione
+- Interfaccia responsive e moderna
+
+---
+
+## 🔧 Configurazione
+
+### **File Coinvolti:**
+
+- `frontend/public/js/selezione-slot.js` - Logica principale
+- `frontend/public/js/slot-manager.js` - Gestione real-time
+- `frontend/public/css/selezione-slot.css` - Stili visivi
+- `frontend/public/selezione-slot.html` - Struttura HTML
+
+### **Dipendenze:**
+
+- **Bootstrap** - Framework CSS base
+- **Server-Sent Events** - Aggiornamenti real-time
+- **Fetch API** - Comunicazione con backend
+- **CSS Custom Properties** - Stili personalizzati
+
+---
+
+## 📝 Note di Implementazione
+
+### **Compatibilità:**
+- ✅ Browser moderni (ES6+)
+- ✅ Mobile responsive
+- ✅ Accessibilità migliorata
+
+### **Performance:**
+- ⚡ Caricamento ottimizzato (no flickering)
+- ⚡ Aggiornamenti real-time efficienti
+- ⚡ Gestione memoria ottimizzata
+
+### **Manutenibilità:**
+- 🔧 Codice modulare e ben documentato
+- 🔧 Separazione logica/presentazione
+- 🔧 Facile estensione per nuove funzionalità
+
+---
+
+*Ultimo aggiornamento: Dicembre 2024*
+*Versione: 2.0 - Sistema START/END*
