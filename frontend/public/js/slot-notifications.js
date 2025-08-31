@@ -12,13 +12,11 @@ class SlotNotificationManager {
         this.reconnectDelay = 1000; // 1 secondo
         this.listeners = new Map();
         
-        console.log('🔔 SlotNotificationManager inizializzato');
     }
 
     // Connessione SSE per notifiche slot
     connect() {
         if (this.isConnected) {
-            console.log('🔔 Connessione SSE già attiva');
             return;
         }
 
@@ -33,12 +31,10 @@ class SlotNotificationManager {
             }
             
             const sseUrl = `${apiBase}/slots/events?token=${encodeURIComponent(token)}`;
-            console.log('🔔 Connessione SSE a:', sseUrl);
             
             this.eventSource = new EventSource(sseUrl);
             
             this.eventSource.onopen = () => {
-                console.log('✅ Connessione SSE stabilita per notifiche slot');
                 this.isConnected = true;
                 this.reconnectAttempts = 0;
                 this.emit('connection', { status: 'connected' });
@@ -47,7 +43,6 @@ class SlotNotificationManager {
             this.eventSource.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    console.log('🔔 Notifica slot ricevuta:', data);
                     this.handleSlotNotification(data);
                 } catch (error) {
                     console.error('❌ Errore parsing notifica slot:', error);
@@ -62,7 +57,6 @@ class SlotNotificationManager {
                 // Tentativo di riconnessione
                 if (this.reconnectAttempts < this.maxReconnectAttempts) {
                     this.reconnectAttempts++;
-                    console.log(`🔄 Tentativo riconnessione ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectDelay}ms`);
                     
                     setTimeout(() => {
                         this.disconnect();
@@ -90,16 +84,13 @@ class SlotNotificationManager {
             this.eventSource = null;
         }
         this.isConnected = false;
-        console.log('🔌 Connessione SSE slot chiusa');
     }
 
     // Gestisce le notifiche slot ricevute
     handleSlotNotification(data) {
-        console.log('🔔 Gestione notifica slot:', data.type, data);
 
         switch (data.type) {
             case 'connection':
-                console.log('🔔 Connessione SSE stabilita');
                 break;
 
             case 'heartbeat':
@@ -127,13 +118,11 @@ class SlotNotificationManager {
                 break;
 
             default:
-                console.log('🔔 Tipo notifica slot non gestito:', data.type);
         }
     }
 
     // Gestisce notifica slot occupato
     handleSlotOccupied(data) {
-        console.log('🔔 Slot occupato:', data);
         
         // Mostra notifica toast
         this.showNotification({
@@ -155,7 +144,6 @@ class SlotNotificationManager {
 
     // Gestisce notifica slot disponibile
     handleSlotAvailable(data) {
-        console.log('🔔 Slot disponibile:', data);
         
         // Mostra notifica toast
         this.showNotification({
@@ -179,7 +167,6 @@ class SlotNotificationManager {
 
     // Gestisce notifica slot confermato
     handleSlotConfirmed(data) {
-        console.log('🔔 Slot confermato:', data);
         
         // Mostra notifica toast
         this.showNotification({
@@ -198,7 +185,6 @@ class SlotNotificationManager {
 
     // Gestisce aggiornamento stato completo slot
     handleSlotsStatusUpdate(data) {
-        console.log('🔔 Aggiornamento stato slot completo:', data);
         
         if (data.slotsStatus) {
             this.updateAllSlotsStatus(data.slotsStatus);
@@ -210,7 +196,6 @@ class SlotNotificationManager {
 
     // Gestisce aggiornamento singolo slot
     handleSlotUpdate(data) {
-        console.log('🔔 Aggiornamento singolo slot:', data);
         
         this.updateSlotStatus(data.slotId, data.status, data.data);
 
@@ -220,7 +205,6 @@ class SlotNotificationManager {
 
     // Aggiorna stato di un singolo slot nell'UI
     updateSlotStatus(slotId, status, extraData = {}) {
-        console.log(`🔔 Aggiornamento slot ${slotId} a stato: ${status}`);
 
         // Trova il bottone dello slot
         const slotButton = document.querySelector(`[data-slot-id="${slotId}"]`) || 
@@ -248,7 +232,6 @@ class SlotNotificationManager {
                 slotButton.disabled = true;
             }
 
-            console.log(`✅ Slot ${slotId} aggiornato a stato: ${status}`);
         } else {
             console.warn(`⚠️ Slot ${slotId} non trovato nell'UI`);
         }
@@ -256,7 +239,6 @@ class SlotNotificationManager {
 
     // Aggiorna stato di tutti gli slot
     updateAllSlotsStatus(slotsStatus) {
-        console.log('🔔 Aggiornamento stato completo slot:', slotsStatus);
 
         if (Array.isArray(slotsStatus)) {
             slotsStatus.forEach(slot => {
@@ -343,14 +325,11 @@ window.SlotNotificationManager = new SlotNotificationManager();
 
 // Auto-connessione quando il DOM è pronto
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🔔 Auto-connessione SlotNotificationManager');
     window.SlotNotificationManager.connect();
 });
 
 // Disconnessione quando la pagina viene chiusa
 window.addEventListener('beforeunload', () => {
-    console.log('🔔 Disconnessione SlotNotificationManager');
     window.SlotNotificationManager.disconnect();
 });
 
-console.log('🔔 SlotNotificationManager caricato e pronto');

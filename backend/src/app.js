@@ -29,15 +29,12 @@ app.use(cors({
 
     // Permetti richieste senza origin (es. Postman, mobile apps, test Node.js)
     if (!origin) {
-      console.log('✅ CORS: Permessa richiesta senza origin (test/Postman)');
       return callback(null, true);
     }
 
     if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log('✅ CORS: Origin permesso:', origin);
       callback(null, true);
     } else {
-      console.log('❌ CORS: Origin bloccato:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -64,13 +61,9 @@ app.use((req, res, next) => {
   const origin = req.headers.origin || 'No origin';
   const referer = req.headers.referer || 'No referer';
 
-  console.log(`🌐 ${req.method} ${req.path} - Origin: ${origin}`);
-  console.log(`📋 CORS Headers - Origin: ${origin}, Referer: ${referer}`);
 
   // Log più dettagliato per debug
   if (req.method === 'POST' || req.method === 'PUT') {
-    console.log(`📝 Content-Type: ${req.headers['content-type'] || 'Not specified'}`);
-    console.log(`📏 Content-Length: ${req.headers['content-length'] || 'Not specified'}`);
   }
 
   next();
@@ -166,9 +159,6 @@ const adminRoutes = require('./routes/admin');
 app.use('/api/admin', adminRoutes);
 
 // Log delle route caricate
-console.log('🚀 Route spazi caricate:', spaziRoutes.stack?.map(r => r.route?.path).filter(Boolean));
-console.log('🚀 Route sedi caricate:', sediRoutes.stack?.map(r => r.route?.path).filter(Boolean));
-console.log('🚀 Route A/B testing caricate:', abTestingRoutes.stack?.map(r => r.route?.path).filter(Boolean));
 
 // Endpoint di test per verificare se le route scadenze sono caricate
 app.get('/api/test-scadenze', (req, res) => {
@@ -222,7 +212,6 @@ app.get('/api/ping', (req, res) => {
 
 // Endpoint di test CORS
 app.get('/api/test-cors', (req, res) => {
-  console.log('Test CORS chiamato con origin:', req.headers.origin);
   res.json({
     message: 'CORS test successful',
     origin: req.headers.origin,
@@ -233,7 +222,6 @@ app.get('/api/test-cors', (req, res) => {
 
 // Endpoint di test CORS specifico per sedi
 app.get('/api/test-sedi-cors', (req, res) => {
-  console.log('Test sedi CORS chiamato con origin:', req.headers.origin);
   res.json({
     message: 'CORS sedi test successful',
     origin: req.headers.origin,
@@ -302,7 +290,6 @@ app.post('/api/debug/populate-db', async (req, res) => {
     const fs = require('fs');
     const path = require('path');
 
-    console.log('🔄 Popolamento database via API...');
 
     // Leggi il file seed.sql
     const seedPath = path.join(__dirname, '../../database/seed.sql');
@@ -316,7 +303,6 @@ app.post('/api/debug/populate-db', async (req, res) => {
     const spaziResult = await pool.query('SELECT COUNT(*) as count FROM Spazio');
     const serviziResult = await pool.query('SELECT COUNT(*) as count FROM Servizio');
 
-    console.log('✅ Database popolato con successo!');
 
     res.json({
       message: 'Database populated successfully',
@@ -364,7 +350,6 @@ app.get('/api/test-disponibilita-slot', (req, res) => {
 // Endpoint di test per verificare il token JWT inviato
 app.get('/api/test-token', (req, res) => {
   const authHeader = req.headers.authorization;
-  console.log('🔐 Test Token - Auth Header:', authHeader);
 
   if (!authHeader) {
     return res.status(401).json({
@@ -383,7 +368,6 @@ app.get('/api/test-token', (req, res) => {
   }
 
   const token = authHeader.substring(7);
-  console.log('🔐 Test Token - Token estratto:', token ? token.substring(0, 20) + '...' : 'null');
 
   res.json({
     message: 'Token ricevuto correttamente',
@@ -413,7 +397,6 @@ async function initializeServices() {
       res.sendFile(path.join(__dirname, '../node_modules/socket.io/client-dist/socket.io.js'));
     });
 
-    console.log('✅ Servizi inizializzati con successo');
   } catch (error) {
     console.error('❌ Errore inizializzazione servizi:', error);
   }
@@ -421,13 +404,8 @@ async function initializeServices() {
 
 // Avvia server
 server.listen(PORT, async () => {
-  console.log(`🚀 Backend server running on port ${PORT}`);
 
   // Inizializza servizi
   await initializeServices();
 
-  console.log('✅ Sistema CoworkSpace v2.0 pronto!');
-  console.log('📦 Redis:', redisService.isEnabled ? 'Abilitato' : 'Disabilitato (modalità sviluppo)');
-  console.log('🔌 Socket.IO: Abilitato con supporto Redis Pub/Sub');
-  console.log('⏰ Timer automatico: Controllo expires_at su query');
 });

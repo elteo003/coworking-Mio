@@ -2,12 +2,9 @@
 
 // ✅ Inizializza navbar universale all'avvio
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('🚀 Dashboard amministratore - Inizializzazione navbar universale...');
     if (typeof window.initializeNavbar === 'function') {
         window.initializeNavbar();
-        console.log('✅ Navbar universale inizializzata');
     } else {
-        console.log('⚠️ Funzione initializeNavbar non disponibile');
     }
 });
 
@@ -20,7 +17,6 @@ function checkAuth() {
         try {
             const userData = JSON.parse(user);
             if (!userData.ruolo || userData.ruolo !== 'amministratore') {
-                console.log('Utente non autorizzato, redirect alla dashboard appropriata');
                 if (userData.ruolo === 'gestore') {
                     window.location.href = 'dashboard-responsabili.html';
                 } else {
@@ -28,7 +24,6 @@ function checkAuth() {
                 }
                 return;
             }
-            console.log('Utente autenticato e autorizzato:', userData.nome, userData.cognome, userData.ruolo);
             return;
         } catch (error) {
             console.error('Errore parsing user data:', error);
@@ -39,18 +34,15 @@ function checkAuth() {
         }
     }
 
-    console.log('Utente non autenticato, redirect al login');
     window.location.href = 'login.html?message=' + encodeURIComponent('Devi effettuare il login per accedere alla dashboard amministratore.');
 }
 
-console.log('✅ Dashboard amministratore - Usa navbar universale per autenticazione');
 
 class DashboardAmministratore {
     constructor() {
         this.currentSection = 'overview';
         this.charts = {};
         this.currentMonth = new Date();
-        console.log('✅ Dashboard amministratore creata, in attesa di inizializzazione...');
     }
 
     checkAuthBeforeInit() {
@@ -58,14 +50,12 @@ class DashboardAmministratore {
         const token = localStorage.getItem('token');
 
         if (!user || !token) {
-            console.log('Dashboard amministratore: utente non autenticato, non inizializzo');
             return false;
         }
 
         try {
             const userData = JSON.parse(user);
             if (!userData.ruolo || userData.ruolo !== 'amministratore') {
-                console.log('Dashboard amministratore: utente non autorizzato, non inizializzo');
                 return false;
             }
             return true;
@@ -81,7 +71,6 @@ class DashboardAmministratore {
         this.loadOverviewData();
         this.setupCharts();
         this.startAutoRefresh();
-        console.log('✅ Dashboard amministratore inizializzata completamente');
     }
 
     setupEventListeners() {
@@ -102,7 +91,6 @@ class DashboardAmministratore {
                 const userData = JSON.parse(user);
                 document.getElementById('userName').textContent = `${userData.nome} ${userData.cognome}`;
                 document.getElementById('userRole').textContent = 'Amministratore';
-                console.log('✅ Info utente caricate:', userData.nome, userData.cognome);
             } catch (error) {
                 console.error('Errore caricamento info utente:', error);
             }
@@ -124,7 +112,6 @@ class DashboardAmministratore {
             activeTab.classList.add('active');
             activePane.classList.add('show', 'active');
             this.currentSection = tabId.replace('#', '');
-            console.log('✅ Tab attivato:', this.currentSection);
             
             // Carica i dati specifici del tab
             this.loadTabData(this.currentSection);
@@ -153,7 +140,6 @@ class DashboardAmministratore {
 
     async loadOverviewData() {
         try {
-            console.log('📊 Caricamento dati overview...');
             
             const mockData = {
                 totalUsers: 156,
@@ -168,7 +154,6 @@ class DashboardAmministratore {
             document.getElementById('totalPrenotazioni').textContent = mockData.totalPrenotazioni;
             document.getElementById('lastBackup').textContent = new Date().toLocaleDateString('it-IT');
 
-            console.log('✅ Dati overview caricati');
         } catch (error) {
             console.error('❌ Errore caricamento dati overview:', error);
         }
@@ -176,7 +161,6 @@ class DashboardAmministratore {
 
     setupCharts() {
         try {
-            console.log('📈 Setup grafici...');
             
             const ctx = document.getElementById('systemChart');
             if (ctx) {
@@ -215,7 +199,6 @@ class DashboardAmministratore {
                 });
             }
 
-            console.log('✅ Grafici configurati');
         } catch (error) {
             console.error('❌ Errore setup grafici:', error);
         }
@@ -237,13 +220,11 @@ class DashboardAmministratore {
             }
         }, 30 * 1000);
         
-        console.log('✅ Auto-refresh avviato (ogni 5 minuti per overview, ogni 30 secondi per sistema)');
     }
 
     // ===== GESTIONE UTENTI =====
     async loadUsers() {
         try {
-            console.log('👥 Caricamento utenti...');
             
             // Mock data per utenti
             const mockUsers = [
@@ -253,7 +234,6 @@ class DashboardAmministratore {
             ];
 
             this.renderUsersTable(mockUsers);
-            console.log('✅ Utenti caricati');
         } catch (error) {
             console.error('❌ Errore caricamento utenti:', error);
         }
@@ -300,7 +280,6 @@ class DashboardAmministratore {
         const search = document.getElementById('searchUser').value;
         const status = document.getElementById('filterStatus').value;
         
-        console.log('🔍 Applicazione filtri utenti:', { ruolo, search, status });
         this.loadUsers(); // Ricarica con filtri
     }
 
@@ -309,13 +288,11 @@ class DashboardAmministratore {
     }
 
     editUser(userId) {
-        console.log('✏️ Modifica utente:', userId);
         alert(`Modifica utente ${userId} - da implementare`);
     }
 
     deleteUser(userId) {
         if (confirm('Sei sicuro di voler eliminare questo utente?')) {
-            console.log('🗑️ Eliminazione utente:', userId);
             alert(`Eliminazione utente ${userId} - da implementare`);
         }
     }
@@ -323,7 +300,6 @@ class DashboardAmministratore {
     // ===== GESTIONE GESTORI =====
     async loadGestori() {
         try {
-            console.log('👔 Caricamento gestori...');
             
             const mockGestori = [
                 { id: 1, nome: 'Giulia', cognome: 'Bianchi', email: 'giulia@test.com', telefono: '987654321', sede: 'Sede Milano', stato: 'attivo', dataAssegnazione: '2024-01-20' },
@@ -331,7 +307,6 @@ class DashboardAmministratore {
             ];
 
             this.renderGestoriTable(mockGestori);
-            console.log('✅ Gestori caricati');
         } catch (error) {
             console.error('❌ Errore caricamento gestori:', error);
         }
@@ -368,7 +343,6 @@ class DashboardAmministratore {
         const search = document.getElementById('searchGestore').value;
         const sede = document.getElementById('filterSedeGestore').value;
         
-        console.log('🔍 Applicazione filtri gestori:', { search, sede });
         this.loadGestori();
     }
 
@@ -377,13 +351,11 @@ class DashboardAmministratore {
     }
 
     editGestore(gestoreId) {
-        console.log('✏️ Modifica gestore:', gestoreId);
         alert(`Modifica gestore ${gestoreId} - da implementare`);
     }
 
     deleteGestore(gestoreId) {
         if (confirm('Sei sicuro di voler eliminare questo gestore?')) {
-            console.log('🗑️ Eliminazione gestore:', gestoreId);
             alert(`Eliminazione gestore ${gestoreId} - da implementare`);
         }
     }
@@ -391,7 +363,6 @@ class DashboardAmministratore {
     // ===== GESTIONE SEDI =====
     async loadSedi() {
         try {
-            console.log('🏢 Caricamento sedi...');
             
             const mockSedi = [
                 { id: 1, nome: 'Sede Milano', citta: 'Milano', indirizzo: 'Via Roma 123', gestore: 'Giulia Bianchi', spazi: 15, stato: 'attiva' },
@@ -399,7 +370,6 @@ class DashboardAmministratore {
             ];
 
             this.renderSediTable(mockSedi);
-            console.log('✅ Sedi caricate');
         } catch (error) {
             console.error('❌ Errore caricamento sedi:', error);
         }
@@ -437,7 +407,6 @@ class DashboardAmministratore {
         const citta = document.getElementById('filterCittaSede').value;
         const status = document.getElementById('filterStatusSede').value;
         
-        console.log('🔍 Applicazione filtri sedi:', { search, citta, status });
         this.loadSedi();
     }
 
@@ -446,13 +415,11 @@ class DashboardAmministratore {
     }
 
     editSede(sedeId) {
-        console.log('✏️ Modifica sede:', sedeId);
         alert(`Modifica sede ${sedeId} - da implementare`);
     }
 
     deleteSede(sedeId) {
         if (confirm('Sei sicuro di voler eliminare questa sede?')) {
-            console.log('🗑️ Eliminazione sede:', sedeId);
             alert(`Eliminazione sede ${sedeId} - da implementare`);
         }
     }
@@ -460,7 +427,6 @@ class DashboardAmministratore {
     // ===== CONTROLLO SISTEMA =====
     async loadSystemMetrics() {
         try {
-            console.log('📊 Caricamento metriche sistema...');
             
             // Mock data per metriche sistema
             const metrics = {
@@ -471,7 +437,6 @@ class DashboardAmministratore {
             };
 
             this.updateSystemMetrics(metrics);
-            console.log('✅ Metriche sistema caricate');
         } catch (error) {
             console.error('❌ Errore caricamento metriche sistema:', error);
         }
@@ -502,33 +467,28 @@ class DashboardAmministratore {
     }
 
     createBackup() {
-        console.log('💾 Creazione backup database...');
         alert('Backup database avviato - da implementare');
     }
 
     clearLogs() {
         if (confirm('Sei sicuro di voler pulire tutti i logs?')) {
-            console.log('🧹 Pulizia logs...');
             alert('Pulizia logs avviata - da implementare');
         }
     }
 
     restartServices() {
         if (confirm('Sei sicuro di voler riavviare i servizi?')) {
-            console.log('🔄 Riavvio servizi...');
             alert('Riavvio servizi avviato - da implementare');
         }
     }
 
     emergencyMode() {
         if (confirm('ATTENZIONE: Modalità emergenza bloccherà tutti gli accessi. Continuare?')) {
-            console.log('🚨 Attivazione modalità emergenza...');
             alert('Modalità emergenza attivata - da implementare');
         }
     }
 
     generateInviteCode() {
-        console.log('🔑 Generazione codice invito...');
         const code = 'ADMIN-' + Math.random().toString(36).substr(2, 8).toUpperCase();
         alert(`Codice invito generato: ${code}`);
     }
@@ -538,14 +498,12 @@ class DashboardAmministratore {
 let dashboardAmministratore = null;
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('🚀 Inizializzazione Dashboard Amministratore...');
     
     dashboardAmministratore = new DashboardAmministratore();
     
     if (dashboardAmministratore.checkAuthBeforeInit()) {
         dashboardAmministratore.init();
     } else {
-        console.log('⚠️ Dashboard amministratore non inizializzata - utente non autenticato/autorisato');
     }
 });
 

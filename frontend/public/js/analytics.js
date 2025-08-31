@@ -288,7 +288,6 @@ class AnalyticsSystem {
 
         // Console log for development
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            console.log('📊 Analytics Event:', event);
         }
     }
 
@@ -579,7 +578,6 @@ class AnalyticsSystem {
 
     generatePDF(data) {
         // Implementation for PDF generation
-        console.log('PDF generation not implemented yet');
         return null;
     }
 
@@ -612,7 +610,6 @@ class AnalyticsSystem {
 
     updatePrivacySettings(settings) {
         // Implementation for privacy settings update
-        console.log('Privacy settings updated:', settings);
     }
 }
 

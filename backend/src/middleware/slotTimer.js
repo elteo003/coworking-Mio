@@ -20,7 +20,6 @@ async function updateExpiredSlots(req, res, next) {
 
         // Log solo se ci sono stati cambiamenti significativi
         if (freedCount > 0 || pastCount > 0) {
-            console.log(`🔄 Slot Timer: Liberati ${freedCount} slot scaduti, aggiornati ${pastCount} slot passati`);
 
             // Invia aggiornamenti real-time via Socket.IO se ci sono stati cambiamenti
             if (freedCount > 0) {
@@ -278,7 +277,6 @@ async function getSlotsStatus(idSpazio, date) {
  * Esegue la pulizia ogni 30 secondi
  */
 function startSlotTimer() {
-    console.log('🕐 Avvio timer automatico slot...');
 
     setInterval(async () => {
         try {
@@ -291,11 +289,9 @@ function startSlotTimer() {
             ]);
 
             if (freedCount > 0 || pastCount > 0) {
-                console.log(`⏰ Timer Slot: Liberati ${freedCount} slot scaduti, aggiornati ${pastCount} slot passati`);
             }
         } catch (error) {
             if (error.code === '28P01') {
-                console.log('⚠️ Timer Slot: Database non connesso, salto operazioni...');
             } else {
                 console.error('❌ Errore nel timer automatico slot:', error);
             }

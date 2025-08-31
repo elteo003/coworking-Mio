@@ -17,7 +17,6 @@ class RedisService {
      */
     async initialize() {
         if (!this.isEnabled) {
-            console.log('📦 Redis disabilitato - modalità sviluppo locale');
             return;
         }
 
@@ -47,12 +46,10 @@ class RedisService {
             });
 
             this.client.on('connect', () => {
-                console.log('✅ Redis connesso');
                 this.isConnected = true;
             });
 
             this.client.on('disconnect', () => {
-                console.log('🔌 Redis disconnesso');
                 this.isConnected = false;
             });
 
@@ -154,11 +151,9 @@ class RedisService {
         // Prova a leggere dalla cache
         const cached = await this.get(key);
         if (cached !== null) {
-            console.log(`📦 Cache HIT per: ${key}`);
             return cached;
         }
 
-        console.log(`📦 Cache MISS per: ${key}`);
 
         // Esegui funzione e salva in cache
         try {
@@ -189,7 +184,6 @@ class RedisService {
             await this.delPattern(pattern);
         }
 
-        console.log(`🗑️ Cache invalidata per slot: sede=${sedeId}, spazio=${spazioId}, data=${date}`);
     }
 
     /**
@@ -226,7 +220,6 @@ class RedisService {
         if (this.client && this.isConnected) {
             await this.client.quit();
             this.isConnected = false;
-            console.log('🔌 Redis disconnesso');
         }
     }
 }

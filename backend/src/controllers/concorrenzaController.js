@@ -5,7 +5,6 @@ exports.getStatoConcorrenza = async (req, res) => {
     const { id } = req.params;
 
     try {
-        console.log('🔄 Controllo concorrenza per spazio:', id);
 
         // Recupera stato attuale dello spazio
         const spazioResult = await pool.query(
@@ -36,7 +35,6 @@ exports.getStatoConcorrenza = async (req, res) => {
         );
 
         const prenotazioni = prenotazioniResult.rows;
-        console.log('📋 Prenotazioni trovate:', prenotazioni.length);
 
         // Genera stato concorrenza per ogni slot orario
         const statoConcorrenza = {
@@ -111,7 +109,6 @@ exports.getStatoConcorrenza = async (req, res) => {
             }
         });
 
-        console.log('✅ Stato concorrenza generato per', Object.keys(statoConcorrenza.slot).length, 'slot');
         res.json(statoConcorrenza);
 
     } catch (err) {

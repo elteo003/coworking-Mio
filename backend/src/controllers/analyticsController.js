@@ -6,7 +6,6 @@ const trackEvent = async (req, res) => {
         const { eventName, eventData, timestamp, userId, sessionId } = req.body;
         
         // Log dell'evento per debugging
-        console.log('📊 Analytics Event:', {
             eventName,
             eventData,
             timestamp,
@@ -41,7 +40,6 @@ const syncAnalytics = async (req, res) => {
     try {
         const { events } = req.body;
         
-        console.log('📊 Sync Analytics:', events?.length || 0, 'eventi');
 
         res.status(200).json({
             success: true,
@@ -64,7 +62,6 @@ const clearUserAnalytics = async (req, res) => {
     try {
         const { userId } = req.params;
         
-        console.log('🧹 Clear Analytics per utente:', userId);
 
         res.status(200).json({
             success: true,

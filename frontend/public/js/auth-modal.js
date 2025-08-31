@@ -21,7 +21,6 @@ class AuthModal {
     init() {
         if (this.isInitialized) return;
 
-        console.log('🔐 Inizializzazione AuthModal...');
 
         // Crea il modal se non esiste
         this.createModal();
@@ -33,7 +32,6 @@ class AuthModal {
         this.setupFormHandlers();
 
         this.isInitialized = true;
-        console.log('✅ AuthModal inizializzato');
     }
 
     /**
@@ -282,7 +280,6 @@ class AuthModal {
      */
     switchTab(targetTab) {
         this.currentTab = targetTab.replace('#', '');
-        console.log('🔄 Cambio tab a:', this.currentTab);
     }
 
     /**
@@ -305,7 +302,6 @@ class AuthModal {
             loginContent.classList.add('show', 'active');
 
             this.currentTab = 'login';
-            console.log('🔄 Passato al tab login');
         }
     }
 
@@ -314,7 +310,6 @@ class AuthModal {
      */
     async handleLoginSubmit(e) {
         e.preventDefault();
-        console.log('🔐 Tentativo di login...');
 
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
@@ -343,7 +338,6 @@ class AuthModal {
      */
     async handleRegistrationSubmit(e) {
         e.preventDefault();
-        console.log('📝 Tentativo di registrazione...');
 
         const nome = document.getElementById('regNome').value;
         const cognome = document.getElementById('regCognome').value;
@@ -392,7 +386,6 @@ class AuthModal {
 
         const bootstrapModal = new bootstrap.Modal(this.modal);
         bootstrapModal.show();
-        console.log('🔓 Modal di autenticazione aperto');
     }
 
     /**
@@ -491,4 +484,3 @@ window.toggleInviteCode = function () {
     window.authModal.toggleInviteCode();
 };
 
-console.log('🔐 AuthModal caricato e pronto per l\'uso');

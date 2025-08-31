@@ -4,7 +4,6 @@ const SSEController = require('../controllers/sseController');
 
 // Endpoint per connessione SSE per notifiche slot
 router.get('/events', (req, res) => {
-    console.log('🔔 Nuova connessione SSE per notifiche slot');
     SSEController.initConnection(req, res);
 });
 
@@ -13,7 +12,6 @@ router.get('/status/:sedeId/:spazioId/:data', async (req, res) => {
     try {
         const { sedeId, spazioId, data } = req.params;
 
-        console.log(`🔍 Richiesta stato slot per sede: ${sedeId}, spazio: ${spazioId}, data: ${data}`);
 
         const slotsStatus = await SSEController.getSlotsStatus(sedeId, spazioId, data);
 
@@ -42,7 +40,6 @@ router.post('/refresh/:sedeId/:spazioId/:data', async (req, res) => {
     try {
         const { sedeId, spazioId, data } = req.params;
 
-        console.log(`🔄 Forzando aggiornamento slot per sede: ${sedeId}, spazio: ${spazioId}, data: ${data}`);
 
         const slotsStatus = await SSEController.getSlotsStatus(sedeId, spazioId, data);
 
@@ -76,7 +73,6 @@ router.get('/debug/:sedeId/:spazioId/:data', async (req, res) => {
         const { sedeId, spazioId, data } = req.params;
         const pool = require('../db');
 
-        console.log(`🔍 Debug slot per sede: ${sedeId}, spazio: ${spazioId}, data: ${data}`);
 
         // Query per ottenere tutte le prenotazioni per questo spazio e data
         const prenotazioniQuery = `

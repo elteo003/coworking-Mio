@@ -7,7 +7,6 @@ class SlotTimerService {
 
     // Avvia timer per uno slot in attesa
     static startTimer(prenotazioneId, idSpazio, dataInizio, dataFine, sedeId) {
-        console.log(`⏰ Avvio timer per prenotazione ${prenotazioneId} (slot in attesa)`);
 
         // Calcola timeout (15 minuti)
         const timeoutMs = 15 * 60 * 1000; // 15 minuti
@@ -32,7 +31,6 @@ class SlotTimerService {
             expiresAt: new Date(Date.now() + timeoutMs)
         });
 
-        console.log(`✅ Timer avviato per prenotazione ${prenotazioneId}, scadenza: ${new Date(Date.now() + timeoutMs).toLocaleString()}`);
 
         // Invia notifica immediata che lo slot è in attesa
         this.notifySlotOccupied(prenotazioneId, idSpazio, sedeId, 15);
@@ -41,7 +39,6 @@ class SlotTimerService {
     // Gestisce la scadenza di uno slot
     static async handleSlotExpiration(prenotazioneId, idSpazio, dataInizio, dataFine, sedeId) {
         try {
-            console.log(`⏰ Gestione scadenza slot per prenotazione ${prenotazioneId}`);
 
             // Verifica se la prenotazione è ancora in attesa
             const prenotazioneResult = await pool.query(
@@ -50,7 +47,6 @@ class SlotTimerService {
             );
 
             if (prenotazioneResult.rows.length === 0) {
-                console.log(`⚠️ Prenotazione ${prenotazioneId} non trovata, rimuovo timer`);
                 this.activeTimers.delete(prenotazioneId);
                 return;
             }
@@ -64,13 +60,11 @@ class SlotTimerService {
                     ['scaduta', prenotazioneId]
                 );
 
-                console.log(`✅ Prenotazione ${prenotazioneId} marcata come scaduta`);
 
                 // Notifica che lo slot è tornato disponibile
                 await this.notifySlotAvailable(prenotazioneId, idSpazio, sedeId, dataInizio);
 
             } else {
-                console.log(`ℹ️ Prenotazione ${prenotazioneId} non più in attesa (stato: ${stato}), rimuovo timer`);
             }
 
             // Rimuovi timer
@@ -96,7 +90,6 @@ class SlotTimerService {
         };
 
         SSEController.broadcastUpdate(update);
-        console.log(`🔔 Notifica slot occupato inviata per prenotazione ${prenotazioneId}`);
     }
 
     // Notifica che uno slot è tornato disponibile
@@ -120,7 +113,6 @@ class SlotTimerService {
             };
 
             SSEController.broadcastUpdate(update);
-            console.log(`🔔 Notifica slot disponibile inviata per prenotazione ${prenotazioneId}`);
 
         } catch (error) {
             console.error('❌ Errore nella notifica slot disponibile:', error);
@@ -134,7 +126,6 @@ class SlotTimerService {
         if (timerData) {
             clearTimeout(timerData.timer);
             this.activeTimers.delete(prenotazioneId);
-            console.log(`✅ Timer cancellato per prenotazione ${prenotazioneId}`);
 
             // Notifica che lo slot è stato confermato
             const update = {
@@ -148,7 +139,6 @@ class SlotTimerService {
             };
 
             SSEController.broadcastUpdate(update);
-            console.log(`🔔 Notifica slot confermato inviata per prenotazione ${prenotazioneId}`);
         }
     }
 
@@ -186,12 +176,10 @@ class SlotTimerService {
         });
 
         expiredTimers.forEach(prenotazioneId => {
-            console.log(`🧹 Rimozione timer scaduto per prenotazione ${prenotazioneId}`);
             this.activeTimers.delete(prenotazioneId);
         });
 
         if (expiredTimers.length > 0) {
-            console.log(`🧹 Rimossi ${expiredTimers.length} timer scaduti`);
         }
     }
 }

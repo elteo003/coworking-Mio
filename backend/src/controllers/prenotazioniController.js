@@ -7,10 +7,8 @@ exports.checkDisponibilita = async (req, res) => {
   const { id } = req.params;
   const { data_inizio, data_fine } = req.query;
 
-  console.log('🔍 checkDisponibilita chiamata:', { id, data_inizio, data_fine });
 
   if (!data_inizio || !data_fine) {
-    console.log('❌ Parametri mancanti:', { data_inizio, data_fine });
     return res.status(400).json({
       error: 'Fornire data_inizio e data_fine',
       received: { data_inizio, data_fine }
@@ -23,14 +21,12 @@ exports.checkDisponibilita = async (req, res) => {
     const dataFine = new Date(data_fine);
 
     if (isNaN(dataInizio.getTime()) || isNaN(dataFine.getTime())) {
-      console.log('❌ Date non valide:', { data_inizio, data_fine });
       return res.status(400).json({
         error: 'Formato date non valido. Usare formato ISO (YYYY-MM-DDTHH:mm:ss.sssZ)',
         received: { data_inizio, data_fine }
       });
     }
 
-    console.log('✅ Date valide:', { dataInizio, dataFine });
 
     // 1. Controlla lo stato dello spazio
     const spazioResult = await pool.query(
@@ -39,12 +35,10 @@ exports.checkDisponibilita = async (req, res) => {
     );
 
     if (spazioResult.rowCount === 0) {
-      console.log('❌ Spazio non trovato');
       return res.status(404).json({ disponibile: false, motivo: 'Spazio non trovato' });
     }
 
     const spazio = spazioResult.rows[0];
-    console.log('🏢 Stato spazio:', spazio);
 
     // NOTA: Non controlliamo più lo stato generale dello spazio
     // perché uno spazio può essere "occupato" per alcuni orari ma disponibile per altri
@@ -60,7 +54,6 @@ exports.checkDisponibilita = async (req, res) => {
     );
 
     if (prenotazioniConfermate.rows[0].count !== '0') {
-      console.log('❌ Prenotazioni confermate sovrapposte');
       return res.json({ disponibile: false, motivo: 'Prenotazioni confermate sovrapposte' });
     }
 
@@ -75,11 +68,9 @@ exports.checkDisponibilita = async (req, res) => {
     );
 
     if (prenotazioniInAttesa.rows[0].count !== '0') {
-      console.log('❌ Prenotazioni in attesa sovrapposte');
       return res.json({ disponibile: false, motivo: 'Prenotazioni in attesa sovrapposte' });
     }
 
-    console.log('✅ Spazio disponibile per l\'intervallo richiesto');
     res.json({ disponibile: true, motivo: 'Spazio disponibile' });
 
   } catch (err) {
@@ -114,7 +105,6 @@ exports.creaPrenotazione = async (req, res) => {
     // Lo stato viene determinato dalle prenotazioni specifiche per l'intervallo richiesto
 
     // Controllo disponibilità per prenotazioni confermate e in attesa
-    console.log('🔍 Controllo prenotazioni per spazio:', id_spazio, 'intervallo:', data_inizio, 'a', data_fine);
 
     const checkConfermate = await pool.query(
       `SELECT COUNT(*) FROM Prenotazione
@@ -150,12 +140,8 @@ exports.creaPrenotazione = async (req, res) => {
       [id_spazio, data_inizio]
     );
 
-    console.log('🔍 Debug prenotazioni esistenti:', debugPrenotazioni.rows);
-    console.log('🔍 Prenotazioni confermate sovrapposte:', checkConfermate.rows[0].count);
-    console.log('🔍 Prenotazioni in attesa sovrapposte:', checkInAttesa.rows[0].count);
 
     if (checkConfermate.rows[0].count !== '0') {
-      console.log('❌ Prenotazioni confermate sovrapposte per spazio:', id_spazio);
       return res.status(409).json({
         error: 'Spazio non disponibile',
         reason: 'Prenotazioni confermate sovrapposte',
@@ -164,7 +150,6 @@ exports.creaPrenotazione = async (req, res) => {
     }
 
     if (checkInAttesa.rows[0].count !== '0') {
-      console.log('❌ Prenotazioni in attesa sovrapposte per spazio:', id_spazio);
       return res.status(409).json({
         error: 'Spazio non disponibile',
         reason: 'Prenotazioni in attesa sovrapposte',
@@ -182,7 +167,6 @@ exports.creaPrenotazione = async (req, res) => {
     const durataMs = dataFine.getTime() - dataInizio.getTime();
     const durataOre = Math.round(durataMs / (1000 * 60 * 60));
 
-    console.log('🔍 Durata prenotazione calcolata:', durataOre, 'ore');
 
     // Inserimento prenotazione con scadenza slot e durata
     const scadenzaSlot = new Date(Date.now() + 15 * 60 * 1000); // 15 minuti da ora
@@ -288,13 +272,6 @@ exports.getPrenotazioni = async (req, res) => {
 exports.getPrenotazioneById = async (req, res) => {
   const { id } = req.params;
 
-  console.log('🔍 getPrenotazioneById chiamata');
-  console.log('🔍 Parametri ricevuti:', req.params);
-  console.log('🔍 ID prenotazione ricevuto:', id);
-  console.log('🔍 Tipo ID:', typeof id);
-  console.log('🔍 Query string:', req.query);
-  console.log('🔍 URL completo:', req.url);
-  console.log('🔍 Headers:', req.headers);
 
   try {
     const result = await pool.query(
@@ -311,14 +288,11 @@ exports.getPrenotazioneById = async (req, res) => {
       [id]
     );
 
-    console.log('🔍 Risultato query:', result.rowCount, 'righe trovate');
 
     if (result.rowCount === 0) {
-      console.log('❌ Prenotazione non trovata nel database');
       return res.status(404).json({ error: 'Prenotazione non trovata' });
     }
 
-    console.log('✅ Prenotazione trovata:', result.rows[0]);
     res.json(result.rows[0]);
   } catch (err) {
     console.error('❌ Errore getPrenotazioneById:', err);
@@ -475,7 +449,6 @@ exports.cancellaPrenotazione = async (req, res) => {
     // NOTA: Non aggiorniamo più lo stato generale dello spazio
     // perché uno spazio può avere prenotazioni per alcuni orari ma essere disponibile per altri
 
-    console.log(`✅ Prenotazione ${id} cancellata`);
 
     res.json({
       message: 'Prenotazione cancellata con successo',
@@ -658,7 +631,6 @@ exports.debugPrenotazioni = async (req, res) => {
   const { spazioId, data } = req.params;
 
   try {
-    console.log(`🔍 Debug prenotazioni per spazio: ${spazioId}, data: ${data}`);
 
     // Query per ottenere tutte le prenotazioni per questo spazio e data
     const prenotazioniQuery = `

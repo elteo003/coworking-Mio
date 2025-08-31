@@ -53,7 +53,6 @@ router.post('/goal', async (req, res) => {
     try {
         const { test_name, variant, goal_type, user_id, metadata } = req.body;
 
-        console.log('🎯 A/B Test Goal registrato:', {
             test_name,
             variant,
             goal_type,

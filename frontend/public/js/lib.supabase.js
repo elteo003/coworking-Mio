@@ -204,7 +204,6 @@ class SupabaseRealtimeClient {
         this.socket = new WebSocket(`${wsUrl}/realtime/v1/websocket?apikey=${this.config.anonKey}`);
 
         this.socket.onopen = () => {
-            console.log('Supabase Realtime connected');
         };
 
         this.socket.onmessage = (event) => {
@@ -213,7 +212,6 @@ class SupabaseRealtimeClient {
         };
 
         this.socket.onclose = () => {
-            console.log('Supabase Realtime disconnected');
             this.socket = null;
         };
 

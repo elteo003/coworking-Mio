@@ -122,10 +122,6 @@ exports.login = async (req, res) => {
     const token = generateToken(userData);
 
     // Debug: log del token generato
-    console.log('🔑 Token JWT generato per utente:', user.email);
-    console.log('🔑 Token presente:', !!token);
-    console.log('🔑 Lunghezza token:', token ? token.length : 0);
-    console.log('🔑 Inizio token:', token ? token.substring(0, 20) + '...' : 'N/A');
 
     const response = {
       message: 'Login effettuato',
@@ -136,7 +132,6 @@ exports.login = async (req, res) => {
       token: token
     };
 
-    console.log('📤 Risposta login inviata:', {
       message: response.message,
       id_utente: response.id_utente,
       nome: response.nome,

@@ -15,11 +15,9 @@ router.post('/', async (req, res) => {
     try {
         event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
     } catch (err) {
-        console.log(`Webhook Error: ${err.message}`);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    console.log('Webhook event received:', event.type);
 
     try {
         // Gestire i diversi tipi di eventi
@@ -45,7 +43,6 @@ router.post('/', async (req, res) => {
                 break;
 
             default:
-                console.log(`Unhandled event type: ${event.type}`);
         }
 
         res.json({ received: true });
@@ -67,7 +64,6 @@ async function handlePaymentSuccess(paymentIntent) {
                 ['confermata', metadata.prenotazione_id]
             );
 
-            console.log(`Prenotazione ${metadata.prenotazione_id} confermata dopo pagamento`);
         }
 
         // Aggiorna la tabella pagamenti se esiste
@@ -93,7 +89,6 @@ async function handlePaymentFailure(paymentIntent) {
                 ['pagamento_fallito', metadata.prenotazione_id]
             );
 
-            console.log(`Prenotazione ${metadata.prenotazione_id} - pagamento fallito`);
         }
 
         // Aggiorna la tabella pagamenti
@@ -118,7 +113,6 @@ async function handleRefund(charge) {
             ['rimborsato', payment_intent]
         );
 
-        console.log(`Pagamento ${payment_intent} rimborsato`);
 
     } catch (error) {
         console.error('Error handling refund:', error);
@@ -128,7 +122,6 @@ async function handleRefund(charge) {
 // Gestione cliente creato
 async function handleCustomerCreated(customer) {
     try {
-        console.log(`Nuovo cliente Stripe creato: ${customer.id}`);
         // Qui puoi aggiungere logica per sincronizzare con il tuo database utenti
     } catch (error) {
         console.error('Error handling customer created:', error);
@@ -138,7 +131,6 @@ async function handleCustomerCreated(customer) {
 // Gestione cliente aggiornato
 async function handleCustomerUpdated(customer) {
     try {
-        console.log(`Cliente Stripe aggiornato: ${customer.id}`);
         // Qui puoi aggiungere logica per sincronizzare con il tuo database utenti
     } catch (error) {
         console.error('Error handling customer updated:', error);

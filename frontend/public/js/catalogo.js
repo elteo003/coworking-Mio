@@ -5,7 +5,6 @@ $(document).ready(function () {
   if (typeof window.initializeNavbar === 'function') {
     window.initializeNavbar();
   } else {
-    console.log('catalogo.js - Sistema navbar universale non disponibile, fallback alla vecchia logica');
     // Fallback alla vecchia logica
     validateTokenOnStartup().then(() => {
       updateNavbar();
@@ -26,7 +25,6 @@ function updateNavbar() {
   if (typeof window.updateNavbarUniversal === 'function') {
     window.updateNavbarUniversal();
   } else {
-    console.log('updateNavbar in catalogo.js - Sistema universale non disponibile, fallback alla vecchia logica');
     // Fallback alla vecchia logica se il sistema universale non è disponibile
     updateNavbarFallback();
   }
@@ -34,7 +32,6 @@ function updateNavbar() {
 
 // Funzione di fallback per compatibilità
 function updateNavbarFallback() {
-  console.log('updateNavbarFallback in catalogo.js - Usando logica legacy');
   const userStr = localStorage.getItem('user');
   if (userStr) {
     try {

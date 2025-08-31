@@ -9,11 +9,9 @@ class ScadenzeCron {
     // Avvia il cron job per i controlli di scadenza
     start() {
         if (this.isRunning) {
-            console.log('⚠️ Cron job scadenze già in esecuzione');
             return;
         }
 
-        console.log('🚀 Avvio cron job scadenze (controlli ogni 5 minuti)');
 
         this.isRunning = true;
 
@@ -32,18 +30,15 @@ class ScadenzeCron {
             clearInterval(this.intervalId);
             this.intervalId = null;
             this.isRunning = false;
-            console.log('⏹️ Cron job scadenze fermato');
         }
     }
 
     // Esegue un singolo controllo di scadenza
     async eseguiControllo() {
         try {
-            console.log('⏰ Esecuzione controllo scadenze programmato...');
 
             const result = await ScadenzeController.eseguiControlliScadenza();
 
-            console.log(`✅ Controllo scadenze completato:
         - Slot liberati: ${result.slotLiberati}
         - Pagamenti scaduti: ${result.pagamentiScaduti}
         - Prenotazioni in scadenza: ${result.prenotazioniInScadenza}`);
@@ -56,11 +51,9 @@ class ScadenzeCron {
     // Esegue un controllo manuale
     async eseguiControlloManuale() {
         try {
-            console.log('🔧 Esecuzione controllo scadenze manuale...');
 
             const result = await ScadenzeController.eseguiControlliScadenza();
 
-            console.log(`✅ Controllo manuale completato:
         - Slot liberati: ${result.slotLiberati}
         - Pagamenti scaduti: ${result.pagamentiScaduti}
         - Prenotazioni in scadenza: ${result.prenotazioniInScadenza}`);

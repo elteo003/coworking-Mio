@@ -5,19 +5,15 @@ exports.getSedi = async (req, res) => {
   const startTime = Date.now();
 
   try {
-    console.log('🔄 getSedi chiamata:', { citta, timestamp: new Date().toISOString() });
 
     let result;
     if (citta) {
-      console.log(`📍 Query con filtro città: ${citta}`);
       result = await pool.query('SELECT * FROM Sede WHERE citta = $1', [citta]);
     } else {
-      console.log('📍 Query senza filtri - tutte le sedi');
       result = await pool.query('SELECT * FROM Sede');
     }
 
     const duration = Date.now() - startTime;
-    console.log(`✅ getSedi completata in ${duration}ms - ${result.rows.length} sedi trovate`);
 
     // Aggiungi foto di fallback per ogni sede
     const sediConFoto = result.rows.map(sede => ({
@@ -62,7 +58,6 @@ exports.getSpazi = async (req, res) => {
   const startTime = Date.now();
 
   try {
-    console.log('🔄 getSpazi chiamata:', { id_sede, tipologia, timestamp: new Date().toISOString() });
 
     let base = 'SELECT * FROM Spazio';
     let where = [];
@@ -81,13 +76,10 @@ exports.getSpazi = async (req, res) => {
       base += ' WHERE ' + where.join(' AND ');
     }
 
-    console.log(`📍 Query SQL: ${base}`);
-    console.log(`🔢 Parametri:`, params);
 
     const result = await pool.query(base, params);
 
     const duration = Date.now() - startTime;
-    console.log(`✅ getSpazi completata in ${duration}ms - ${result.rows.length} spazi trovati`);
 
     // Aggiungi foto di fallback per ogni spazio
     const spaziConFoto = result.rows.map(spazio => ({
@@ -153,23 +145,19 @@ exports.testDatabaseConnection = async (req, res) => {
   const startTime = Date.now();
 
   try {
-    console.log('🔄 Test connessione database...');
 
     // Test 1: Connessione base
     const connectionTest = await pool.query('SELECT NOW() as current_time');
-    console.log('✅ Connessione database OK:', connectionTest.rows[0]);
 
     // Test 2: Query sedi
     const sediStart = Date.now();
     const sediResult = await pool.query('SELECT COUNT(*) as count FROM Sede');
     const sediDuration = Date.now() - sediStart;
-    console.log(`✅ Query sedi completata in ${sediDuration}ms:`, sediResult.rows[0]);
 
     // Test 3: Query spazi
     const spaziStart = Date.now();
     const spaziResult = await pool.query('SELECT COUNT(*) as count FROM Spazio');
     const spaziDuration = Date.now() - spaziStart;
-    console.log(`✅ Query spazi completata in ${spaziDuration}ms:`, spaziResult.rows[0]);
 
     const totalDuration = Date.now() - startTime;
 

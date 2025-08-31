@@ -24,19 +24,16 @@ class SlotManagerSocketIO {
         this.currentSpazio = spazioId;
         this.currentDate = date;
 
-        console.log('🚀 SlotManagerSocketIO - Inizializzazione per:', { sedeId, spazioId, date });
 
         // Controlla se l'utente è autenticato
         const token = localStorage.getItem('token');
 
         if (token) {
-            console.log('🔐 SlotManagerSocketIO - Utente autenticato, attivo modalità Socket.IO');
             // Carica stato iniziale degli slot
             this.loadInitialSlotsStatus();
             // Connessione Socket.IO per aggiornamenti real-time
             this.connectSocketIO();
         } else {
-            console.log('👤 SlotManagerSocketIO - Utente non autenticato, carico stato slot senza Socket.IO');
             // Utenti non autenticati vedono lo stato reale degli slot
             // ma non ricevono aggiornamenti real-time
             this.loadInitialSlotsStatus();
@@ -49,7 +46,6 @@ class SlotManagerSocketIO {
     async loadInitialSlotsStatus() {
         // Se gli slot sono già stati caricati con stati corretti, non ricaricare
         if (this.slotsStatus.size > 0) {
-            console.log('📋 SlotManagerSocketIO - Stati slot già caricati, aggiorno solo i bottoni');
             this.updateAllSlotButtons();
             return;
         }
@@ -78,7 +74,6 @@ class SlotManagerSocketIO {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('📋 SlotManagerSocketIO - Risposta ricevuta:', data);
 
                 // Gestisci entrambi i formati di risposta
                 let slotsArray;
@@ -97,7 +92,6 @@ class SlotManagerSocketIO {
                 }
 
                 this.updateSlotsFromStatus(slotsArray);
-                console.log('✅ SlotManagerSocketIO - Stato iniziale slot caricato:', slotsArray.length, 'slot');
             } else {
                 console.error('❌ SlotManagerSocketIO - Errore caricamento stato iniziale:', response.status);
             }
@@ -122,7 +116,6 @@ class SlotManagerSocketIO {
                 return;
             }
 
-            console.log('🔗 SlotManagerSocketIO - Connessione Socket.IO...');
 
             this.socket = io(window.SOCKET_BASE_URL, {
                 auth: {
@@ -141,7 +134,6 @@ class SlotManagerSocketIO {
     // Configura gestori eventi Socket.IO
     setupSocketEventHandlers() {
         this.socket.on('connect', () => {
-            console.log('🔗 SlotManagerSocketIO - Connessione Socket.IO stabilita');
             this.isConnected = true;
             this.reconnectAttempts = 0;
 
@@ -150,31 +142,25 @@ class SlotManagerSocketIO {
         });
 
         this.socket.on('connection_confirmed', (data) => {
-            console.log('🔗 SlotManagerSocketIO - Connessione confermata:', data);
         });
 
         this.socket.on('joined_space', (data) => {
-            console.log('🏢 SlotManagerSocketIO - Entrato in room:', data.room);
         });
 
         this.socket.on('slot_update', (data) => {
-            console.log('🔄 SlotManagerSocketIO - Aggiornamento slot ricevuto:', data);
             this.handleSlotUpdate(data);
         });
 
         this.socket.on('slots_status_update', (data) => {
-            console.log('🔄 SlotManagerSocketIO - Aggiornamento completo slot ricevuto:', data);
             this.updateSlotsFromStatus(data.slotsStatus);
         });
 
         this.socket.on('slots_freed', (data) => {
-            console.log('🆓 SlotManagerSocketIO - Slot liberati:', data);
             // Ricarica stato slot quando alcuni vengono liberati
             this.loadInitialSlotsStatus();
         });
 
         this.socket.on('disconnect', (reason) => {
-            console.log('🔌 SlotManagerSocketIO - Disconnessione Socket.IO:', reason);
             this.isConnected = false;
             this.handleSocketDisconnect(reason);
         });
@@ -200,7 +186,6 @@ class SlotManagerSocketIO {
     handleSlotUpdate(data) {
         const { slotId, status, data: slotData } = data;
 
-        console.log('🔄 SlotManagerSocketIO - Aggiornamento slot:', { slotId, status, slotData });
 
         // Aggiorna stato locale
         this.slotsStatus.set(slotId, {
@@ -214,8 +199,6 @@ class SlotManagerSocketIO {
 
     // Aggiorna tutti gli slot da stato completo
     updateSlotsFromStatus(slotsStatus) {
-        console.log('🔄 SlotManagerSocketIO - Aggiornamento completo slot:', slotsStatus.length, 'slot');
-        console.log('📋 Dettagli slot ricevuti:', slotsStatus);
 
         // Pulisci stato precedente
         this.slotsStatus.clear();
@@ -226,7 +209,6 @@ class SlotManagerSocketIO {
             const slotId = slot.id_slot || slot.id || slot.orario || (index + 1);
             if (slotId) {
                 this.slotsStatus.set(slotId, slot);
-                console.log(`📌 Slot ${slotId} mappato con status: ${slot.status}`);
             } else {
                 console.warn('⚠️ Slot senza ID valido:', slot);
             }
@@ -238,11 +220,8 @@ class SlotManagerSocketIO {
 
     // Aggiorna tutti i bottoni degli slot
     updateAllSlotButtons() {
-        console.log('🔄 SlotManagerSocketIO - Aggiornamento di tutti i bottoni');
-        console.log('📊 Stato slot corrente:', Array.from(this.slotsStatus.entries()));
 
         this.slotsStatus.forEach((slot, slotId) => {
-            console.log(`🔄 Aggiornamento bottone per slot ${slotId}:`, slot);
             this.updateSlotButton(slotId, slot.status, slot);
         });
     }
@@ -302,7 +281,6 @@ class SlotManagerSocketIO {
     handleSocketDisconnect(reason) {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
-            console.log(`🔄 SlotManagerSocketIO - Tentativo riconnessione ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
 
             setTimeout(() => {
                 this.connectSocketIO();
@@ -321,7 +299,6 @@ class SlotManagerSocketIO {
 
     // Fallback semplificato - ricarica stato una volta
     fallbackToPolling() {
-        console.log('🔄 SlotManagerSocketIO - Fallback: ricarico stato slot');
         this.loadInitialSlotsStatus();
 
         // Avvia polling ogni 30 secondi
@@ -368,7 +345,6 @@ class SlotManagerSocketIO {
             });
 
             if (response.ok) {
-                console.log('✅ Slot occupato con successo');
                 return true;
             } else {
                 // Revert UI in caso di errore
@@ -415,7 +391,6 @@ class SlotManagerSocketIO {
             });
 
             if (response.ok) {
-                console.log('✅ Slot rilasciato con successo');
                 // Aggiorna UI - ripristina stato originale
                 button.classList.remove('slot-occupied');
                 button.classList.add('slot-available');
@@ -475,12 +450,10 @@ class SlotManagerSocketIO {
         }
 
         this.isConnected = false;
-        console.log('🧹 SlotManagerSocketIO - Pulizia completata');
     }
 
     // Gestione utenti non autenticati
     handleUnauthenticatedUser() {
-        console.log('👤 SlotManagerSocketIO - Utente non autenticato');
         // Gli slot rimangono visibili ma la prenotazione richiede login
     }
 }

@@ -67,7 +67,6 @@ router.get('/stats', authenticateSSEToken, (req, res) => {
 // Endpoint di test per verificare connessione database
 router.get('/test-db', authenticateSSEToken, async (req, res) => {
     try {
-        console.log('🧪 SSE Test DB chiamato');
         
         // Test connessione database
         const testQuery = 'SELECT NOW() as current_time, version() as db_version';

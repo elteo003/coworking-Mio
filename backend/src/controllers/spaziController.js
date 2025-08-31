@@ -2,14 +2,10 @@ const pool = require('../db');
 
 async function getDisponibilitaSlot(req, res) {
     try {
-        console.log('🚀 getDisponibilitaSlot chiamato');
-        console.log('📋 Request params:', req.params);
-        console.log('📋 Request query:', req.query);
 
         const { id_spazio } = req.params;
         const { data } = req.params;
 
-        console.log(`🔍 Richiesta disponibilità slot per spazio ${id_spazio} e data ${data}`);
 
         // Validazione parametri
         if (!id_spazio || !data) {
@@ -31,7 +27,6 @@ async function getDisponibilitaSlot(req, res) {
         }
 
         const spazio = spazioResult.rows[0];
-        console.log(`✅ Spazio trovato: ${spazio.nome}`);
 
         // Ottieni orari di apertura (9:00 - 18:00)
         const orariApertura = [];
@@ -39,7 +34,6 @@ async function getDisponibilitaSlot(req, res) {
             orariApertura.push(`${hour.toString().padStart(2, '0')}:00`);
         }
 
-        console.log(`⏰ Orari apertura generati: ${orariApertura.length} slot`);
 
         // Ottieni prenotazioni esistenti per questa data (query semplificata)
         let prenotazioni = [];
@@ -57,7 +51,6 @@ async function getDisponibilitaSlot(req, res) {
 
             const prenotazioniResult = await pool.query(prenotazioniQuery, [id_spazio, data]);
             prenotazioni = prenotazioniResult.rows;
-            console.log(`📋 Prenotazioni trovate: ${prenotazioni.length}`);
         } catch (queryError) {
             console.warn('⚠️ Errore query prenotazioni, continuo senza:', queryError.message);
             prenotazioni = [];
@@ -72,7 +65,6 @@ async function getDisponibilitaSlot(req, res) {
 
             // Controlla se l'orario è passato (solo per oggi)
             if (selectedDate.toDateString() === now.toDateString() && orarioHour <= now.getHours()) {
-                console.log(`⏰ Slot ${slotId} (${orario}) marcato come PASSATO - ora corrente: ${now.getHours()}:00`);
                 return {
                     id_slot: slotId,
                     orario: orario,
@@ -119,7 +111,6 @@ async function getDisponibilitaSlot(req, res) {
             };
         });
 
-        console.log(`✅ Disponibilità slot calcolata: ${slotsStatus.length} slot`);
 
         res.json({
             success: true,
@@ -148,7 +139,6 @@ async function getDisponibilitaSlot(req, res) {
 // Endpoint di test semplice
 async function testEndpoint(req, res) {
     try {
-        console.log('🧪 Test endpoint chiamato');
         res.json({
             success: true,
             message: 'Test endpoint funziona',
@@ -166,7 +156,6 @@ async function testEndpoint(req, res) {
 // Endpoint di test per simulare prenotazioni
 async function testSimulateBookings(req, res) {
     try {
-        console.log('🧪 Test simulazione prenotazioni chiamato');
 
         // Simula alcune prenotazioni per test
         const testBookings = [

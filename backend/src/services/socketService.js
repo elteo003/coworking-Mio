@@ -24,7 +24,6 @@ class SocketService {
     initialize(server) {
         // Protezione contro inizializzazioni multiple
         if (this.io) {
-            console.log('⚠️ Socket.IO già inizializzato, skip...');
             return;
         }
 
@@ -48,7 +47,6 @@ class SocketService {
         this.setupEventHandlers();
         this.setupRedisPubSub();
 
-        console.log('🚀 Socket.IO inizializzato con supporto Redis Pub/Sub');
     }
 
     /**
@@ -56,7 +54,6 @@ class SocketService {
      */
     async setupRedisPubSub() {
         if (!redisService.isEnabled) {
-            console.log('📦 Redis Pub/Sub disabilitato - modalità single server');
             return;
         }
 
@@ -79,7 +76,6 @@ class SocketService {
                 }
             });
 
-            console.log('✅ Redis Pub/Sub configurato per multi-server');
         } catch (error) {
             console.warn('⚠️ Redis Pub/Sub non disponibile:', error.message);
         }
@@ -95,7 +91,6 @@ class SocketService {
             case 'room_broadcast':
                 if (this.io) {
                     this.io.to(room).emit(event, payload);
-                    console.log(`📡 Redis → Socket.IO: ${event} a room ${room}`);
                 }
                 break;
             case 'user_message':
@@ -117,7 +112,6 @@ class SocketService {
                 const token = socket.handshake.auth.token || socket.handshake.query.token;
 
                 if (!token) {
-                    console.log('❌ Socket.IO: Token mancante');
                     return next(new Error('Token di autenticazione richiesto'));
                 }
 
@@ -125,10 +119,8 @@ class SocketService {
                 socket.userId = decoded.id_utente;
                 socket.user = decoded;
 
-                console.log(`✅ Socket.IO: Utente autenticato ${socket.userId}`);
                 next();
             } catch (error) {
-                console.log('❌ Socket.IO: Token non valido:', error.message);
                 next(new Error('Token non valido'));
             }
         });
@@ -139,7 +131,6 @@ class SocketService {
      */
     setupEventHandlers() {
         this.io.on('connection', (socket) => {
-            console.log(`🔗 Socket.IO: Connessione da utente ${socket.userId}`);
 
             // Registra utente connesso
             this.connectedUsers.set(socket.userId, socket.id);
@@ -158,7 +149,6 @@ class SocketService {
                 const roomName = `spazio_${spazioId}_sede_${sedeId}`;
 
                 socket.join(roomName);
-                console.log(`🏢 Socket.IO: Utente ${socket.userId} entrato in room ${roomName}`);
 
                 socket.emit('joined_space', {
                     room: roomName,
@@ -174,12 +164,10 @@ class SocketService {
                 const roomName = `spazio_${spazioId}_sede_${sedeId}`;
 
                 socket.leave(roomName);
-                console.log(`🚪 Socket.IO: Utente ${socket.userId} uscito da room ${roomName}`);
             });
 
             // Gestisci disconnessione
             socket.on('disconnect', (reason) => {
-                console.log(`🔌 Socket.IO: Disconnessione utente ${socket.userId}, motivo: ${reason}`);
 
                 // Rimuovi utente dalle mappe
                 this.connectedUsers.delete(socket.userId);
@@ -217,7 +205,6 @@ class SocketService {
         // Invia via Redis per multi-server
         this.publishToRedis('room_broadcast', roomName, 'slot_update', payload);
 
-        console.log(`📡 Socket.IO: Broadcast slot_update a room ${roomName}`);
     }
 
     /**
@@ -242,7 +229,6 @@ class SocketService {
         // Invia via Redis per multi-server
         this.publishToRedis('room_broadcast', roomName, 'slots_status_update', payload);
 
-        console.log(`📡 Socket.IO: Broadcast slots_status_update a room ${roomName}`);
     }
 
     /**
@@ -257,9 +243,7 @@ class SocketService {
         const socketId = this.connectedUsers.get(userId);
         if (socketId) {
             this.io.to(socketId).emit(event, data);
-            console.log(`📤 Socket.IO: Inviato ${event} a utente ${userId}`);
         } else {
-            console.log(`⚠️ Socket.IO: Utente ${userId} non connesso`);
         }
 
         // Invia via Redis per multi-server
@@ -275,7 +259,6 @@ class SocketService {
         if (!this.io) return;
 
         this.io.emit(event, data);
-        console.log(`📢 Socket.IO: Broadcast ${event} a tutti gli utenti`);
 
         // Invia via Redis per multi-server
         this.publishToRedis('global_broadcast', null, event, data);
@@ -336,7 +319,6 @@ class SocketService {
 
         this.connectedUsers.clear();
         this.userSockets.clear();
-        console.log('🔌 Socket.IO: Servizio chiuso');
     }
 }
 

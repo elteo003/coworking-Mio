@@ -28,7 +28,6 @@ class SSEController {
         // Gestisci chiusura connessione
         req.on('close', () => {
             this.connections.delete(res);
-            console.log('Connessione SSE chiusa. Connessioni attive:', this.connections.size);
         });
 
         // Mantieni connessione attiva con heartbeat
@@ -43,7 +42,6 @@ class SSEController {
             })}\n\n`);
         }, 30000); // Heartbeat ogni 30 secondi
 
-        console.log('Nuova connessione SSE stabilita. Connessioni attive:', this.connections.size);
     }
 
     // Invia aggiornamento a tutti i client connessi
@@ -56,7 +54,6 @@ class SSEController {
             }
         });
 
-        console.log('Aggiornamento broadcast inviato a', this.connections.size, 'client');
     }
 
     // Invia aggiornamento stato slot specifico
@@ -89,7 +86,6 @@ class SSEController {
     // Ottieni stato corrente di tutti gli slot per sede/spazio/data
     static async getSlotsStatus(sedeId, spazioId, data) {
         try {
-            console.log(`🚀 SSEController - getSlotsStatus chiamato per sede: ${sedeId}, spazio: ${spazioId}, data: ${data}`);
 
             // Verifica che lo spazio esista
             const spazioQuery = 'SELECT id_spazio, nome FROM Spazio WHERE id_spazio = $1';
@@ -100,7 +96,6 @@ class SSEController {
             }
 
             const spazio = spazioResult.rows[0];
-            console.log(`✅ Spazio trovato: ${spazio.nome}`);
 
             // Ottieni orari di apertura (9:00 - 18:00)
             const orariApertura = [];
@@ -108,7 +103,6 @@ class SSEController {
                 orariApertura.push(`${hour.toString().padStart(2, '0')}:00`);
             }
 
-            console.log(`⏰ Orari apertura generati: ${orariApertura.length} slot`);
 
             // Ottieni prenotazioni esistenti per questa data
             let prenotazioni = [];
@@ -126,11 +120,7 @@ class SSEController {
 
                 const prenotazioniResult = await pool.query(prenotazioniQuery, [spazioId, data]);
                 prenotazioni = prenotazioniResult.rows;
-                console.log(`📋 Prenotazioni trovate: ${prenotazioni.length}`);
-                console.log(`🔍 Query: ${prenotazioniQuery}`);
-                console.log(`🔍 Parametri: spazioId=${spazioId}, data=${data}`);
                 if (prenotazioni.length > 0) {
-                    console.log(`📋 Dettagli prenotazioni:`, prenotazioni);
                 }
             } catch (queryError) {
                 console.warn('⚠️ Errore query prenotazioni, continuo senza:', queryError.message);
@@ -146,7 +136,6 @@ class SSEController {
 
                 // Controlla se l'orario è passato (solo per oggi)
                 if (selectedDate.toDateString() === now.toDateString() && orarioHour <= now.getHours()) {
-                    console.log(`⏰ Slot ${slotId} (${orario}) marcato come PASSATO - ora corrente: ${now.getHours()}:00`);
                     return {
                         id_slot: slotId,
                         orario: orario,
@@ -158,7 +147,6 @@ class SSEController {
                 // Controlla se c'è una prenotazione per questo orario
                 const prenotazione = prenotazioni.find(p => {
                     if (!p.orario_inizio || !p.orario_fine) {
-                        console.log(`⚠️ Prenotazione senza orari:`, p);
                         return false;
                     }
 
@@ -167,7 +155,6 @@ class SSEController {
 
                     const isOccupied = orarioHour >= prenotazioneInizio && orarioHour < prenotazioneFine;
                     if (isOccupied) {
-                        console.log(`🔍 Slot ${orarioHour}:00 occupato da prenotazione ${prenotazioneInizio}:00-${prenotazioneFine}:00 (stato: ${p.stato})`);
                     }
                     return isOccupied;
                 });
@@ -200,7 +187,6 @@ class SSEController {
                 };
             });
 
-            console.log(`✅ SSEController - Stato slot calcolato: ${slotsStatus.length} slot`);
             return slotsStatus;
 
         } catch (error) {
@@ -215,7 +201,6 @@ class SSEController {
             // Aggiorna stato nel database se necessario
             if (prenotazioneId) {
                 // Logica per aggiornare prenotazione se necessario
-                console.log(`Aggiornamento stato slot ${slotId} a ${status} per prenotazione ${prenotazioneId}`);
             }
 
             // Notifica tutti i client

@@ -36,7 +36,6 @@ class ErrorHandler {
 
                 if (attempt > 0) {
                     const duration = performance.now() - startTime;
-                    console.log(`✅ Operazione riuscita dopo ${attempt} retry (${duration.toFixed(2)}ms):`, context.operation || 'operation');
                 }
 
                 return result;
@@ -57,7 +56,6 @@ class ErrorHandler {
                 const delay = this.calculateDelay(attempt);
 
                 console.warn(`⚠️ Retry attempt ${attempt + 1}/${this.retryConfig.maxRetries} per ${context.operation || 'operation'}:`, error.message);
-                console.log(`⏳ Attendo ${delay}ms prima del prossimo tentativo...`);
 
                 await this.delay(delay);
             }

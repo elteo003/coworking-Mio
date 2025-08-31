@@ -6,9 +6,6 @@
 class LocalAPI {
     constructor() {
         this.baseUrl = window.API_BASE_URL || window.API_BASE || '/api';
-        console.log('🔧 LocalAPI - baseUrl configurato:', this.baseUrl);
-        console.log('🔧 LocalAPI - window.API_BASE_URL:', window.API_BASE_URL);
-        console.log('🔧 LocalAPI - window.API_BASE:', window.API_BASE);
     }
 
     /**
@@ -33,9 +30,6 @@ class LocalAPI {
     async get(endpoint) {
         try {
             const fullUrl = `${this.baseUrl}${endpoint}`;
-            console.log('🌐 LocalAPI GET - URL completo:', fullUrl);
-            console.log('🌐 LocalAPI GET - endpoint:', endpoint);
-            console.log('🌐 LocalAPI GET - baseUrl:', this.baseUrl);
 
             const response = await fetch(fullUrl, {
                 method: 'GET',

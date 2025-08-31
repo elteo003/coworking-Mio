@@ -9,7 +9,6 @@ const authenticateSSEToken = (req, res, next) => {
         // Cerca il token nella query string
         const token = req.query.token;
         
-        console.log('🔍 SSE Auth Debug:', {
             hasToken: !!token,
             tokenLength: token ? token.length : 0,
             tokenStart: token ? token.substring(0, 20) + '...' : 'none',
@@ -18,7 +17,6 @@ const authenticateSSEToken = (req, res, next) => {
         });
 
         if (!token) {
-            console.log('❌ SSE Auth: Token mancante nella query string');
             return res.status(401).json({
                 success: false,
                 error: 'Token di autenticazione richiesto'
@@ -36,8 +34,6 @@ const authenticateSSEToken = (req, res, next) => {
         // Verifica il token
         jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
             if (err) {
-                console.log('❌ SSE Auth: Token non valido:', err.message);
-                console.log('🔍 SSE Auth: Dettagli errore JWT:', {
                     name: err.name,
                     message: err.message,
                     expiredAt: err.expiredAt
@@ -50,7 +46,6 @@ const authenticateSSEToken = (req, res, next) => {
 
             // Token valido, aggiungi i dati utente alla request
             req.user = decoded;
-            console.log('✅ SSE Auth: Utente autenticato:', decoded.nome, decoded.cognome);
             next();
         });
 

@@ -10,11 +10,9 @@ class ScadenzeService {
   // Avvia il servizio automatico
   start() {
     if (this.isRunning) {
-      console.log('⚠️ Servizio scadenze già in esecuzione');
       return;
     }
     
-    console.log('🚀 Avvio servizio automatico scadenze...');
     this.isRunning = true;
     
     // Esegui il primo controllo immediatamente
@@ -25,17 +23,14 @@ class ScadenzeService {
       this.eseguiControllo();
     }, this.checkInterval);
     
-    console.log(`✅ Servizio scadenze avviato (controlli ogni ${this.checkInterval / 1000 / 60} minuti)`);
   }
   
   // Ferma il servizio automatico
   stop() {
     if (!this.isRunning) {
-      console.log('⚠️ Servizio scadenze non in esecuzione');
       return;
     }
     
-    console.log('🛑 Arresto servizio automatico scadenze...');
     this.isRunning = false;
     
     if (this.intervalId) {
@@ -43,24 +38,17 @@ class ScadenzeService {
       this.intervalId = null;
     }
     
-    console.log('✅ Servizio scadenze arrestato');
   }
   
   // Esegue un controllo di scadenza
   async eseguiControllo() {
     try {
-      console.log(`\n🕐 Controllo scadenze automatico - ${new Date().toLocaleString('it-IT')}`);
       
       const risultati = await ScadenzeController.eseguiControlliScadenza();
       
       // Log dei risultati
       if (risultati.prenotazioniScadute > 0 || risultati.pagamentiScaduti > 0) {
-        console.log(`📊 Risultati controllo scadenze:`);
-        console.log(`   - Prenotazioni scadute: ${risultati.prenotazioniScadute}`);
-        console.log(`   - Pagamenti scaduti: ${risultati.pagamentiScaduti}`);
-        console.log(`   - Prenotazioni in scadenza: ${risultati.prenotazioniInScadenza}`);
       } else {
-        console.log('✅ Nessuna scadenza da gestire');
       }
       
     } catch (error) {
@@ -71,7 +59,6 @@ class ScadenzeService {
   // Esegue un controllo manuale
   async eseguiControlloManuale() {
     try {
-      console.log('🔧 Controllo scadenze manuale richiesto...');
       const risultati = await ScadenzeController.eseguiControlliScadenza();
       return risultati;
     } catch (error) {
@@ -103,7 +90,6 @@ class ScadenzeService {
       this.checkInterval = newInterval;
     }
     
-    console.log(`⚙️ Intervallo controllo scadenze impostato a ${minutes} minuti`);
   }
 }
 

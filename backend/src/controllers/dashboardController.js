@@ -6,16 +6,9 @@ const getDashboardStats = async (req, res) => {
         const { tipo, sede } = req.query;
         const userId = req.user?.id_utente;
 
-        console.log('📊 Dashboard Stats - Richiesta completa:', req);
-        console.log('📊 Dashboard Stats - Query params:', req.query);
-        console.log('📊 Dashboard Stats - User object:', req.user);
-        console.log('📊 Dashboard Stats - User ID:', userId);
-        console.log('📊 Dashboard Stats - Tipo:', tipo);
-        console.log('📊 Dashboard Stats - Sede:', sede);
 
         // Verifica che l'utente sia gestore o amministratore
         if (tipo !== 'responsabile') {
-            console.log('❌ Dashboard Stats - Tipo non autorizzato:', tipo);
             return res.status(403).json({ error: 'Accesso negato. Solo responsabili possono accedere.' });
         }
 
@@ -65,10 +58,6 @@ const getDashboardStats = async (req, res) => {
             ${sedeFilter}
         `;
 
-        console.log('📊 Dashboard Stats - Parametri query:', params);
-        console.log('📊 Dashboard Stats - Query prenotazioni:', prenotazioniQuery);
-        console.log('📊 Dashboard Stats - Query fatturato:', fatturatoQuery);
-        console.log('📊 Dashboard Stats - Query occupazione:', occupazioneQuery);
 
         try {
             const [prenotazioniResult, fatturatoResult, occupazioneResult] = await Promise.all([
@@ -77,10 +66,6 @@ const getDashboardStats = async (req, res) => {
                 pool.query(occupazioneQuery, params)
             ]);
 
-            console.log('📊 Dashboard Stats - Query eseguite con successo');
-            console.log('📊 Dashboard Stats - Risultati prenotazioni:', prenotazioniResult.rows);
-            console.log('📊 Dashboard Stats - Risultati fatturato:', fatturatoResult.rows);
-            console.log('📊 Dashboard Stats - Risultati occupazione:', occupazioneResult.rows);
         } catch (queryError) {
             console.error('❌ Dashboard Stats - Errore esecuzione query:', queryError);
             throw queryError;
@@ -93,7 +78,6 @@ const getDashboardStats = async (req, res) => {
             occupazione_media: parseFloat(occupazioneResult.rows[0]?.occupazione_media || 0)
         };
 
-        console.log('✅ Dashboard Stats - Statistiche calcolate:', stats);
         res.json(stats);
 
     } catch (error) {
@@ -108,7 +92,6 @@ const getDashboardCharts = async (req, res) => {
         const { tipo, sede, periodo = 7 } = req.query;
         const userId = req.user?.id_utente;
 
-        console.log('📈 Dashboard Charts - Richiesta:', { tipo, sede, periodo, userId });
 
         if (tipo !== 'responsabile') {
             return res.status(403).json({ error: 'Accesso negato' });
@@ -174,7 +157,6 @@ const getDashboardCharts = async (req, res) => {
             }
         };
 
-        console.log('✅ Dashboard Charts - Dati grafici preparati');
         res.json(chartsData);
 
     } catch (error) {
@@ -189,7 +171,6 @@ const getDashboardActivity = async (req, res) => {
         const { tipo, sede, limit = 10 } = req.query;
         const userId = req.user?.id_utente;
 
-        console.log('📋 Dashboard Activity - Richiesta:', { tipo, sede, limit, userId });
 
         if (tipo !== 'responsabile') {
             return res.status(403).json({ error: 'Accesso negato' });
@@ -241,7 +222,6 @@ const getDashboardActivity = async (req, res) => {
             timestamp: row.timestamp
         }));
 
-        console.log('✅ Dashboard Activity - Attività caricate:', activities.length);
         res.json(activities);
 
     } catch (error) {

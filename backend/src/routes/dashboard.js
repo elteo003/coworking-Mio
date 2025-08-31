@@ -5,7 +5,6 @@ const dashboardController = require('../controllers/dashboardController');
 
 // Endpoint di test per verificare se il middleware funziona
 router.get('/test-auth', authenticateToken, (req, res) => {
-    console.log('✅ Dashboard Test Auth - Middleware funziona');
     res.json({
         message: 'Middleware di autenticazione funziona',
         user: req.user,

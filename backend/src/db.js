@@ -12,15 +12,12 @@ if (isProduction) {
   poolConfig.ssl = {
     rejectUnauthorized: false
   };
-  console.log('🔐 Configurazione database: SSL abilitato per Supabase');
 } else {
-  console.log('🏠 Configurazione database: SSL disabilitato per sviluppo locale');
 }
 
 const pool = new Pool(poolConfig);
 
 pool.on('connect', () => {
-  console.log('✅ Connesso a PostgreSQL!');
 });
 
 pool.on('error', (err) => {

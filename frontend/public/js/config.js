@@ -16,29 +16,20 @@ const CONFIG = {
 };
 
 // Definisci API_BASE_URL per compatibilità con i file esistenti
-console.log('🔍 Prima di definire API_BASE_URL');
 const API_BASE_URL = CONFIG.API_BASE;
 window.API_BASE_URL = API_BASE_URL; // Esponi globalmente per compatibilità
-console.log('🔍 Dopo aver definito API_BASE_URL:', API_BASE_URL);
 
 // Configurazione Socket.IO (senza /api path)
 const SOCKET_BASE_URL = CONFIG.API_BASE.replace('/api', '');
 window.SOCKET_BASE_URL = SOCKET_BASE_URL; // Esponi globalmente per Socket.IO
-console.log('🔌 Socket.IO Base URL:', SOCKET_BASE_URL);
 
 // Debug: log della configurazione per verificare che sia caricata
-console.log('Configurazione caricata:', CONFIG);
-console.log('API_BASE:', CONFIG.API_BASE);
-console.log('Hostname corrente:', window.location.hostname);
-console.log('Ambiente rilevato:', window.location.hostname.includes('onrender.com') ? 'PRODUZIONE' : 'SVILUPPO');
 
 // Funzione per aggiungere l'header di autorizzazione alle richieste API
 function getAuthHeaders() {
     const user = localStorage.getItem('user');
     const token = localStorage.getItem('token');
 
-    console.log('getAuthHeaders - User:', user);
-    console.log('getAuthHeaders - Token:', token ? 'presente' : 'mancante');
 
     if (user && token) {
         try {
@@ -65,7 +56,6 @@ function getAuthHeaders() {
 
 // Funzione per gestire errori di autenticazione
 function handleAuthError() {
-    console.log('handleAuthError - Utente deve loggarsi per completare questa azione');
 
     // Rimuovi solo i dati di sessione corrotti, non tutti
     try {
@@ -97,7 +87,6 @@ function handleAuthError() {
 
 // Funzione centralizzata per il logout
 function logout() {
-    console.log('logout - Effettuo logout utente');
 
     // Salva la pagina corrente per il redirect dopo il login
     const currentPage = window.location.pathname.split('/').pop();
@@ -109,11 +98,9 @@ function logout() {
     if (requiresAuth) {
         // Se la pagina richiede autenticazione, salva l'URL per il redirect
         localStorage.setItem('redirectAfterLogin', currentUrl);
-        console.log('logout - Pagina richiede auth, salvo URL per redirect:', currentUrl);
     } else {
         // Se la pagina non richiede auth, non salvare nulla
         localStorage.removeItem('redirectAfterLogin');
-        console.log('logout - Pagina non richiede auth');
     }
 
     // Pulisci i dati della prenotazione in corso se siamo su selezione-slot.html
@@ -123,7 +110,6 @@ function logout() {
         localStorage.removeItem('selectedDataInizio');
         localStorage.removeItem('selectedDataFine');
         localStorage.removeItem('disponibilitaVerificata');
-        console.log('logout - Puliti dati prenotazione in corso');
     }
 
     // Rimuovi solo i dati di sessione, non tutto
@@ -131,7 +117,6 @@ function logout() {
     localStorage.removeItem('token');
 
     // ✅ SEMPRE reindirizza alla homepage dopo il logout
-    console.log('logout - Reindirizzamento alla homepage');
     window.location.href = 'index.html?message=' + encodeURIComponent('Logout effettuato con successo.');
 }
 
@@ -139,19 +124,16 @@ function logout() {
 async function attemptUserRestoreFromToken() {
     const token = localStorage.getItem('token');
     if (!token) {
-        console.log('attemptUserRestoreFromToken - Nessun token disponibile');
         return false;
     }
 
     try {
-        console.log('🔄 Tentativo di ripristino dati utente dal token...');
 
         // Prova a decodificare il JWT per estrarre informazioni base
         const tokenParts = token.split('.');
         if (tokenParts.length === 3) {
             try {
                 const payload = JSON.parse(atob(tokenParts[1]));
-                console.log('🔍 Payload token decodificato:', payload);
 
                 // Se il token contiene dati utente, ricrea l'oggetto user
                 if (payload.id_utente || payload.sub) {
@@ -164,17 +146,14 @@ async function attemptUserRestoreFromToken() {
                         message: 'Utente ripristinato dal token'
                     };
 
-                    console.log('✅ Dati utente ripristinati dal token:', restoredUser);
                     localStorage.setItem('user', JSON.stringify(restoredUser));
                     return true;
                 }
             } catch (decodeError) {
-                console.log('⚠️ Errore decodifica payload token:', decodeError);
             }
         }
 
         // Se non riesco a decodificare, prova a chiamare l'API per verificare il token
-        console.log('🔄 Tentativo verifica token tramite API...');
         const response = await fetch(`${window.CONFIG.API_BASE}/verify-token`, {
             method: 'POST',
             headers: {
@@ -186,11 +165,9 @@ async function attemptUserRestoreFromToken() {
 
         if (response.ok) {
             const userData = await response.json();
-            console.log('✅ Dati utente ripristinati tramite API:', userData);
             localStorage.setItem('user', JSON.stringify(userData));
             return true;
         } else {
-            console.log('⚠️ API verify-token non disponibile o fallita');
             return false;
         }
 
@@ -207,16 +184,13 @@ async function isAuthenticated() {
 
     if (!user && token) {
         // ✅ NUOVO CASO: token presente ma user mancante, prova a ripristinare
-        console.log('isAuthenticated - Token presente ma user mancante, tentativo di ripristino...');
         const restored = await attemptUserRestoreFromToken();
         if (restored) {
-            console.log('isAuthenticated - User ripristinato con successo');
             return true;
         }
     }
 
     if (!user) {
-        console.log('isAuthenticated - User mancante');
         return false;
     }
 
@@ -226,19 +200,16 @@ async function isAuthenticated() {
         // ✅ Se l'utente è gestore o amministratore, mantieni la sessione anche senza token
         if (userData.ruolo === 'gestore' || userData.ruolo === 'amministratore') {
             if (userData.id_utente) {
-                console.log('isAuthenticated - Gestore/amministratore autenticato (token opzionale):', userData.nome, userData.cognome);
                 return true;
             }
         }
 
         // ✅ Per utenti normali, richiedi sia user che token
         if (!token) {
-            console.log('isAuthenticated - User presente ma token mancante per utente normale:', userData?.nome, userData?.cognome);
             return false;
         }
 
         const isAuthenticated = userData && userData.id_utente;
-        console.log('isAuthenticated - Risultato:', isAuthenticated, 'per utente:', userData?.nome, userData?.cognome);
         return isAuthenticated;
     } catch (error) {
         console.error('isAuthenticated - Errore parsing user:', error);
@@ -251,24 +222,20 @@ function checkAndRestoreToken() {
     const user = localStorage.getItem('user');
     const token = localStorage.getItem('token');
 
-    console.log('checkAndRestoreToken - Verifica token:', { user: !!user, token: !!token });
 
     if (user && !token) {
-        console.log('⚠️ Token mancante ma user presente, tentativo di ripristino...');
 
         try {
             const userData = JSON.parse(user);
 
             // Se l'utente ha un messaggio di login, potrebbe essere necessario un nuovo login
             if (userData.message === 'Login effettuato') {
-                console.log('🔐 Rilevato utente con messaggio di login ma senza token, richiedo nuovo login');
                 localStorage.removeItem('user'); // Rimuovi dati corrotti
                 return false;
             }
 
             // Se l'utente ha tutti i campi necessari ma manca il token, potrebbe essere un bug
             if (userData.id_utente && userData.nome && userData.cognome) {
-                console.log('⚠️ Utente valido ma token mancante, potrebbe essere un bug del sistema');
                 // ✅ NON rimuovere l'utente, potrebbe essere un problema temporaneo
                 // ✅ Restituisci true per mantenere la sessione attiva
                 return true;
@@ -285,7 +252,6 @@ function checkAndRestoreToken() {
 
 // Funzione per forzare un nuovo login se necessario
 function forceReLogin(reason = 'Token mancante o non valido') {
-    console.log('🔄 Forzo nuovo login:', reason);
 
     // Pulisci tutti i dati di sessione
     localStorage.removeItem('user');
@@ -302,17 +268,13 @@ async function validateTokenOnStartup() {
     const user = localStorage.getItem('user');
     const token = localStorage.getItem('token');
 
-    console.log('validateTokenOnStartup - User:', user);
-    console.log('validateTokenOnStartup - Token:', token ? 'presente' : 'mancante');
 
     if (user && token) {
         try {
             const userData = JSON.parse(user);
-            console.log('validateTokenOnStartup - Sessione valida per utente:', userData.nome, userData.cognome);
 
             // Verifica che l'utente abbia i campi necessari
             if (!userData.id_utente || !userData.nome || !userData.cognome) {
-                console.log('validateTokenOnStartup - Dati utente incompleti, rimuovo sessione');
                 localStorage.removeItem('user');
                 localStorage.removeItem('token');
                 return false;
@@ -320,7 +282,6 @@ async function validateTokenOnStartup() {
 
             return true;
         } catch (error) {
-            console.log('validateTokenOnStartup - Errore parsing user:', error);
             // User non valido, pulisci i dati
             localStorage.removeItem('user');
             localStorage.removeItem('token');
@@ -328,28 +289,23 @@ async function validateTokenOnStartup() {
         }
     } else if (user && !token) {
         // Caso speciale: user presente ma token mancante
-        console.log('validateTokenOnStartup - User presente ma token mancante, verifico integrità...');
 
         try {
             const userData = JSON.parse(user);
             // ✅ Se l'utente è gestore o amministratore, mantieni la sessione anche senza token
             if (userData.ruolo === 'gestore' || userData.ruolo === 'amministratore') {
-                console.log('🎯 Utente gestore/amministratore, mantengo sessione anche senza token');
                 return true;
             }
         } catch (error) {
-            console.log('validateTokenOnStartup - Errore parsing user per controllo ruolo:', error);
         }
 
         return checkAndRestoreToken();
     } else if (!user && token) {
         // ✅ NUOVO CASO: token presente ma user mancante (situazione attuale)
-        console.log('⚠️ validateTokenOnStartup - Token presente ma user mancante, tentativo di ripristino...');
 
         // Prova a ripristinare i dati utente dal token
         return await attemptUserRestoreFromToken();
     } else {
-        console.log('validateTokenOnStartup - User o token mancanti');
         return false;
     }
 }
@@ -407,31 +363,23 @@ const NAVBAR_CONFIG = {
 
 // Funzione universale per aggiornare la navbar
 function updateNavbarUniversal() {
-    console.log('updateNavbarUniversal - Inizio aggiornamento navbar');
 
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     const config = NAVBAR_CONFIG[currentPage] || NAVBAR_CONFIG['index.html'];
     const userStr = localStorage.getItem('user');
 
-    console.log('updateNavbarUniversal - Pagina corrente:', currentPage);
-    console.log('updateNavbarUniversal - Config:', config);
-    console.log('updateNavbarUniversal - Utente:', userStr ? 'loggato' : 'non loggato');
-    console.log('updateNavbarUniversal - Configurazione: Dashboard=' + config.mostraDashboard + ', Logout=' + config.mostraLogout + ', Prenota=' + config.mostraPrenota);
 
     // Trova la sezione auth
     const authSection = document.getElementById('authSection');
     if (!authSection) {
-        console.log('updateNavbarUniversal - Sezione auth non trovata, navbar non aggiornata');
         return;
     }
 
     // ✅ Rimuovi tutti gli elementi dinamici esistenti per evitare duplicati
-    console.log('🧹 Pulizia elementi dinamici esistenti...');
 
     // Rimuovi link dinamici (Dashboard, etc.)
     document.querySelectorAll('.nav-item.dynamic-nav-item').forEach(item => {
         item.remove();
-        console.log('🗑️ Rimosso elemento dinamico:', item.textContent?.trim());
     });
 
     // ✅ Info utente non più gestito, navbar più pulita
@@ -439,23 +387,17 @@ function updateNavbarUniversal() {
     if (userStr) {
         try {
             const user = JSON.parse(userStr);
-            console.log('updateNavbarUniversal - Utente autenticato:', user.nome, user.cognome);
 
             // ✅ Trasforma il tasto "Accedi" esistente in "Logout" mantenendo lo stesso stile
-            console.log('🔍 Cercando tasto Accedi nella sezione auth...');
             const accediButton = authSection.querySelector('.btn-primary');
-            console.log('🔍 Tasto Accedi trovato:', accediButton);
 
             if (accediButton) {
                 // ✅ Trasforma il tasto Accedi in Logout
-                console.log('🔄 Trasformo tasto Accedi in Logout...');
                 accediButton.innerHTML = '<i class="fas fa-sign-out-alt me-1"></i>Logout';
                 accediButton.onclick = logout;
                 accediButton.href = '#';
-                console.log('✅ Tasto Accedi trasformato in Logout');
             } else {
                 // Fallback: crea nuovo pulsante Logout se non trova quello esistente
-                console.log('⚠️ Tasto Accedi non trovato, creo nuovo pulsante Logout');
                 authSection.innerHTML = `
                     <a class="nav-link btn btn-primary" href="#" onclick="logout()">
                         <i class="fas fa-sign-out-alt me-1"></i>Logout
@@ -464,7 +406,6 @@ function updateNavbarUniversal() {
             }
 
             // ✅ Info utente rimosso per navbar più pulita
-            console.log('✅ Navbar pulita senza info utente');
 
             // Aggiungi Dashboard in base al ruolo dell'utente
             if (config.mostraDashboard) {
@@ -503,18 +444,15 @@ function updateNavbarUniversal() {
             // Gestisci la visibilità del link "Prenota" in base al ruolo
             managePrenotaLinkVisibility(user.ruolo);
 
-            console.log('✅ updateNavbarUniversal - Navbar aggiornata per utente autenticato');
 
         } catch (error) {
             console.error('updateNavbarUniversal - Errore parsing user:', error);
             localStorage.removeItem('user');
             // Fallback: mostra navbar per utenti non autenticati
-            console.log('⚠️ updateNavbarUniversal - Fallback a navbar non autenticata');
             showNavbarForUnauthenticatedUser(config);
         }
     } else {
         // Utente non autenticato
-        console.log('updateNavbarUniversal - Utente non autenticato');
         showNavbarForUnauthenticatedUser(config);
     }
 }
@@ -551,7 +489,6 @@ function managePrenotaLinkVisibility(userRole) {
 function managePrenotaButtonsVisibility(userRole) {
     // Se l'utente è gestore o amministratore, nascondi i pulsanti di prenotazione
     if (userRole === 'gestore' || userRole === 'amministratore') {
-        console.log('🎯 Gestore/amministratore rilevato, nascondo pulsanti prenotazione');
 
         // ✅ Metodo corretto: cerca pulsanti con testo specifico
         const allButtons = document.querySelectorAll('button, .btn');
@@ -561,7 +498,6 @@ function managePrenotaButtonsVisibility(userRole) {
             if (button.textContent && button.textContent.includes('Prenota Ora')) {
                 button.style.display = 'none';
                 hiddenCount++;
-                console.log('🚫 Pulsante nascosto:', button.textContent.trim());
             }
         });
 
@@ -570,49 +506,38 @@ function managePrenotaButtonsVisibility(userRole) {
         if (btnBook) {
             btnBook.style.display = 'none';
             hiddenCount++;
-            console.log('🚫 Pulsante btnBook nascosto');
         }
 
-        console.log(`✅ Gestione pulsanti completata: ${hiddenCount} pulsanti nascosti`);
     } else {
-        console.log('👤 Utente normale, pulsanti prenotazione visibili');
     }
 }
 
 // Funzione per mostrare navbar per utenti non autenticati
 function showNavbarForUnauthenticatedUser(config) {
-    console.log('🔄 showNavbarForUnauthenticatedUser chiamata');
 
     // ✅ CONTROLLO: verifica se l'utente è effettivamente autenticato
     const user = localStorage.getItem('user');
     if (user) {
         try {
             const userData = JSON.parse(user);
-            console.log('⚠️ showNavbarForUnauthenticatedUser: utente già autenticato, non mostro navbar non autenticata');
-            console.log('⚠️ Utente autenticato:', userData.nome, userData.cognome, userData.ruolo);
             return; // Non mostrare navbar non autenticata se l'utente è già loggato
         } catch (error) {
-            console.log('⚠️ showNavbarForUnauthenticatedUser: errore parsing user, procedo con navbar non autenticata');
         }
     }
 
     const authSection = document.getElementById('authSection');
     if (!authSection) {
-        console.log('❌ showNavbarForUnauthenticatedUser: authSection non trovata');
         return;
     }
 
     // ✅ Mostra sempre il tasto Accedi per utenti non autenticati (soprattutto sulla homepage)
-    console.log('✅ showNavbarForUnauthenticatedUser: mostro tasto Accedi');
 
     // ✅ Rimuovi elementi dinamici rimasti per navbar pulita
-    console.log('🧹 Pulizia elementi dinamici...');
 
     // Rimuovi eventuali link dinamici rimasti
     const dynamicItems = authSection.parentElement.querySelectorAll('.dynamic-nav-item');
     dynamicItems.forEach(item => {
         item.remove();
-        console.log('🗑️ Rimosso elemento dinamico rimasto:', item.textContent?.trim());
     });
 
     // ✅ Mostra tasto Accedi
@@ -622,12 +547,10 @@ function showNavbarForUnauthenticatedUser(config) {
             Accedi
         </a>
     `;
-    console.log('✅ Tasto Accedi mostrato, navbar pulita');
 }
 
 // Funzione per inizializzare la navbar all'avvio
 function initializeNavbar() {
-    console.log('initializeNavbar - Inizializzazione navbar universale');
 
     // Verifica token all'avvio
     validateTokenOnStartup().then(() => {

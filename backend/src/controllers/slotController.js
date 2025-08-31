@@ -68,7 +68,6 @@ async function getSlotsStatus(req, res) {
  */
 async function fetchSlotsFromDatabase(idSpazio, date) {
     try {
-        console.log(`🚀 fetchSlotsFromDatabase chiamato per spazio: ${idSpazio}, data: ${date}`);
 
 
 
@@ -77,7 +76,6 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
             await pool.query('SELECT free_expired_slots()');
             await pool.query('SELECT update_past_slots()');
         } catch (error) {
-            console.log('⚠️ Funzioni database slot non disponibili, continuo senza...');
             // Fallback: libera slot scaduti manualmente
             await pool.query(`
                 UPDATE Prenotazione 
@@ -97,7 +95,6 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
         }
 
         const spazio = spazioResult.rows[0];
-        console.log(`✅ Spazio trovato: ${spazio.nome}`);
 
         // Ottieni orari di apertura (9:00 - 18:00)
         const orariApertura = [];
@@ -105,7 +102,6 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
             orariApertura.push(`${hour.toString().padStart(2, '0')}:00`);
         }
 
-        console.log(`⏰ Orari apertura generati: ${orariApertura.length} slot`);
 
         // Query ottimizzata con controllo scadenza_slot e ID utente
         const prenotazioniQuery = `
@@ -125,7 +121,6 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
 
         const prenotazioniResult = await pool.query(prenotazioniQuery, [idSpazio, date]);
         const prenotazioni = prenotazioniResult.rows;
-        console.log(`📋 Prenotazioni attive trovate: ${prenotazioni.length}`);
 
         // Crea array con stato di ogni slot
         const slotsStatus = orariApertura.map((orario, index) => {
@@ -186,7 +181,6 @@ async function fetchSlotsFromDatabase(idSpazio, date) {
             };
         });
 
-        console.log(`✅ Stato slot calcolato: ${slotsStatus.length} slot`);
         return slotsStatus;
 
     } catch (error) {

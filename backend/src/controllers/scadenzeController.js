@@ -7,7 +7,6 @@ class ScadenzeController {
   // Controlla e aggiorna le prenotazioni scadute (15 minuti senza prenotazione)
   static async checkScadenzePrenotazioni() {
     try {
-      console.log('⏰ Controllo scadenze prenotazioni...');
 
       // Trova prenotazioni scadute usando il campo scadenza_slot
       const prenotazioniScadute = await pool.query(`
@@ -21,7 +20,6 @@ class ScadenzeController {
       `);
 
       if (prenotazioniScadute.rows.length > 0) {
-        console.log(`🔓 Trovate ${prenotazioniScadute.rows.length} prenotazioni scadute, libero gli slot`);
 
         for (const prenotazione of prenotazioniScadute.rows) {
           // Aggiorna la prenotazione a 'scaduta' (tranne quelle già cancellate)
@@ -35,7 +33,6 @@ class ScadenzeController {
           // NOTA: Non aggiorniamo più lo stato generale dello spazio
           // perché uno spazio può avere prenotazioni per alcuni orari ma essere disponibile per altri
 
-          console.log(`✅ Prenotazione ${prenotazione.id_prenotazione} scaduta`);
 
           // Notifica tutti i client via SSE che lo slot è tornato disponibile
           try {
@@ -80,7 +77,6 @@ class ScadenzeController {
   // Controlla e scade i pagamenti in sospeso dopo 15 minuti
   static async checkPagamentiInSospeso() {
     try {
-      console.log('⏱️ Controllo pagamenti in sospeso...');
 
       // Trova pagamenti in sospeso scaduti usando il campo scadenza_slot
       const pagamentiScaduti = await pool.query(`
@@ -93,7 +89,6 @@ class ScadenzeController {
       `);
 
       if (pagamentiScaduti.rows.length > 0) {
-        console.log(`⏰ Trovati ${pagamentiScaduti.rows.length} pagamenti in sospeso scaduti`);
 
         for (const pagamento of pagamentiScaduti.rows) {
           // Aggiorna il pagamento a 'rimborsato' (stato sicuro per pagamenti scaduti)
@@ -113,7 +108,6 @@ class ScadenzeController {
           // NOTA: Non aggiorniamo più lo stato generale dello spazio
           // perché uno spazio può avere prenotazioni per alcuni orari ma essere disponibile per altri
 
-          console.log(`💸 Pagamento ${pagamento.id_pagamento} scaduto e marcato come rimborsato`);
         }
       }
 
@@ -128,7 +122,6 @@ class ScadenzeController {
   // Controlla prenotazioni che stanno per scadere (entro 1 ora)
   static async checkPrenotazioniInScadenza() {
     try {
-      console.log('⚠️ Controllo prenotazioni in scadenza...');
 
       // Trova prenotazioni che scadranno entro 1 ora
       const prenotazioniInScadenza = await pool.query(`
@@ -141,11 +134,9 @@ class ScadenzeController {
       `);
 
       if (prenotazioniInScadenza.rows.length > 0) {
-        console.log(`⏰ Trovate ${prenotazioniInScadenza.rows.length} prenotazioni che scadranno entro 1 ora`);
 
         for (const prenotazione of prenotazioniInScadenza.rows) {
           const minutiRimanenti = Math.floor((new Date(prenotazione.scadenza_slot) - new Date()) / (1000 * 60));
-          console.log(`⚠️ Prenotazione ${prenotazione.id_prenotazione} (${prenotazione.nome_spazio}) scade tra ${minutiRimanenti} minuti`);
         }
       }
 
@@ -160,7 +151,6 @@ class ScadenzeController {
   // Esegue tutti i controlli di scadenza
   static async eseguiControlliScadenza() {
     try {
-      console.log('🔄 Avvio controlli scadenza...');
 
       const [
         slotLiberati,
@@ -172,7 +162,6 @@ class ScadenzeController {
         this.checkPrenotazioniInScadenza()
       ]);
 
-      console.log(`✅ Controlli scadenza completati:
         - Slot liberati: ${slotLiberati}
         - Pagamenti scaduti: ${pagamentiScaduti}
         - Prenotazioni in scadenza: ${prenotazioniInScadenza}`);
