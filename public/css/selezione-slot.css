@@ -1,46 +1,74 @@
 /* ===== SELEZIONE SLOT - STILI DEDICATI ===== */
 
 /* ===== NUOVO SISTEMA DI SELEZIONE ===== */
-.slot-start {
-    background-color: #007bff !important;
-    border-color: #0056b3 !important;
-    color: white !important;
-    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5) !important;
+.slot-button.slot-start {
+    background-color: #007bff;
+    border-color: #0056b3;
+    color: white;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+    position: relative;
 }
 
-.slot-start:hover {
-    background-color: #0056b3 !important;
-    border-color: #004085 !important;
+.slot-button.slot-start:hover {
+    background-color: #0056b3;
+    border-color: #004085;
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.6) !important;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.6);
 }
 
-.slot-end {
-    background-color: #007bff !important;
-    border-color: #0056b3 !important;
-    color: white !important;
-    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5) !important;
+.slot-button.slot-start::after {
+    content: "START";
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #0056b3;
+    color: white;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: bold;
 }
 
-.slot-end:hover {
-    background-color: #0056b3 !important;
-    border-color: #004085 !important;
+.slot-button.slot-end {
+    background-color: #007bff;
+    border-color: #0056b3;
+    color: white;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+    position: relative;
+}
+
+.slot-button.slot-end:hover {
+    background-color: #0056b3;
+    border-color: #004085;
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.6) !important;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.6);
 }
 
-.slot-selected {
-    background-color: #fd7e14 !important;
-    border-color: #e55100 !important;
-    color: white !important;
-    box-shadow: 0 0 8px rgba(253, 126, 20, 0.4) !important;
+.slot-button.slot-end::after {
+    content: "END";
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #0056b3;
+    color: white;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: bold;
 }
 
-.slot-selected:hover {
-    background-color: #e55100 !important;
-    border-color: #cc4400 !important;
+.slot-button.slot-selected {
+    background-color: #fd7e14;
+    border-color: #e55100;
+    color: white;
+    box-shadow: 0 0 8px rgba(253, 126, 20, 0.4);
+}
+
+.slot-button.slot-selected:hover {
+    background-color: #e55100;
+    border-color: #cc4400;
     transform: translateY(-1px);
-    box-shadow: 0 3px 12px rgba(253, 126, 20, 0.5) !important;
+    box-shadow: 0 3px 12px rgba(253, 126, 20, 0.5);
 }
 
 /* ===== GLOBAL SCROLLBAR REMOVAL ===== */
@@ -151,35 +179,36 @@ section::-webkit-scrollbar,
 }
 
 .slot-button.slot-available {
-    background: #28a745 !important;
-    color: white !important;
-    border-color: #28a745 !important;
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
-.slot-button.slot-selected {
-    background: #007bff !important;
-    color: white !important;
-    border-color: #007bff !important;
-    transform: none !important;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+.slot-button.slot-available:hover {
+    background: #218838;
+    border-color: #1e7e34;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
 }
 
 .slot-button.slot-occupied {
-    background: #ffc107 !important;
-    color: white !important;
-    border-color: #ffc107 !important;
-    cursor: not-allowed !important;
-    opacity: 0.8 !important;
-    animation: pulse-orange 2s infinite !important;
+    background: #ffc107;
+    color: white;
+    border-color: #ffc107;
+    cursor: not-allowed;
+    opacity: 0.8;
+    animation: pulse-orange 2s infinite;
 }
 
 .slot-button.slot-booked {
-    background: #dc3545 !important;
-    color: white !important;
-    border-color: #dc3545 !important;
-    cursor: not-allowed !important;
-    opacity: 0.8 !important;
-    animation: pulse-red 2s infinite !important;
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+    cursor: not-allowed;
+    opacity: 0.8;
+    animation: pulse-red 2s infinite;
 }
 
 .slot-button.slot-intermediate {
