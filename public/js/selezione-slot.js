@@ -876,40 +876,18 @@ async function createTimeSlots() {
     // Pulisci il container
     timeSlotsContainer.innerHTML = '';
 
-    // Carica gli stati iniziali degli slot dal backend
-    let slotsStatus = [];
-    try {
-        console.log('📋 Caricamento stati iniziali slot dal backend...');
-        const response = await fetch(`${window.CONFIG.API_BASE}/slots/${window.selectedSpazio.id_spazio}/${window.selectedDateInizio.toISOString().split('T')[0]}`, {
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            // Gestisci diversi formati di risposta
-            if (data.data && data.data.slots) {
-                slotsStatus = data.data.slots;
-            } else if (Array.isArray(data.data)) {
-                slotsStatus = data.data;
-            } else if (Array.isArray(data)) {
-                slotsStatus = data;
-            }
-            console.log('✅ Stati iniziali slot caricati:', slotsStatus.length, 'slot');
-        } else {
-            console.warn('⚠️ Errore nel caricare stati iniziali slot:', response.status);
-        }
-    } catch (error) {
-        console.warn('⚠️ Errore nel caricare stati iniziali slot:', error);
-    }
+    // Gli stati degli slot verranno caricati dal SlotManagerSocketIO
+    // Per ora creiamo tutti gli slot come "available" di default
+    console.log('📋 Creazione slot con stato di default "available" - gli stati verranno aggiornati da Socket.IO');
+    let slotsStatus = []; // Array vuoto - stati gestiti da Socket.IO
 
     // Crea gli slot temporali con stati corretti
     for (let i = 0; i < orariApertura.length; i++) {
         const orario = orariApertura[i];
         const slotId = i + 1;
 
-        // Trova lo stato per questo slot
-        const slotData = slotsStatus.find(s => s.id_slot === slotId || s.orario === orario);
-        const status = slotData ? slotData.status : 'available';
+        // Tutti gli slot iniziano come "available" - gli stati verranno aggiornati da Socket.IO
+        const status = 'available';
 
         console.log('🔨 Creo slot per orario:', orario, 'con stato:', status);
 
@@ -920,7 +898,7 @@ async function createTimeSlots() {
         slot.dataset.slotId = slotId;
 
         // Applica stato corretto direttamente
-        applySlotState(slot, status, slotData);
+        applySlotState(slot, status, {});
 
         // Aggiungi event listener per tutti gli slot
         slot.addEventListener('click', (event) => selectTimeSlot(orario, slot, event));
