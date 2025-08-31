@@ -1,13 +1,15 @@
 /**
- * Controller per gestione slot con timer automatico
+ * Controller per gestione slot con Redis caching e expires_at
+ * Sostituisce il sistema cron con controllo automatico su query
  */
 
-const slotTimer = require('../middleware/slotTimer');
+const pool = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const socketService = require('../services/socketService');
+const redisService = require('../services/redisService');
 
 /**
- * Ottieni stato di tutti gli slot per uno spazio e data
+ * Ottieni stato di tutti gli slot per uno spazio e data con Redis caching
  * GET /api/slots/:idSpazio/:date
  */
 async function getSlotsStatus(req, res) {
@@ -31,7 +33,13 @@ async function getSlotsStatus(req, res) {
             });
         }
 
-        const slots = await slotTimer.getSlotsStatus(parseInt(idSpazio), date);
+        // Chiave cache Redis
+        const cacheKey = `slots:${idSpazio}:${date}`;
+
+        // Prova a leggere dalla cache, se manca esegui query
+        const slots = await redisService.getOrSet(cacheKey, async () => {
+            return await fetchSlotsFromDatabase(parseInt(idSpazio), date);
+        }, 300); // Cache per 5 minuti
 
         res.json({
             success: true,
@@ -39,7 +47,8 @@ async function getSlotsStatus(req, res) {
                 slots: slots,
                 count: slots.length,
                 date: date,
-                idSpazio: parseInt(idSpazio)
+                idSpazio: parseInt(idSpazio),
+                cached: await redisService.get(cacheKey) !== null
             }
         });
 
@@ -53,13 +62,130 @@ async function getSlotsStatus(req, res) {
 }
 
 /**
- * Occupa uno slot per 15 minuti
+ * Funzione per recuperare slot dal database con controllo expires_at
+ */
+async function fetchSlotsFromDatabase(idSpazio, date) {
+    try {
+        console.log(`🚀 fetchSlotsFromDatabase chiamato per spazio: ${idSpazio}, data: ${date}`);
+
+        // Prima libera slot scaduti automaticamente
+        await pool.query('SELECT free_expired_slots()');
+        await pool.query('SELECT update_past_slots()');
+
+        // Verifica che lo spazio esista
+        const spazioQuery = 'SELECT id_spazio, nome FROM Spazio WHERE id_spazio = $1';
+        const spazioResult = await pool.query(spazioQuery, [idSpazio]);
+
+        if (spazioResult.rows.length === 0) {
+            throw new Error('Spazio non trovato');
+        }
+
+        const spazio = spazioResult.rows[0];
+        console.log(`✅ Spazio trovato: ${spazio.nome}`);
+
+        // Ottieni orari di apertura (9:00 - 18:00)
+        const orariApertura = [];
+        for (let hour = 9; hour <= 17; hour++) {
+            orariApertura.push(`${hour.toString().padStart(2, '0')}:00`);
+        }
+
+        console.log(`⏰ Orari apertura generati: ${orariApertura.length} slot`);
+
+        // Query ottimizzata con controllo expires_at
+        const prenotazioniQuery = `
+            SELECT 
+                EXTRACT(HOUR FROM data_inizio) as orario_inizio,
+                EXTRACT(HOUR FROM data_fine) as orario_fine,
+                stato,
+                expires_at,
+                id_prenotazione
+            FROM Prenotazione 
+            WHERE id_spazio = $1 
+            AND DATE(data_inizio) = $2
+            AND stato IN ('confermata', 'in attesa')
+            AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+        `;
+
+        const prenotazioniResult = await pool.query(prenotazioniQuery, [idSpazio, date]);
+        const prenotazioni = prenotazioniResult.rows;
+        console.log(`📋 Prenotazioni attive trovate: ${prenotazioni.length}`);
+
+        // Crea array con stato di ogni slot
+        const slotsStatus = orariApertura.map((orario, index) => {
+            const slotId = index + 1;
+            const orarioHour = parseInt(orario.split(':')[0]);
+            const now = new Date();
+            const selectedDate = new Date(date);
+
+            // Controlla se l'orario è passato (solo per oggi)
+            if (selectedDate.toDateString() === now.toDateString() && orarioHour <= now.getHours()) {
+                return {
+                    id_slot: slotId,
+                    orario: orario,
+                    status: 'past',
+                    title: 'Orario passato'
+                };
+            }
+
+            // Controlla se c'è una prenotazione per questo orario
+            const prenotazione = prenotazioni.find(p => {
+                const prenotazioneInizio = parseInt(p.orario_inizio);
+                const prenotazioneFine = parseInt(p.orario_fine);
+                return orarioHour >= prenotazioneInizio && orarioHour < prenotazioneFine;
+            });
+
+            if (prenotazione) {
+                if (prenotazione.stato === 'confermata') {
+                    return {
+                        id_slot: slotId,
+                        orario: orario,
+                        status: 'booked',
+                        title: 'Slot prenotato',
+                        prenotazione_id: prenotazione.id_prenotazione
+                    };
+                } else if (prenotazione.stato === 'in attesa') {
+                    const expiresAt = new Date(prenotazione.expires_at);
+                    const minutesLeft = Math.max(0, Math.ceil((expiresAt - now) / (1000 * 60)));
+
+                    return {
+                        id_slot: slotId,
+                        orario: orario,
+                        status: 'occupied',
+                        title: `Slot occupato (${minutesLeft} min rimasti)`,
+                        expires_at: prenotazione.expires_at,
+                        minutes_remaining: minutesLeft,
+                        prenotazione_id: prenotazione.id_prenotazione
+                    };
+                }
+            }
+
+            // Slot disponibile
+            return {
+                id_slot: slotId,
+                orario: orario,
+                status: 'available',
+                title: 'Slot disponibile'
+            };
+        });
+
+        console.log(`✅ Stato slot calcolato: ${slotsStatus.length} slot`);
+        return slotsStatus;
+
+    } catch (error) {
+        console.error('❌ Errore fetchSlotsFromDatabase:', error);
+        throw error;
+    }
+}
+
+/**
+ * Occupa uno slot temporaneamente con expires_at
  * POST /api/slots/:id/hold
  */
 async function holdSlot(req, res) {
     try {
         const { id } = req.params;
         const userId = req.user.id_utente;
+        const { idSpazio, sedeId, date } = req.body;
 
         if (!id) {
             return res.status(400).json({
@@ -68,16 +194,34 @@ async function holdSlot(req, res) {
             });
         }
 
-        const success = await slotTimer.holdSlot(parseInt(id), userId);
+        // Crea prenotazione temporanea con expires_at
+        const result = await pool.query(`
+            INSERT INTO Prenotazione (id_utente, id_spazio, data_inizio, data_fine, stato, expires_at)
+            VALUES ($1, $2, $3, $4, 'in attesa', $5)
+            RETURNING id_prenotazione, expires_at
+        `, [
+            userId,
+            idSpazio,
+            new Date(`${date}T${(parseInt(id) + 8).toString().padStart(2, '0')}:00:00`),
+            new Date(`${date}T${(parseInt(id) + 9).toString().padStart(2, '0')}:00:00`),
+            new Date(Date.now() + 15 * 60 * 1000) // 15 minuti da ora
+        ]);
 
-        if (success) {
-            // Ottieni dati aggiornati dello slot
-            const slots = await slotTimer.getSlotsStatus(req.body.idSpazio || 1, req.body.date || new Date().toISOString().split('T')[0]);
-            const updatedSlot = slots.find(slot => slot.id === parseInt(id));
+        if (result.rows.length > 0) {
+            const prenotazione = result.rows[0];
+
+            // Invalida cache Redis
+            await redisService.invalidateSlotsCache(sedeId, idSpazio, date);
 
             // Invia aggiornamento real-time via Socket.IO
-            if (updatedSlot && req.body.idSpazio && req.body.sedeId) {
-                socketService.broadcastSlotUpdate(req.body.idSpazio, req.body.sedeId, updatedSlot);
+            if (sedeId) {
+                const slotData = {
+                    id: parseInt(id),
+                    status: 'occupied',
+                    expires_at: prenotazione.expires_at,
+                    prenotazione_id: prenotazione.id_prenotazione
+                };
+                socketService.broadcastSlotUpdate(idSpazio, sedeId, slotData);
             }
 
             res.json({
@@ -85,13 +229,14 @@ async function holdSlot(req, res) {
                 message: 'Slot occupato per 15 minuti',
                 data: {
                     slotId: parseInt(id),
-                    heldUntil: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+                    prenotazione_id: prenotazione.id_prenotazione,
+                    expires_at: prenotazione.expires_at
                 }
             });
         } else {
             res.status(409).json({
                 success: false,
-                error: 'Slot non disponibile o già occupato'
+                error: 'Slot non disponibile'
             });
         }
 
@@ -105,13 +250,14 @@ async function holdSlot(req, res) {
 }
 
 /**
- * Conferma prenotazione di uno slot
+ * Conferma prenotazione slot (rimuove expires_at)
  * POST /api/slots/:id/book
  */
 async function bookSlot(req, res) {
     try {
         const { id } = req.params;
         const userId = req.user.id_utente;
+        const { idSpazio, sedeId, date } = req.body;
 
         if (!id) {
             return res.status(400).json({
@@ -120,21 +266,44 @@ async function bookSlot(req, res) {
             });
         }
 
-        const success = await slotTimer.bookSlot(parseInt(id), userId);
+        // Aggiorna prenotazione da 'in attesa' a 'confermata' e rimuovi expires_at
+        const result = await pool.query(`
+            UPDATE Prenotazione 
+            SET stato = 'confermata', expires_at = NULL
+            WHERE id_utente = $1 
+            AND id_spazio = $2 
+            AND stato = 'in attesa'
+            AND DATE(data_inizio) = $3
+            AND EXTRACT(HOUR FROM data_inizio) = $4
+            RETURNING id_prenotazione
+        `, [userId, idSpazio, date, parseInt(id) + 8]);
 
-        if (success) {
+        if (result.rows.length > 0) {
+            // Invalida cache Redis
+            await redisService.invalidateSlotsCache(sedeId, idSpazio, date);
+
+            // Invia aggiornamento real-time via Socket.IO
+            if (sedeId) {
+                const slotData = {
+                    id: parseInt(id),
+                    status: 'booked',
+                    prenotazione_id: result.rows[0].id_prenotazione
+                };
+                socketService.broadcastSlotUpdate(idSpazio, sedeId, slotData);
+            }
+
             res.json({
                 success: true,
                 message: 'Slot prenotato con successo',
                 data: {
                     slotId: parseInt(id),
-                    status: 'booked'
+                    prenotazione_id: result.rows[0].id_prenotazione
                 }
             });
         } else {
             res.status(409).json({
                 success: false,
-                error: 'Slot non disponibile per la prenotazione'
+                error: 'Slot non disponibile per prenotazione'
             });
         }
 
@@ -155,6 +324,7 @@ async function releaseSlot(req, res) {
     try {
         const { id } = req.params;
         const userId = req.user.id_utente;
+        const { idSpazio, sedeId, date } = req.body;
 
         if (!id) {
             return res.status(400).json({
@@ -163,9 +333,30 @@ async function releaseSlot(req, res) {
             });
         }
 
-        const success = await slotTimer.releaseSlot(parseInt(id), userId);
+        // Rimuovi prenotazione temporanea
+        const result = await pool.query(`
+            DELETE FROM Prenotazione 
+            WHERE id_utente = $1 
+            AND id_spazio = $2 
+            AND stato = 'in attesa'
+            AND DATE(data_inizio) = $3
+            AND EXTRACT(HOUR FROM data_inizio) = $4
+            RETURNING id_prenotazione
+        `, [userId, idSpazio, date, parseInt(id) + 8]);
 
-        if (success) {
+        if (result.rows.length > 0) {
+            // Invalida cache Redis
+            await redisService.invalidateSlotsCache(sedeId, idSpazio, date);
+
+            // Invia aggiornamento real-time via Socket.IO
+            if (sedeId) {
+                const slotData = {
+                    id: parseInt(id),
+                    status: 'available'
+                };
+                socketService.broadcastSlotUpdate(idSpazio, sedeId, slotData);
+            }
+
             res.json({
                 success: true,
                 message: 'Slot liberato con successo',
@@ -175,66 +366,14 @@ async function releaseSlot(req, res) {
                 }
             });
         } else {
-            res.status(409).json({
+            res.status(404).json({
                 success: false,
-                error: 'Slot non può essere liberato'
+                error: 'Slot non trovato o non occupato da questo utente'
             });
         }
 
     } catch (error) {
         console.error('❌ Errore nel liberare slot:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Errore interno del server'
-        });
-    }
-}
-
-/**
- * Crea slot per un giorno specifico
- * POST /api/slots/create-daily
- */
-async function createDailySlots(req, res) {
-    try {
-        const { idSpazio, date, startHour = 9, endHour = 18 } = req.body;
-
-        if (!idSpazio || !date) {
-            return res.status(400).json({
-                success: false,
-                error: 'Parametri idSpazio e date richiesti'
-            });
-        }
-
-        // Valida formato data
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!dateRegex.test(date)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Formato data non valido. Usa YYYY-MM-DD'
-            });
-        }
-
-        const slotsCreated = await slotTimer.createDailySlots(
-            parseInt(idSpazio),
-            date,
-            parseInt(startHour),
-            parseInt(endHour)
-        );
-
-        res.json({
-            success: true,
-            message: `Creati ${slotsCreated} slot per il ${date}`,
-            data: {
-                slotsCreated: slotsCreated,
-                date: date,
-                idSpazio: parseInt(idSpazio),
-                startHour: parseInt(startHour),
-                endHour: parseInt(endHour)
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Errore nella creazione slot giornalieri:', error);
         res.status(500).json({
             success: false,
             error: 'Errore interno del server'
@@ -251,7 +390,7 @@ async function testSlots(req, res) {
         const testDate = new Date().toISOString().split('T')[0];
         const testSpazio = 1; // ID spazio di test
 
-        const slots = await slotTimer.getSlotsStatus(testSpazio, testDate);
+        const slots = await fetchSlotsFromDatabase(testSpazio, testDate);
 
         res.json({
             success: true,
@@ -261,7 +400,8 @@ async function testSlots(req, res) {
                 testSpazio: testSpazio,
                 slotsCount: slots.length,
                 slots: slots.slice(0, 3), // Mostra solo i primi 3 per brevità
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                redis_stats: await redisService.getStats()
             }
         });
 

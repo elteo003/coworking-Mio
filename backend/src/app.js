@@ -9,6 +9,7 @@ const http = require('http');
 const config = require('../config/config');
 const { authenticateToken } = require('./middleware/auth');
 const socketService = require('./services/socketService');
+const redisService = require('./services/redisService');
 const app = express();
 const server = http.createServer(app);
 const PORT = config.server.port;
@@ -359,8 +360,30 @@ app.get('/api/test-token', (req, res) => {
 // const scadenzeCron = require('./cron/scadenzeCron');
 // scadenzeCron.start();
 
-server.listen(PORT, () => {
-  console.log(`Backend server running on port ${PORT}`);
-  console.log('🚀 Socket.IO server inizializzato');
-  console.log('🚀 Cron job scadenze avviato automaticamente');
+// Inizializza servizi
+async function initializeServices() {
+  try {
+    // Inizializza Redis
+    await redisService.initialize();
+
+    // Inizializza Socket.IO
+    socketService.initialize(server);
+
+    console.log('✅ Servizi inizializzati con successo');
+  } catch (error) {
+    console.error('❌ Errore inizializzazione servizi:', error);
+  }
+}
+
+// Avvia server
+server.listen(PORT, async () => {
+  console.log(`🚀 Backend server running on port ${PORT}`);
+
+  // Inizializza servizi
+  await initializeServices();
+
+  console.log('✅ Sistema CoworkSpace v2.0 pronto!');
+  console.log('📦 Redis:', redisService.isEnabled ? 'Abilitato' : 'Disabilitato (modalità sviluppo)');
+  console.log('🔌 Socket.IO: Abilitato con supporto Redis Pub/Sub');
+  console.log('⏰ Timer automatico: Controllo expires_at su query');
 });

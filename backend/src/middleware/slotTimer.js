@@ -57,14 +57,25 @@ async function freeExpiredSlots() {
         const result = await pool.query(`
             UPDATE slots 
             SET status = 'available', 
-                held_until = NULL, 
+                expires_at = NULL, 
                 id_utente = NULL,
                 updated_at = CURRENT_TIMESTAMP
             WHERE status = 'occupied' 
-            AND held_until IS NOT NULL 
-            AND held_until < CURRENT_TIMESTAMP
-            RETURNING id
+            AND expires_at IS NOT NULL 
+            AND expires_at < CURRENT_TIMESTAMP
+            RETURNING id, id_spazio
         `);
+
+        const freedSlots = result.rows;
+
+        // Invia aggiornamenti real-time per ogni slot liberato
+        freedSlots.forEach(slot => {
+            socketService.broadcastSlotUpdate(slot.id, 'available', {
+                id: slot.id,
+                id_spazio: slot.id_spazio,
+                status: 'available'
+            });
+        });
 
         return result.rowCount;
     } catch (error) {
@@ -144,21 +155,33 @@ async function createDailySlots(idSpazio, date, startHour = 9, endHour = 18) {
  */
 async function holdSlot(slotId, userId) {
     try {
-        const heldUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minuti da ora
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minuti da ora
 
         const result = await pool.query(`
             UPDATE slots 
             SET status = 'occupied',
-                held_until = $1,
+                expires_at = $1,
                 id_utente = $2,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = $3 
             AND status = 'available'
             AND start_time > CURRENT_TIMESTAMP
-            RETURNING id
-        `, [heldUntil, userId, slotId]);
+            RETURNING id, id_spazio
+        `, [expiresAt, userId, slotId]);
 
-        return result.rowCount > 0;
+        if (result.rowCount > 0) {
+            const slot = result.rows[0];
+            // Invia aggiornamento real-time
+            socketService.broadcastSlotUpdate(slotId, 'occupied', {
+                id: slot.id,
+                id_spazio: slot.id_spazio,
+                status: 'occupied',
+                expires_at: expiresAt,
+                id_utente: userId
+            });
+            return true;
+        }
+        return false;
     } catch (error) {
         console.error('❌ Errore nell\'occupare slot:', error);
         return false;

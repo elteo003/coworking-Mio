@@ -11,17 +11,53 @@ services:
       - "5432:5432"
     volumes:
       - coworkspace-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - coworkspace-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build: ../backend
     environment:
+      # Database
       PGUSER: postgres
       PGHOST: db
       PGDATABASE: coworkspace
       PGPASSWORD: postgres
       PGPORT: 5432
+      # Redis
+      REDIS_ENABLED: "true"
+      REDIS_URL: "redis://redis:6379"
+      # JWT
+      JWT_SECRET: "your-super-secret-jwt-key-change-in-production"
+      # Server
+      NODE_ENV: "development"
+      PORT: 3001
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "3001:3001"
+    volumes:
+      - ../backend:/app
+      - /app/node_modules
+
 volumes:
-  coworkspace-db-data: 
+  coworkspace-db-data:
+  coworkspace-redis-data: 
