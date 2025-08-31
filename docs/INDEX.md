@@ -5,9 +5,14 @@
 ### 📋 README Principali
 - **[🏠 Home](../README.md)** - README principale del progetto
 - **[📖 Panoramica](README.md)** - Panoramica documentazione
+- **[📚 Documentazione Completa](DOCUMENTAZIONE_COMPLETA.md)** - Documentazione completa di tutto il progetto
 - **[🔧 Backend](backend/README.md)** - Documentazione completa backend
 - **[🎨 Frontend](frontend/README.md)** - Documentazione completa frontend
 - **[🗄️ Database](database/README.md)** - Documentazione completa database
+
+### 🔌 API Documentation
+- **[📋 Swagger API](swagger.yaml)** - Documentazione completa API in formato Swagger/OpenAPI 3.0
+- **[📚 Guida API](API_DOCUMENTATION.md)** - Guida completa all'utilizzo delle API
 
 ## 🏗️ Architettura e Setup
 
@@ -81,6 +86,9 @@
 docs/
 ├── 📄 INDEX.md                    # Questo file - Indice navigazione
 ├── 📄 README.md                   # Panoramica documentazione
+├── 📄 DOCUMENTAZIONE_COMPLETA.md  # Documentazione completa progetto
+├── 📄 swagger.yaml                # Documentazione API Swagger/OpenAPI
+├── 📄 API_DOCUMENTATION.md        # Guida utilizzo API
 ├── 📄 PRENOTAZIONE_SISTEMA.md     # Sistema prenotazioni
 ├── 📁 backend/                    # Documentazione backend
 │   ├── 📄 README.md               # Documentazione principale
