@@ -76,6 +76,25 @@ function showDefaultNavbar() {
   return;
 }
 
+// Funzione per determinare la dashboard corretta in base al ruolo
+function getDashboardUrl(ruolo) {
+  console.log('🔍 getDashboardUrl chiamata con ruolo:', ruolo);
+  let url;
+  switch(ruolo) {
+    case 'amministratore':
+      url = 'dashboard-amministratore.html';
+      break;
+    case 'gestore':
+      url = 'dashboard-responsabili.html';
+      break;
+    default:
+      url = 'dashboard.html';
+      break;
+  }
+  console.log('🔍 getDashboardUrl restituisce URL:', url);
+  return url;
+}
+
 // Funzione per navigare alle pagine protette verificando l'autenticazione
 function navigateToProtectedPage(pageUrl) {
   console.log('Tentativo di navigazione a:', pageUrl);
@@ -99,8 +118,8 @@ function navigateToProtectedPage(pageUrl) {
             return;
           }
 
-          if (pageUrl.includes('dashboard.html')) {
-            console.log('🎯 Navigazione alla dashboard utente consentita');
+          if (pageUrl.includes('dashboard.html') || pageUrl.includes('dashboard-amministratore.html')) {
+            console.log('🎯 Navigazione alla dashboard consentita');
             window.location.href = pageUrl;
             return;
           }
@@ -285,6 +304,7 @@ window.handleLogin = function (event, email, password) {
       console.log('🔍 Chiavi disponibili:', Object.keys(response));
       console.log('🔍 Token presente:', 'token' in response);
       console.log('🔍 Valore token:', response.token);
+      console.log('🔍 Ruolo utente:', response.ruolo);
       console.log('🔍 Risposta completa:', JSON.stringify(response, null, 2));
 
       // Salva l'utente
@@ -365,9 +385,10 @@ window.handleLogin = function (event, email, password) {
               return;
             } catch (error) {
               console.error('handleLogin - Errore parsing prenotazione:', error);
-              // Fallback: vai alla dashboard
+              // Fallback: vai alla dashboard appropriata
+              const userRole = response.ruolo;
               setTimeout(() => {
-                window.location.href = 'dashboard.html';
+                window.location.href = getDashboardUrl(userRole);
               }, 1000);
               return;
             }
@@ -375,11 +396,11 @@ window.handleLogin = function (event, email, password) {
             // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (redirect fallback)
             const userRole = response.ruolo;
             console.log('🔍 handleLogin - Ruolo utente (redirect fallback):', userRole);
-            console.log('🎯 handleLogin - Redirect fallback, tutti vanno a dashboard.html');
+            console.log('🎯 handleLogin - Redirect fallback, vai alla dashboard appropriata');
 
-            // Nessuna prenotazione in attesa, vai alla dashboard utente normale
+            // Nessuna prenotazione in attesa, vai alla dashboard appropriata
             setTimeout(() => {
-              window.location.href = 'dashboard.html';
+              window.location.href = getDashboardUrl(userRole);
             }, 1000);
             return;
           }
@@ -409,13 +430,13 @@ window.handleLogin = function (event, email, password) {
           // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (login dalla home)
           const userRole = response.ruolo;
           console.log('🔍 handleLogin - Ruolo utente (login dalla home):', userRole);
-          console.log('🎯 handleLogin - Login dalla home, tutti vanno a dashboard.html');
+          console.log('🎯 handleLogin - Login dalla home, vai alla dashboard appropriata');
 
           // Mostra messaggio informativo
           showAlert('Login effettuato! Hai una prenotazione in attesa che puoi completare dalla dashboard.', 'info');
 
           setTimeout(() => {
-            window.location.href = 'dashboard.html';
+            window.location.href = getDashboardUrl(userRole);
           }, 1000);
         } else {
           // Se l'utente si logga da una pagina di prenotazione, procedi al pagamento
@@ -444,11 +465,12 @@ window.handleLogin = function (event, email, password) {
         // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (se non stanno prenotando)
         const userRole = response.ruolo;
         console.log('🔍 handleLogin - Ruolo utente:', userRole);
-        console.log('🎯 handleLogin - Login come azione principale, tutti vanno a dashboard.html');
+        console.log('🎯 handleLogin - Login come azione principale, vai alla dashboard appropriata');
+        console.log('🔍 handleLogin - URL dashboard calcolato:', getDashboardUrl(userRole));
 
-        // Nessuna prenotazione in attesa, vai alla dashboard utente normale
+        // Nessuna prenotazione in attesa, vai alla dashboard appropriata
         setTimeout(() => {
-          window.location.href = 'dashboard.html';
+          window.location.href = getDashboardUrl(userRole);
         }, 1000);
       }
     })
@@ -471,7 +493,7 @@ window.handleLogin = function (event, email, password) {
 }
 
 // Registrazione
-window.handleRegistration = function (event, nome, cognome, email, password, telefono, ruolo) {
+window.handleRegistration = function (event, nome, cognome, email, password, telefono, ruolo, inviteCode) {
   if (event && event.preventDefault) {
     event.preventDefault();
   }
@@ -484,6 +506,7 @@ window.handleRegistration = function (event, nome, cognome, email, password, tel
     password = $('#regPassword').val();
     ruolo = $('#regRuolo').val();
     telefono = $('#regTelefono').val() || null;
+    inviteCode = $('#regInviteCode').val() || null;
   }
 
   const data = {
@@ -492,7 +515,8 @@ window.handleRegistration = function (event, nome, cognome, email, password, tel
     email: email,
     password: password,
     ruolo: ruolo,
-    telefono: telefono || null
+    telefono: telefono || null,
+    inviteCode: inviteCode || null
   };
 
   // Mostra loading
@@ -561,13 +585,13 @@ window.handleRegistration = function (event, nome, cognome, email, password, tel
           // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (registrazione dalla home)
           const userRole = response.ruolo;
           console.log('🔍 handleRegistration - Ruolo utente (registrazione dalla home):', userRole);
-          console.log('🎯 handleRegistration - Registrazione dalla home, tutti vanno a dashboard.html');
+          console.log('🎯 handleRegistration - Registrazione dalla home, vai alla dashboard appropriata');
 
           // Mostra messaggio informativo
           showAlert('Registrazione completata! Hai una prenotazione in attesa che puoi completare dalla dashboard.', 'info');
 
           setTimeout(() => {
-            window.location.href = 'dashboard.html';
+            window.location.href = getDashboardUrl(userRole);
           }, 1500);
         } else {
           // Se l'utente si registra da una pagina di prenotazione, procedi al pagamento
@@ -594,11 +618,11 @@ window.handleRegistration = function (event, nome, cognome, email, password, tel
         // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (nessuna prenotazione)
         const userRole = response.ruolo;
         console.log('🔍 handleRegistration - Ruolo utente (nessuna prenotazione):', userRole);
-        console.log('🎯 handleRegistration - Nessuna prenotazione, tutti vanno a dashboard.html');
+        console.log('🎯 handleRegistration - Nessuna prenotazione, vai alla dashboard appropriata');
 
-        // Nessuna prenotazione in attesa, vai alla dashboard utente normale
+        // Nessuna prenotazione in attesa, vai alla dashboard appropriata
         setTimeout(() => {
-          window.location.href = 'dashboard.html';
+          window.location.href = getDashboardUrl(userRole);
         }, 1500);
       }
     })

@@ -113,7 +113,7 @@ function logout() {
     } else {
         // Se la pagina non richiede auth, non salvare nulla
         localStorage.removeItem('redirectAfterLogin');
-        console.log('logout - Pagina non richiede auth, rimango qui');
+        console.log('logout - Pagina non richiede auth');
     }
 
     // Pulisci i dati della prenotazione in corso se siamo su selezione-slot.html
@@ -130,16 +130,9 @@ function logout() {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
 
-    if (requiresAuth) {
-        // Reindirizza al login se la pagina richiede autenticazione
-        window.location.href = 'login.html?message=' + encodeURIComponent('Logout effettuato con successo.');
-    } else {
-        // Rimani nella pagina corrente se non richiede autenticazione
-        // ✅ Aggiorna la navbar per mostrare il tasto Accedi
-        console.log('logout - Aggiorno navbar per utente non autenticato');
-        updateNavbarUniversal();
-    }
-
+    // ✅ SEMPRE reindirizza alla homepage dopo il logout
+    console.log('logout - Reindirizzamento alla homepage');
+    window.location.href = 'index.html?message=' + encodeURIComponent('Logout effettuato con successo.');
 }
 
 // ✅ NUOVA FUNZIONE: tenta di ripristinare i dati utente dal token
@@ -475,20 +468,20 @@ function updateNavbarUniversal() {
 
             // Aggiungi Dashboard in base al ruolo dell'utente
             if (config.mostraDashboard) {
-                let dashboardItem;
+                let dashboardItems = '';
 
-                if (user.ruolo === 'gestore' || user.ruolo === 'amministratore') {
-                    // Per gestori e amministratori: Dashboard ilmio
-                    dashboardItem = `
+                if (user.ruolo === 'gestore') {
+                    // Per gestori: Solo Dashboard Gestori (principale)
+                    dashboardItems = `
                         <li class="nav-item dynamic-nav-item">
                             <a class="nav-link" href="dashboard-responsabili.html">
-                                <i class="fas fa-users-cog me-2"></i>Dashboard ilmio
+                                <i class="fas fa-users-cog me-2"></i>Dashboard Gestori
                             </a>
                         </li>
                     `;
-                } else {
-                    // Per clienti: Dashboard normale
-                    dashboardItem = `
+                } else if (user.ruolo === 'cliente') {
+                    // Per clienti: Solo Dashboard Utente
+                    dashboardItems = `
                         <li class="nav-item dynamic-nav-item">
                             <a class="nav-link" href="dashboard.html">
                                 <i class="fas fa-tachometer-alt me-2"></i>Dashboard (${user.nome})
@@ -496,8 +489,12 @@ function updateNavbarUniversal() {
                         </li>
                     `;
                 }
+                // ✅ Amministratori: Nessun link dashboard nella navbar universale
+                // Gli amministratori accedono alle dashboard tramite i link nelle rispettive pagine
 
-                authSection.insertAdjacentHTML('afterend', dashboardItem);
+                if (dashboardItems) {
+                    authSection.insertAdjacentHTML('afterend', dashboardItems);
+                }
             }
 
             // ✅ Logout ora è integrato direttamente nella sezione auth (vedi sopra)
