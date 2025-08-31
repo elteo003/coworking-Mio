@@ -14,6 +14,13 @@ let slotManager = null;
 
 // Inizializza il nuovo Slot Manager
 function initializeSlotManager() {
+    console.log('🚀 initializeSlotManager chiamata');
+    console.log('🔍 Stato selezioni:', {
+        selectedSede: !!window.selectedSede,
+        selectedSpazio: !!window.selectedSpazio,
+        selectedDateInizio: !!window.selectedDateInizio
+    });
+    
     if (window.selectedSede && window.selectedSpazio && window.selectedDateInizio) {
         const sedeId = window.selectedSede.id_sede;
         const spazioId = window.selectedSpazio.id_spazio;
@@ -43,10 +50,13 @@ function initializeSlotManager() {
         }
         slotManager = new window.SlotManager();
         slotManager.init(sedeId, spazioId, date);
+        window.slotManager = slotManager; // Esponi globalmente
         console.log('✅ STEP 2 COMPLETATO: SlotManager inizializzato');
+        console.log('🔍 SlotManager esposto globalmente:', !!window.slotManager);
 
         return true;
     }
+    console.log('❌ initializeSlotManager fallita - selezioni incomplete');
     return false;
 }
 
@@ -63,7 +73,10 @@ async function checkAvailability(orarioInizio, orarioFine) {
             slotsStatus: window.slotManager?.slotsStatus
         });
         
-        if (window.slotManager && window.slotManager.slotsStatus && window.slotManager.slotsStatus.length > 0) {
+        // Aspetta che il SlotManager sia pronto
+        const slotManagerReady = await waitForSlotManager(3000);
+        
+        if (slotManagerReady && window.slotManager && window.slotManager.slotsStatus && window.slotManager.slotsStatus.length > 0) {
             console.log('🔍 SlotManager disponibile con', window.slotManager.slotsStatus.length, 'slot');
             return await checkAvailabilityFromSlotManager(orarioInizio, orarioFine);
         } else {
@@ -806,8 +819,8 @@ async function selectTimeSlot(orario, slotElement) {
         });
 
         // Seleziona il primo slot usando il nuovo SlotManager
-        if (slotManager) {
-            slotManager.selectSlot(slotElement.dataset.slotId);
+        if (window.slotManager) {
+            window.slotManager.selectSlot(slotElement.dataset.slotId);
         }
 
         // Aggiungi la classe per lo slot selezionato
