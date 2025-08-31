@@ -26,33 +26,33 @@
     transform: scale(1.05);
 }
 
-/* Modal XL per catalogo - Usa classi Bootstrap standard */
-.modal-dialog.modal-xl {
-    max-width: 90vw;
-    width: 90vw;
-    max-height: 90vh;
+/* Modal personalizzato per catalogo - Personalizza .modal-dialog */
+.modal-dialog {
+    max-width: 95vw;
+    width: 95vw;
+    max-height: 95vh;
     margin: 1rem auto;
 }
 
 
 
-.modal-dialog.modal-xl .modal-content {
+.modal-dialog .modal-content {
     height: 100%;
     display: flex;
     flex-direction: column;
 }
 
-.modal-dialog.modal-xl .modal-body {
+.modal-dialog .modal-body {
     flex: 1;
     overflow-y: auto;
 }
 
 /* Carosello immersivo nei modal */
-.modal-dialog.modal-xl .immersive-carousel {
+.modal-dialog .immersive-carousel {
     height: 400px;
 }
 
-.modal-dialog.modal-xl .immersive-carousel-image {
+.modal-dialog .immersive-carousel-image {
     height: 400px;
 }
 
