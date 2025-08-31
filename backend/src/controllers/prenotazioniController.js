@@ -113,8 +113,8 @@ exports.creaPrenotazione = async (req, res) => {
     // perché uno spazio può essere "occupato" per alcuni orari ma disponibile per altri
     // Lo stato viene determinato dalle prenotazioni specifiche per l'intervallo richiesto
 
-    // Controllo disponibilità per prenotazioni confermate
-    const check = await pool.query(
+    // Controllo disponibilità per prenotazioni confermate e in attesa
+    const checkConfermate = await pool.query(
       `SELECT COUNT(*) FROM Prenotazione
        WHERE id_spazio = $1
          AND stato = 'confermata'
@@ -122,8 +122,31 @@ exports.creaPrenotazione = async (req, res) => {
       [id_spazio, data_inizio, data_fine]
     );
 
-    if (check.rows[0].count !== '0') {
-      return res.status(409).json({ error: 'Spazio non disponibile' });
+    const checkInAttesa = await pool.query(
+      `SELECT COUNT(*) FROM Prenotazione
+       WHERE id_spazio = $1
+         AND stato = 'in attesa'
+         AND scadenza_slot > NOW()
+         AND (data_inizio, data_fine) OVERLAPS ($2::timestamp, $3::timestamp)`,
+      [id_spazio, data_inizio, data_fine]
+    );
+
+    if (checkConfermate.rows[0].count !== '0') {
+      console.log('❌ Prenotazioni confermate sovrapposte per spazio:', id_spazio);
+      return res.status(409).json({ 
+        error: 'Spazio non disponibile',
+        reason: 'Prenotazioni confermate sovrapposte',
+        details: 'Gli slot selezionati sono già prenotati e confermati'
+      });
+    }
+
+    if (checkInAttesa.rows[0].count !== '0') {
+      console.log('❌ Prenotazioni in attesa sovrapposte per spazio:', id_spazio);
+      return res.status(409).json({ 
+        error: 'Spazio non disponibile',
+        reason: 'Prenotazioni in attesa sovrapposte',
+        details: 'Gli slot selezionati sono temporaneamente occupati da altre prenotazioni in attesa di pagamento'
+      });
     }
 
     // NOTA: Non aggiorniamo più lo stato generale dello spazio

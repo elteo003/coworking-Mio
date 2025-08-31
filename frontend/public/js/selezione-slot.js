@@ -92,15 +92,27 @@ async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
     // Controlla se tutti gli slot nell'intervallo sono disponibili
     for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
         const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
-        const slot = window.slotManager.slotsStatus.find(s => s.orario === orarioSlot);
+        
+        // Cerca slot per orario o per ID
+        let slot = window.slotManager.slotsStatus.find(s => s.orario === orarioSlot);
+        if (!slot) {
+            // Prova a cercare per ID slot (basato sull'indice)
+            const slotIndex = hour - 9; // Gli slot iniziano da 9:00
+            slot = window.slotManager.slotsStatus.find(s => s.id_slot === slotIndex + 1);
+        }
 
-        if (!slot || slot.status !== 'available') {
+        if (!slot) {
+            console.log(`❌ Slot ${orarioSlot} non trovato nel SlotManager`);
+            return false;
+        }
+
+        if (slot.status !== 'available') {
             console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
             return false;
         }
     }
 
-    console.log('✅ Tutti gli slot sono disponibili');
+    console.log('✅ Tutti gli slot sono disponibili (SlotManager)');
     return true;
 }
 
@@ -171,11 +183,23 @@ async function checkAvailabilityFromAPI(orarioInizio, orarioFine) {
         // Controlla se tutti gli slot nell'intervallo sono disponibili
         for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
             const orarioSlot = `${hour.toString().padStart(2, '0')}:00`;
-            const slot = disponibilita.data.slots.find(s => s.orario === orarioSlot);
+            
+            // Cerca slot per orario o per ID
+            let slot = disponibilita.data.slots.find(s => s.orario === orarioSlot);
+            if (!slot) {
+                // Prova a cercare per ID slot (basato sull'indice)
+                const slotIndex = hour - 9; // Gli slot iniziano da 9:00
+                slot = disponibilita.data.slots.find(s => s.id_slot === slotIndex + 1);
+            }
 
             console.log(`🔍 Controllo slot ${orarioSlot}:`, slot);
 
-            if (!slot || slot.status !== 'available') {
+            if (!slot) {
+                console.log(`❌ Slot ${orarioSlot} non trovato nei dati API`);
+                return false;
+            }
+
+            if (slot.status !== 'available') {
                 console.log(`❌ Slot ${orarioSlot} non disponibile:`, slot);
                 return false;
             }
@@ -505,26 +529,34 @@ function setupEventListeners() {
                 return;
             }
 
+            // Verifica disponibilità finale prima di procedere
+            console.log('🔍 Verifica disponibilità finale prima di procedere...');
+            const isAvailable = await checkAvailability(window.selectedTimeInizio, window.selectedTimeFine);
+            if (!isAvailable) {
+                showError('Gli slot selezionati non sono più disponibili. Aggiorna la pagina e riprova.');
+                return;
+            }
+
             // Crea la prenotazione nel database prima del pagamento
+            // Mantieni il timezone locale invece di convertire in UTC
+            const formatDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            // Crea la prenotazione nel database con retry automatico
+            const prenotazioneData = {
+                id_spazio: window.selectedSpazio.id_spazio,
+                data_inizio: new Date(`${formatDate(window.selectedDateInizio)}T${window.selectedTimeInizio}:00`).toISOString(),
+                data_fine: new Date(`${formatDate(window.selectedDateFine)}T${window.selectedTimeFine}:00`).toISOString()
+            };
+
+            console.log('📝 Dati prenotazione:', prenotazioneData);
+
             try {
                 console.log('🚀 Creazione prenotazione prima del pagamento...');
-
-                // Mantieni il timezone locale invece di convertire in UTC
-                const formatDate = (date) => {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    return `${year}-${month}-${day}`;
-                };
-
-                // Crea la prenotazione nel database con retry automatico
-                const prenotazioneData = {
-                    id_spazio: window.selectedSpazio.id_spazio,
-                    data_inizio: new Date(`${formatDate(window.selectedDateInizio)}T${window.selectedTimeInizio}:00`).toISOString(),
-                    data_fine: new Date(`${formatDate(window.selectedDateFine)}T${window.selectedTimeFine}:00`).toISOString()
-                };
-
-                console.log('📝 Dati prenotazione:', prenotazioneData);
 
                 // Usa ErrorHandler per retry automatico
                 const result = await window.ErrorHandler.withRetry(async () => {
@@ -541,6 +573,7 @@ function setupEventListeners() {
                         const errorData = await response.json().catch(() => ({ error: 'Errore sconosciuto' }));
                         const error = new Error(`Errore creazione prenotazione: ${errorData.error || response.status}`);
                         error.status = response.status;
+                        error.details = errorData.details || errorData.reason || '';
                         throw error;
                     }
 
@@ -576,6 +609,10 @@ function setupEventListeners() {
                     showError(`Errore di validazione: ${errorInfo.message}`);
                 } else if (errorInfo.type === 'network') {
                     showError('Problema di connessione. Verifica la tua connessione internet e riprova.');
+                } else if (error.status === 409) {
+                    // Errore di conflitto - slot non disponibili
+                    const details = error.details || 'Gli slot selezionati non sono più disponibili.';
+                    showError(`${details} Aggiorna la pagina e riprova con slot diversi.`);
                 } else {
                     showError(`Errore durante la creazione della prenotazione: ${errorInfo.message}`);
                 }
