@@ -398,6 +398,50 @@ class SlotManagerSocketIO {
         }
     }
 
+    // Rilascia uno slot occupato temporaneamente
+    async releaseSlot(slotId) {
+        const button = document.querySelector(`[data-slot-id="${slotId}"]`);
+        if (!button) return false;
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.error('❌ Token mancante per rilasciare slot');
+            return false;
+        }
+
+        try {
+            // Chiamata API per rilasciare lo slot
+            const response = await fetch(`${window.CONFIG.API_BASE}/slots/${slotId}/release`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    idSpazio: this.currentSpazio,
+                    sedeId: this.currentSede,
+                    date: this.currentDate
+                })
+            });
+
+            if (response.ok) {
+                console.log('✅ Slot rilasciato con successo');
+                // Aggiorna UI - ripristina stato originale
+                button.classList.remove('slot-occupied-temp');
+                button.classList.add('slot-available');
+                button.disabled = false;
+                button.title = 'Disponibile';
+                return true;
+            } else {
+                console.error('❌ Errore nel rilasciare slot:', response.status);
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Errore nel rilasciare slot:', error);
+            return false;
+        }
+    }
+
     // Ottieni ID utente corrente
     getCurrentUserId() {
         try {
