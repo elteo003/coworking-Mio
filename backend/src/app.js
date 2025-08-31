@@ -131,7 +131,7 @@ app.use('/webhook', webhookRoutes);
 
 // Rotte per gestione scadenze
 const scadenzeRoutes = require('./routes/scadenze');
-app.use('/api', scadenzeRoutes);
+app.use('/api/scadenze', scadenzeRoutes);
 
 // Rotte per gestione concorrenza real-time
 const concorrenzaRoutes = require('./routes/concorrenza');

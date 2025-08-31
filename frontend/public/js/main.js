@@ -263,7 +263,8 @@ window.handleLogin = function (event, email, password) {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+    timeout: 30000 // 30 secondi di timeout
   })
     .then(response => {
       if (!response.ok) {
@@ -453,8 +454,14 @@ window.handleLogin = function (event, email, password) {
     })
     .catch(error => {
       console.error('Errore login:', error);
-      const errorMessage = error.message || 'Errore durante il login';
-      showAlert(errorMessage, 'danger');
+
+      // Gestione specifica per timeout e errori di connessione
+      if (error.name === 'AbortError' || error.message.includes('timeout') || error.message.includes('Failed to fetch')) {
+        showAlert('🔄 Il server si sta svegliando... Riprova tra qualche secondo.', 'warning');
+      } else {
+        const errorMessage = error.message || 'Errore durante il login';
+        showAlert(errorMessage, 'danger');
+      }
     })
     .finally(() => {
       // Ripristina il pulsante
@@ -738,7 +745,8 @@ function testAPIConnection() {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
-    }
+    },
+    timeout: 30000 // 30 secondi di timeout
   })
     .then(response => {
       if (response.ok) {
@@ -753,7 +761,19 @@ function testAPIConnection() {
     })
     .catch(error => {
       console.error('❌ Errore connessione API:', error);
-      showAlert('⚠️ Impossibile raggiungere il server. Verifica la connessione o riprova più tardi.', 'warning');
+
+      // Se è un timeout, mostra messaggio specifico per Render
+      if (error.name === 'AbortError' || error.message.includes('timeout')) {
+        showAlert('🔄 Il server si sta svegliando... Riprova tra qualche secondo.', 'info');
+
+        // Riprova automaticamente dopo 5 secondi
+        setTimeout(() => {
+          console.log('🔄 Riprovo connessione API...');
+          testAPIConnection();
+        }, 5000);
+      } else {
+        showAlert('⚠️ Impossibile raggiungere il server. Verifica la connessione o riprova più tardi.', 'warning');
+      }
     });
 }
 
