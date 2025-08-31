@@ -921,6 +921,10 @@ function selectSlotRange(startSlotId, endSlotId) {
             if (window.slotManager) {
                 window.slotManager.selectSlot(slotId.toString());
             }
+            
+            console.log(`✅ Slot ${orario} (ID: ${slotId}) selezionato e reso blu`);
+        } else {
+            console.log(`⚠️ Slot ${slotId} non disponibile o già selezionato`);
         }
     }
 }
