@@ -6,6 +6,11 @@ Questa cartella contiene tutta la documentazione del sistema di gestione coworki
 
 ## 📁 Struttura Documentazione
 
+### **README Principali**
+- **[Backend README](backend/README.md)** - Documentazione completa backend
+- **[Frontend README](frontend/README.md)** - Documentazione completa frontend
+- **[Database README](database/README.md)** - Documentazione completa database
+
 ### **Frontend** (`/frontend/`)
 - **[SLOT_MANAGEMENT_SYSTEM.md](frontend/SLOT_MANAGEMENT_SYSTEM.md)** - Sistema completo gestione slot con Socket.IO e optimistic UI
 - **[OPTIMISTIC_UI_SYSTEM.md](frontend/OPTIMISTIC_UI_SYSTEM.md)** - Sistema optimistic UI per feedback immediato

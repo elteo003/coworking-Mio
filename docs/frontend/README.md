@@ -486,9 +486,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 ## 📚 Documentazione Correlata
 
-- **[Slot Management System](docs/frontend/SLOT_MANAGEMENT_SYSTEM.md)**
-- **[Optimistic UI System](docs/frontend/OPTIMISTIC_UI_SYSTEM.md)**
-- **[Backend API Documentation](../backend/README.md)**
+- **[Slot Management System](SLOT_MANAGEMENT_SYSTEM.md)** - Sistema completo gestione slot
+- **[Optimistic UI System](OPTIMISTIC_UI_SYSTEM.md)** - Sistema optimistic UI
+- **[Backend Documentation](../backend/README.md)** - Documentazione backend
+- **[Database Documentation](../database/README.md)** - Documentazione database
 
 ## 🤝 Contribuire
 

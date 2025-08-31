@@ -532,9 +532,11 @@ psql -h localhost -U postgres -d coworkspace < schema_backup.sql
 
 ## 📚 Documentazione Correlata
 
-- **[Setup Database](docs/database/SETUP_DATABASE.md)**
-- **[Slots Schema](docs/database/SLOTS_SCHEMA.md)**
+- **[Setup Database](SETUP_DATABASE.md)**
+- **[Slots Schema](SLOTS_SCHEMA.md)**
+- **[Fix Prenotazioni](README_FIX_PRENOTAZIONE.md)**
 - **[Backend Documentation](../backend/README.md)**
+- **[Frontend Documentation](../frontend/README.md)**
 
 ## 🤝 Contribuire
 

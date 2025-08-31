@@ -319,11 +319,13 @@ docker-compose -f ../devops/docker-compose.yml up -d
 
 ## 📚 Documentazione Correlata
 
-- **[Socket.IO Integration](docs/backend/SOCKET_IO_INTEGRATION.md)**
-- **[Slot Timer System](docs/backend/SLOT_TIMER_SYSTEM.md)**
-- **[Configuration Guide](docs/backend/CONFIGURAZIONE.md)**
-- **[Render Setup](docs/backend/RENDER_SETUP.md)**
-- **[Webhook Setup](WEBHOOK_SETUP.md)**
+- **[Socket.IO Integration](SOCKET_IO_INTEGRATION.md)**
+- **[Slot Timer System](SLOT_TIMER_SYSTEM.md)**
+- **[Configuration Guide](CONFIGURAZIONE.md)**
+- **[Render Setup](RENDER_SETUP.md)**
+- **[Webhook Setup](../../backend/WEBHOOK_SETUP.md)**
+- **[Frontend Documentation](../frontend/README.md)**
+- **[Database Documentation](../database/README.md)**
 
 ## 🤝 Contribuire
 

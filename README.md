@@ -136,17 +136,29 @@ CoworkSpace/
 │   ├── schema.sql             # Schema principale
 │   ├── migration-*.sql        # Migrazioni
 │   └── seed.sql               # Dati di test
-├── 📁 docs/                   # Documentazione tecnica
-│   ├── 📁 backend/            # Docs backend dettagliate
-│   ├── 📁 frontend/           # Docs frontend dettagliate
-│   ├── 📁 database/           # Docs database dettagliate
+├── 📁 docs/                   # Documentazione completa
+│   ├── 📄 INDEX.md            # Indice navigazione documentazione
+│   ├── 📁 backend/            # Documentazione backend
+│   │   ├── README.md          # Documentazione principale backend
+│   │   ├── CONFIGURAZIONE.md  # Configurazione backend
+│   │   ├── RENDER_SETUP.md    # Setup deployment
+│   │   ├── SLOT_TIMER_SYSTEM.md # Sistema timer automatico
+│   │   ├── SOCKET_IO_INTEGRATION.md # Integrazione Socket.IO
+│   │   └── SOCKET_IO_MIGRATION.md # Migrazione da SSE
+│   ├── 📁 frontend/           # Documentazione frontend
+│   │   ├── README.md          # Documentazione principale frontend
+│   │   ├── SLOT_MANAGEMENT_SYSTEM.md # Sistema gestione slot
+│   │   └── OPTIMISTIC_UI_SYSTEM.md # Sistema optimistic UI
+│   ├── 📁 database/           # Documentazione database
+│   │   ├── README.md          # Documentazione principale database
+│   │   ├── SETUP_DATABASE.md  # Setup database
+│   │   ├── SLOTS_SCHEMA.md    # Schema database
+│   │   └── README_FIX_PRENOTAZIONE.md # Fix constraint
+│   ├── PRENOTAZIONE_SISTEMA.md # Sistema prenotazioni
 │   └── README.md              # Panoramica documentazione
 ├── 📁 backend/                # Backend Node.js
-│   └── README.md              # Documentazione backend
 ├── 📁 frontend/               # Frontend
-│   └── README.md              # Documentazione frontend
 ├── 📁 database/               # Database
-│   └── README.md              # Documentazione database
 ├── 📁 devops/                 # DevOps
 │   └── docker-compose.yml     # Orchestrazione servizi
 └── README.md                  # Questo file
@@ -288,9 +300,10 @@ docker run -d \
 ## 📚 Documentazione
 
 ### README Principali
-- **[Backend](backend/README.md)** - Documentazione completa backend
-- **[Frontend](frontend/README.md)** - Documentazione completa frontend  
-- **[Database](database/README.md)** - Documentazione completa database
+- **[📚 Indice Documentazione](docs/INDEX.md)** - Navigazione rapida documentazione
+- **[Backend](docs/backend/README.md)** - Documentazione completa backend
+- **[Frontend](docs/frontend/README.md)** - Documentazione completa frontend  
+- **[Database](docs/database/README.md)** - Documentazione completa database
 - **[Documentazione Generale](docs/README.md)** - Panoramica documentazione
 
 ### Documentazione Tecnica
