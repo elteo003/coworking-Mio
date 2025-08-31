@@ -206,6 +206,12 @@ async function holdSlot(req, res) {
             });
         }
 
+        // Converte slot ID in orario (slot 1 = 9:00, slot 2 = 10:00, etc.)
+        const slotHour = parseInt(id) + 8; // slot 1 = 9:00, slot 2 = 10:00
+        const startTime = new Date(`${date}T${slotHour.toString().padStart(2, '0')}:00:00Z`); // UTC
+        const endTime = new Date(`${date}T${(slotHour + 1).toString().padStart(2, '0')}:00:00Z`); // UTC
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minuti da ora
+
         // Crea prenotazione temporanea con expires_at
         const result = await pool.query(`
             INSERT INTO Prenotazione (id_utente, id_spazio, data_inizio, data_fine, stato, expires_at)
@@ -214,9 +220,9 @@ async function holdSlot(req, res) {
         `, [
             userId,
             idSpazio,
-            new Date(`${date}T${(parseInt(id) + 8).toString().padStart(2, '0')}:00:00`),
-            new Date(`${date}T${(parseInt(id) + 9).toString().padStart(2, '0')}:00:00`),
-            new Date(Date.now() + 15 * 60 * 1000) // 15 minuti da ora
+            startTime,
+            endTime,
+            expiresAt
         ]);
 
         if (result.rows.length > 0) {
@@ -278,6 +284,9 @@ async function bookSlot(req, res) {
             });
         }
 
+        // Converte slot ID in orario per la query
+        const slotHour = parseInt(id) + 8; // slot 1 = 9:00, slot 2 = 10:00
+
         // Aggiorna prenotazione da 'in attesa' a 'confermata' e rimuovi expires_at
         const result = await pool.query(`
             UPDATE Prenotazione 
@@ -288,7 +297,7 @@ async function bookSlot(req, res) {
             AND DATE(data_inizio) = $3
             AND EXTRACT(HOUR FROM data_inizio) = $4
             RETURNING id_prenotazione
-        `, [userId, idSpazio, date, parseInt(id) + 8]);
+        `, [userId, idSpazio, date, slotHour]);
 
         if (result.rows.length > 0) {
             // Invalida cache Redis
@@ -345,6 +354,9 @@ async function releaseSlot(req, res) {
             });
         }
 
+        // Converte slot ID in orario per la query
+        const slotHour = parseInt(id) + 8; // slot 1 = 9:00, slot 2 = 10:00
+
         // Rimuovi prenotazione temporanea
         const result = await pool.query(`
             DELETE FROM Prenotazione 
@@ -354,7 +366,7 @@ async function releaseSlot(req, res) {
             AND DATE(data_inizio) = $3
             AND EXTRACT(HOUR FROM data_inizio) = $4
             RETURNING id_prenotazione
-        `, [userId, idSpazio, date, parseInt(id) + 8]);
+        `, [userId, idSpazio, date, slotHour]);
 
         if (result.rows.length > 0) {
             // Invalida cache Redis
@@ -439,8 +451,8 @@ async function createDailySlots(req, res) {
         // Crea slot per ogni ora (9:00 - 17:00)
         const slots = [];
         for (let hour = 9; hour <= 17; hour++) {
-            const startTime = new Date(`${date}T${hour.toString().padStart(2, '0')}:00:00`);
-            const endTime = new Date(`${date}T${(hour + 1).toString().padStart(2, '0')}:00:00`);
+            const startTime = new Date(`${date}T${hour.toString().padStart(2, '0')}:00:00Z`); // UTC
+            const endTime = new Date(`${date}T${(hour + 1).toString().padStart(2, '0')}:00:00Z`); // UTC
 
             // Inserisci slot nella tabella Prenotazione come "disponibile"
             const result = await pool.query(`

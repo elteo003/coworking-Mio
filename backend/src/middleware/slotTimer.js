@@ -125,8 +125,8 @@ async function createDailySlots(idSpazio, date, startHour = 9, endHour = 18) {
 
         // Crea slot per ogni ora
         for (let hour = startHour; hour < endHour; hour++) {
-            const startTime = new Date(`${date}T${hour.toString().padStart(2, '0')}:00:00`);
-            const endTime = new Date(`${date}T${(hour + 1).toString().padStart(2, '0')}:00:00`);
+            const startTime = new Date(`${date}T${hour.toString().padStart(2, '0')}:00:00Z`); // UTC
+            const endTime = new Date(`${date}T${(hour + 1).toString().padStart(2, '0')}:00:00Z`); // UTC
 
             const status = startTime < new Date() ? 'passato' : 'disponibile';
 
