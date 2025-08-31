@@ -5,9 +5,12 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
 const config = require('../config/config');
 const { authenticateToken } = require('./middleware/auth');
+const socketService = require('./services/socketService');
 const app = express();
+const server = http.createServer(app);
 const PORT = config.server.port;
 
 // Middleware CORS per permettere richieste dal frontend e dai test
@@ -94,6 +97,14 @@ app.get('/test', (req, res) => {
 // Connessione DB
 require('./db');
 
+// Inizializza Socket.IO
+socketService.initialize(server);
+
+// Middleware per gestione timer slot automatica
+const { updateExpiredSlots, startSlotTimer } = require('./middleware/slotTimer');
+app.use(updateExpiredSlots); // Esegue ad ogni richiesta
+startSlotTimer(); // Avvia timer automatico
+
 // Rotte di autenticazione
 const authRoutes = require('./routes/auth');
 app.use('/api', authRoutes);
@@ -133,6 +144,10 @@ app.use('/api/sse', sseRoutes);
 // Route per notifiche slot real-time
 const slotNotificationsRoutes = require('./routes/slotNotifications');
 app.use('/api/slots', slotNotificationsRoutes);
+
+// Route per gestione slot con timer automatico
+const slotsRoutes = require('./routes/slots');
+app.use('/api/slots', slotsRoutes);
 
 // Rotte per spazi (endpoint pubblici per disponibilità)
 const spaziRoutes = require('./routes/spazi');
@@ -344,7 +359,8 @@ app.get('/api/test-token', (req, res) => {
 // const scadenzeCron = require('./cron/scadenzeCron');
 // scadenzeCron.start();
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
+  console.log('🚀 Socket.IO server inizializzato');
   console.log('🚀 Cron job scadenze avviato automaticamente');
 });

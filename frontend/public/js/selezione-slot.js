@@ -9,7 +9,7 @@ window.selectedTimeInizio = null;
 window.selectedTimeFine = null;
 let datePicker = null;
 
-// Nuovo Slot Manager per gestione real-time degli slot con SSE
+// Nuovo Slot Manager per gestione real-time degli slot con Socket.IO
 let slotManager = null;
 
 // Nuovo sistema di selezione con START/END
@@ -52,16 +52,16 @@ async function initializeSlotManager() {
         await createTimeSlots();
         console.log('✅ STEP 1 COMPLETATO: Bottoni creati con stati corretti');
 
-        // POI crea nuova istanza di SlotManager
-        console.log('🚀 STEP 2: Creo SlotManager...');
-        if (typeof window.SlotManager === 'undefined') {
-            console.error('❌ SlotManager non disponibile!');
+        // POI crea nuova istanza di SlotManager con Socket.IO
+        console.log('🚀 STEP 2: Creo SlotManagerSocketIO...');
+        if (typeof window.SlotManagerSocketIO === 'undefined') {
+            console.error('❌ SlotManagerSocketIO non disponibile!');
             return false;
         }
-        slotManager = new window.SlotManager();
+        slotManager = new window.SlotManagerSocketIO();
         slotManager.init(sedeId, spazioId, date);
         window.slotManager = slotManager; // Esponi globalmente
-        console.log('✅ STEP 2 COMPLETATO: SlotManager inizializzato');
+        console.log('✅ STEP 2 COMPLETATO: SlotManagerSocketIO inizializzato');
         console.log('🔍 SlotManager esposto globalmente:', !!window.slotManager);
 
         return true;
@@ -108,7 +108,7 @@ async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
 function applySlotState(slot, status) {
     // Rimuovi tutte le classi di stato precedenti
     slot.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected', 'slot-start', 'slot-end');
-    
+
     // Applica nuovo stato
     switch (status) {
         case 'available':
@@ -141,9 +141,23 @@ function applySlotState(slot, status) {
 // ===== NUOVO SISTEMA DI SELEZIONE =====
 
 // Gestisce il click su uno slot
-function handleSlotClick(slotId, slotElement) {
+async function handleSlotClick(slotId, slotElement) {
     console.log('🎯 handleSlotClick chiamata per slot:', slotId);
     console.log('📊 Stato attuale:', selectionState);
+
+    // Controlla se l'utente è autenticato
+    const token = localStorage.getItem('token');
+    if (!token) {
+        console.log('👤 Utente non autenticato, procedo con selezione normale');
+        // Procedi con selezione normale per utenti non autenticati
+    } else {
+        // Utente autenticato: occupa lo slot ottimisticamente
+        console.log('🔐 Utente autenticato, occupo slot ottimisticamente');
+        const success = await slotManager.holdSlot(slotId);
+        if (!success) {
+            console.warn('⚠️ Impossibile occupare slot, procedo con selezione normale');
+        }
+    }
 
     if (selectionState.startSlot === null) {
         // Nessun slot selezionato → diventa START
@@ -160,57 +174,57 @@ function handleSlotClick(slotId, slotElement) {
 // Imposta uno slot come START (blu)
 function setAsStart(slotId, slotElement) {
     console.log('🔵 Imposto slot come START:', slotId);
-    
+
     // Pulisci selezione precedente
     clearAllSelections();
-    
+
     // Imposta nuovo START
     selectionState.startSlot = slotId;
     selectionState.allSelected.add(slotId);
-    
+
     // Applica stile START
     slotElement.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past');
     slotElement.classList.add('slot-start');
     slotElement.title = 'Inizio selezione';
-    
+
     updateSelectionUI();
 }
 
 // Imposta uno slot come END (blu)
 function setAsEnd(slotId, slotElement) {
     console.log('🔵 Imposto slot come END:', slotId);
-    
+
     const startId = selectionState.startSlot;
     const startElement = document.querySelector(`[data-slot-id="${startId}"]`);
-    
+
     if (!startElement) {
         console.error('❌ Elemento START non trovato:', startId);
         return;
     }
-    
+
     // Determina range
     const minId = Math.min(startId, slotId);
     const maxId = Math.max(startId, slotId);
-    
+
     // Pulisci selezione precedente
     clearAllSelections();
-    
+
     // Imposta START e END
     selectionState.startSlot = minId;
     selectionState.endSlot = maxId;
-    
+
     // Aggiungi tutti gli slot nel range
     for (let id = minId; id <= maxId; id++) {
         selectionState.allSelected.add(id);
     }
-    
+
     // Applica stili
     startElement.classList.add('slot-start');
     startElement.title = 'Inizio selezione';
-    
+
     slotElement.classList.add('slot-end');
     slotElement.title = 'Fine selezione';
-    
+
     // Applica stile SELECTED agli slot intermedi
     for (let id = minId + 1; id < maxId; id++) {
         const element = document.querySelector(`[data-slot-id="${id}"]`);
@@ -219,14 +233,14 @@ function setAsEnd(slotId, slotElement) {
             element.title = 'Slot selezionato';
         }
     }
-    
+
     updateSelectionUI();
 }
 
 // Gestisce selezione quando START e END sono già impostati
 function handleFullSelection(slotId, slotElement) {
     console.log('🔄 Gestisco selezione completa per slot:', slotId);
-    
+
     if (slotId === selectionState.startSlot) {
         // Deseleziono START → END diventa nuovo START
         deselectStart();
@@ -242,69 +256,69 @@ function handleFullSelection(slotId, slotElement) {
 // Deseleziona START, END diventa nuovo START
 function deselectStart() {
     console.log('❌ Deseleziono START, END diventa nuovo START');
-    
+
     const oldStartId = selectionState.startSlot;
     const endId = selectionState.endSlot;
-    
+
     // Pulisci selezione
     clearAllSelections();
-    
+
     // END diventa nuovo START
     selectionState.startSlot = endId;
     selectionState.endSlot = null;
     selectionState.allSelected.add(endId);
-    
+
     // Applica stile START al nuovo START
     const newStartElement = document.querySelector(`[data-slot-id="${endId}"]`);
     if (newStartElement) {
         newStartElement.classList.add('slot-start');
         newStartElement.title = 'Inizio selezione';
     }
-    
+
     updateSelectionUI();
 }
 
 // Deseleziona END, START rimane
 function deselectEnd() {
     console.log('❌ Deseleziono END, START rimane');
-    
+
     const startId = selectionState.startSlot;
     const oldEndId = selectionState.endSlot;
-    
+
     // Pulisci selezione
     clearAllSelections();
-    
+
     // START rimane
     selectionState.startSlot = startId;
     selectionState.endSlot = null;
     selectionState.allSelected.add(startId);
-    
+
     // Applica stile START
     const startElement = document.querySelector(`[data-slot-id="${startId}"]`);
     if (startElement) {
         startElement.classList.add('slot-start');
         startElement.title = 'Inizio selezione';
     }
-    
+
     updateSelectionUI();
 }
 
 // Imposta nuovo slot come START quando c'è già una selezione completa
 function setAsNewStart(slotId, slotElement) {
     console.log('🔄 Imposto nuovo START:', slotId);
-    
+
     // Pulisci selezione precedente
     clearAllSelections();
-    
+
     // Imposta nuovo START
     selectionState.startSlot = slotId;
     selectionState.endSlot = null;
     selectionState.allSelected.add(slotId);
-    
+
     // Applica stile START
     slotElement.classList.add('slot-start');
     slotElement.title = 'Inizio selezione';
-    
+
     updateSelectionUI();
 }
 
@@ -842,11 +856,11 @@ async function createTimeSlots() {
     for (let i = 0; i < orariApertura.length; i++) {
         const orario = orariApertura[i];
         const slotId = i + 1;
-        
+
         // Trova lo stato per questo slot
         const slotData = slotsStatus.find(s => s.id_slot === slotId || s.orario === orario);
         const status = slotData ? slotData.status : 'available';
-        
+
         console.log('🔨 Creo slot per orario:', orario, 'con stato:', status);
 
         const slot = document.createElement('button');
@@ -876,7 +890,7 @@ async function createTimeSlots() {
     }
 
     console.log('🎯 Container slot mostrato, slot creati:', timeSlotsContainer.children.length);
-    
+
     // Mostra i controlli rapidi
     const quickControls = document.getElementById('quickControls');
     if (quickControls) {
@@ -954,12 +968,12 @@ async function displayTimeSlots(disponibilita) {
 // Seleziona uno slot temporale (NUOVO SISTEMA)
 async function selectTimeSlot(orario, slotElement, event = null) {
     const slotId = parseInt(slotElement.dataset.slotId);
-    
+
     console.log('🎯 selectTimeSlot chiamata per slot:', slotId, 'orario:', orario);
-    
+
     // Usa il nuovo sistema di selezione
-    handleSlotClick(slotId, slotElement);
-    
+    await handleSlotClick(slotId, slotElement);
+
     await updateSelectionUI();
 }
 
@@ -1071,7 +1085,7 @@ async function updateSelectionUI() {
 // Deseleziona tutti gli slot (NUOVO SISTEMA)
 function clearAllSelections() {
     console.log('🧹 Pulisco tutte le selezioni');
-    
+
     // Pulisci stato
     selectionState.startSlot = null;
     selectionState.endSlot = null;
@@ -1127,11 +1141,11 @@ async function selectPreset(presetType) {
     const startElement = document.querySelector(`[data-slot-id="${startSlotId}"]`);
     const endElement = document.querySelector(`[data-slot-id="${endSlotId}"]`);
 
-    if (startElement && endElement && 
+    if (startElement && endElement &&
         !startElement.disabled && !endElement.disabled &&
-        startElement.classList.contains('slot-available') && 
+        startElement.classList.contains('slot-available') &&
         endElement.classList.contains('slot-available')) {
-        
+
         // Usa il nuovo sistema per impostare START e END
         setAsStart(startSlotId, startElement);
         setAsEnd(endSlotId, endElement);
