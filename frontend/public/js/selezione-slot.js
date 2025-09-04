@@ -618,12 +618,7 @@ function setupEventListeners() {
 
             if (!token) {
                 // ✅ UTENTE NON AUTENTICATO: Mostra modal di login con riepilogo
-                if (window.showAuthModal) {
-                    window.showAuthModal();
-                } else {
-                    // Fallback: reindirizza alla pagina di login
-                    window.location.href = '/login.html';
-                }
+                goToLogin();
                 return;
             }
 

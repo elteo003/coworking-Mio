@@ -372,6 +372,7 @@ window.handleLogin = function (event, email, password) {
 
       // Controlla se c'è una prenotazione in attesa
       const pendingPrenotazione = localStorage.getItem('pendingPrenotazione');
+      document.getElementById('debug').innerText = JSON.stringify(pendingPrenotazione, null, 2);
 
       if (pendingPrenotazione) {
         // Controlla se l'utente è arrivato dalla home o da una prenotazione

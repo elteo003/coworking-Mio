@@ -40,8 +40,8 @@ async function getDisponibilitaSlot(req, res) {
         try {
             const prenotazioniQuery = `
                 SELECT 
-                    orario_inizio,
-                    orario_fine,
+                    EXTRACT(HOUR FROM data_inizio) as orario_inizio,
+                    EXTRACT(HOUR FROM data_fine) as orario_fine,
                     stato
                 FROM Prenotazione 
                 WHERE id_spazio = $1 
