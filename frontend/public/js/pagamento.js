@@ -197,13 +197,13 @@ function populatePrenotazioneDetails() {
     
     document.getElementById('spazio-prenotazione').textContent = data.nome_spazio || 'Caricamento...';
     
-    document.getElementById('data-inizio-prenotazione').textContent = `${dataFormattata} dalle ${orarioInizio}`;
-    
+    document.getElementById('data-inizio-prenotazione').textContent = `${dataInizio.toLocaleDateString('it-IT', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric'
-    }), 'alle', orarioFine);
+    })} alle ${orarioInizio}`;
+
     document.getElementById('data-fine-prenotazione').textContent = `${dataFine.toLocaleDateString('it-IT', {
         weekday: 'long',
         year: 'numeric',
@@ -534,6 +534,8 @@ async function handlePaymentSubmit(event) {
 
     try {
         // Simulo il pagamento con i campi manuali
+        // Simulo il pagamento con i campi manuali
+        console.log({
             id: prenotazioneData.id_prenotazione,
             importo: prenotazioneData.importo,
             spazio: prenotazioneData.nome_spazio,
