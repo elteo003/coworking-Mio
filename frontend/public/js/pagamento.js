@@ -673,10 +673,6 @@ async function handlePaymentSuccess(paymentIntent) {
         pagamentoCompletato = true;
 
         // Salva il pagamento nel database
-            id_prenotazione: prenotazioneData.id_prenotazione,
-            payment_intent_id: paymentIntent.id,
-            method: 'carta_credito'
-        });
         
         await savePaymentToDatabase(paymentIntent);
 
@@ -693,10 +689,6 @@ async function handlePaymentSuccess(paymentIntent) {
 // Salva il pagamento nel database
 async function savePaymentToDatabase(paymentIntent) {
     try {
-            id_prenotazione: prenotazioneData.id_prenotazione,
-            payment_intent_id: paymentIntent.id,
-            method: 'carta_credito'
-        });
 
         const response = await fetch(`${CONFIG.API_BASE}/pagamenti/confirm`, {
             method: 'POST',
