@@ -93,13 +93,6 @@ async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
     const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
     const orarioFineHour = parseInt(orarioFine.split(':')[0]);
 
-    // Ottieni ID utente corrente
-    const currentUserId = getCurrentUserId();
-    if (!currentUserId) {
-        console.warn('⚠️ Utente non autenticato, verifica disponibilità fallita');
-        return false;
-    }
-
     // Controlla se tutti gli slot nell'intervallo sono disponibili
     for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
         const slotId = hour - 8; // Converti orario in slot ID (9:00 = slot 1, 10:00 = slot 2, etc.)
@@ -613,15 +606,6 @@ function setupEventListeners() {
 
         btnBook.addEventListener('click', async function () {
 
-            // Controlla se l'utente è autenticato
-            const token = localStorage.getItem('token');
-
-            if (!token) {
-                // ✅ UTENTE NON AUTENTICATO: Mostra modal di login con riepilogo
-                goToLogin();
-                return;
-            }
-
             // Utente autenticato: procedi con la prenotazione
 
             // Verifica che tutti i campi siano selezionati
@@ -705,9 +689,16 @@ function setupEventListeners() {
                 const dataSelezionata = formatDate(window.selectedDateInizio);
                 window.CacheManager.invalidatePattern(`disponibilita_${window.selectedSpazio.id_spazio}_${dataSelezionata}`);
 
-                // Reindirizza alla pagina di pagamento con l'ID della prenotazione
-                window.location.href = `/pagamento.html?id_prenotazione=${result.id_prenotazione}`;
+                localStorage.setItem('redirectAfterLogin',`/pagamento.html?id_prenotazione=${result.id_prenotazione}`);
 
+                // Controlla se l'utente è autenticato
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    // ✅ UTENTE NON AUTENTICATO: Mostra modal di login con riepilogo
+                    goToLogin();
+                    return;
+                }
             } catch (error) {
                 console.error('❌ Errore creazione prenotazione:', error);
 
