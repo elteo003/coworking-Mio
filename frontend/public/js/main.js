@@ -14,6 +14,102 @@ function showAlert(message, type = 'info') {
   $('body').prepend(alertHtml);
 }
 
+// Crea una prenotazione direttamente (per post-login)
+async function createPrenotazioneDirect(selectionData) {
+  console.log('📝 Creazione prenotazione diretta:', selectionData);
+  
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('Token di autenticazione non trovato');
+  }
+  
+  const formatDate = (date) => {
+    // Se è già una stringa formattata, restituiscila così com'è
+    if (typeof date === 'string') {
+      return date;
+    }
+    
+    // Se è un oggetto Date, formattalo
+    if (date instanceof Date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    
+    // Fallback: prova a convertire in Date
+    const dateObj = new Date(date);
+    if (!isNaN(dateObj.getTime())) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    
+    throw new Error('Formato data non valido');
+  };
+  
+  // Prepara le date in modo sicuro
+  const dataInizioFormatted = formatDate(selectionData.dataInizio);
+  const dataFineFormatted = formatDate(selectionData.dataFine);
+  
+  console.log('📅 Date formattate:', {
+    dataInizio: dataInizioFormatted,
+    dataFine: dataFineFormatted,
+    orarioInizio: selectionData.orarioInizio,
+    orarioFine: selectionData.orarioFine
+  });
+  
+  const prenotazioneData = {
+    id_spazio: selectionData.spazio.id_spazio,
+    data_inizio: new Date(`${dataInizioFormatted}T${selectionData.orarioInizio}:00`).toISOString(),
+    data_fine: new Date(`${dataFineFormatted}T${selectionData.orarioFine}:00`).toISOString()
+  };
+  
+  const response = await fetch(`${CONFIG.API_BASE}/prenotazioni`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(prenotazioneData)
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Errore sconosciuto' }));
+    throw new Error(`Errore creazione prenotazione: ${errorData.error || response.status}`);
+  }
+  
+  const result = await response.json();
+  console.log('✅ Prenotazione creata:', result);
+  
+  return result;
+}
+
+// Gestisce la prenotazione in attesa dopo il login
+async function handlePendingPrenotazione(prenotazioneData, response) {
+  try {
+    // Crea direttamente la prenotazione
+    const prenotazione = await createPrenotazioneDirect(prenotazioneData);
+    
+    // Pulisci i dati temporanei
+    localStorage.removeItem('pendingPrenotazione');
+    localStorage.removeItem('redirectAfterLogin');
+    
+    // Reindirizza al pagamento
+    setTimeout(() => {
+      window.location.href = `/pagamento.html?id_prenotazione=${prenotazione.id_prenotazione}`;
+    }, 1000);
+  } catch (error) {
+    console.error('Errore creazione prenotazione post-login:', error);
+    // Fallback: vai alla dashboard
+    const userRole = response.ruolo;
+    setTimeout(() => {
+      window.location.href = getDashboardUrl(userRole);
+    }, 1000);
+  }
+}
+
 // Aggiorna navbar usando il sistema universale
 function updateNavbar() {
   if (typeof window.updateNavbarUniversal === 'function') {
@@ -317,35 +413,19 @@ window.handleLogin = function (event, email, password) {
         // Rimuovi l'URL salvato e vai alla pagina originale
         localStorage.removeItem('redirectAfterLogin');
 
-        // Se il redirect è verso selezione-slot.html, vai direttamente al pagamento con i dati salvati
+        // Se il redirect è verso selezione-slot.html, gestisci la prenotazione in attesa
         if (redirectAfterLogin.includes('selezione-slot.html')) {
-
           // Controlla se c'è una prenotazione in attesa
           const pendingPrenotazione = localStorage.getItem('pendingPrenotazione');
           if (pendingPrenotazione) {
             try {
               const prenotazioneData = JSON.parse(pendingPrenotazione);
-
-              // Vai direttamente al pagamento con tutti i parametri
-              const pagamentoUrl = new URL('pagamento.html', window.location.origin);
-              pagamentoUrl.searchParams.set('sede', prenotazioneData.sede);
-              pagamentoUrl.searchParams.set('spazio', prenotazioneData.spazio);
-              pagamentoUrl.searchParams.set('dal', prenotazioneData.dataInizio);
-              pagamentoUrl.searchParams.set('al', prenotazioneData.dataFine);
-              pagamentoUrl.searchParams.set('orarioInizio', prenotazioneData.orarioInizio);
-              pagamentoUrl.searchParams.set('orarioFine', prenotazioneData.orarioFine);
-
-              // Pulisci i dati temporanei
-              localStorage.removeItem('pendingPrenotazione');
-              localStorage.removeItem('redirectAfterLogin');
-
-              setTimeout(() => {
-                window.location.href = pagamentoUrl.toString();
-              }, 1000);
+              // Gestisci la prenotazione in modo asincrono
+              handlePendingPrenotazione(prenotazioneData, response);
               return;
             } catch (error) {
-              console.error('handleLogin - Errore parsing prenotazione:', error);
-              // Fallback: vai alla dashboard appropriata
+              console.error('Errore parsing prenotazione:', error);
+              // Fallback: vai alla dashboard
               const userRole = response.ruolo;
               setTimeout(() => {
                 window.location.href = getDashboardUrl(userRole);
@@ -353,10 +433,8 @@ window.handleLogin = function (event, email, password) {
               return;
             }
           } else {
-            // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (redirect fallback)
+            // Nessuna prenotazione in attesa, vai alla dashboard
             const userRole = response.ruolo;
-
-            // Nessuna prenotazione in attesa, vai alla dashboard appropriata
             setTimeout(() => {
               window.location.href = getDashboardUrl(userRole);
             }, 1000);

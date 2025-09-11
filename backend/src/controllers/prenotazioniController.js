@@ -1,6 +1,5 @@
 const pool = require('../db');
-const socketService = require('../services/socketService');
-const SlotTimerService = require('../services/slotTimerService');
+// Socket.IO e timer rimossi - sistema semplificato
 
 // Verifica se uno spazio è disponibile in un intervallo
 exports.checkDisponibilita = async (req, res) => {
@@ -187,33 +186,7 @@ exports.creaPrenotazione = async (req, res) => {
       const { id_sede, id_spazio: spazioId } = sedeInfo.rows[0];
       const data = new Date(data_inizio).toISOString().split('T')[0]; // Solo la data
 
-      // Avvia timer per slot in attesa e notifica tutti i client
-      try {
-        // Avvia timer per gestire scadenza automatica
-        SlotTimerService.startTimer(
-          result.rows[0].id_prenotazione,
-          id_spazio,
-          data_inizio,
-          data_fine,
-          id_sede
-        );
-
-        // Notifica tutti i client via Socket.IO che lo slot è ora occupato
-        socketService.broadcastSlotUpdate(
-          result.rows[0].id_prenotazione,
-          'occupied',
-          {
-            prenotazioneId: result.rows[0].id_prenotazione,
-            holdTimeRemaining: 15 // minuti
-          }
-        );
-
-        // Aggiorna stato completo per tutti gli slot della data
-        // Notifica aggiornamento stato slot via Socket.IO
-        socketService.broadcastSlotsStatusUpdate(id_sede, spazioId, data);
-      } catch (sseError) {
-        console.warn('⚠️ Errore notifica Socket.IO (non critico):', sseError);
-      }
+      // Sistema semplificato - nessuna notifica real-time
     }
 
     // Nota: La liberazione automatica dello slot è gestita dal cron job scadenzeCron
@@ -370,8 +343,7 @@ exports.confirmPrenotazione = async (req, res) => {
       [id_prenotazione]
     );
 
-    // Cancella timer per slot in attesa e notifica conferma
-    SlotTimerService.cancelTimer(id_prenotazione);
+    // Sistema semplificato - nessun timer da cancellare
 
     // NOTA: Non aggiorniamo più lo stato generale dello spazio
     // perché uno spazio può avere prenotazioni per alcuni orari ma essere disponibile per altri

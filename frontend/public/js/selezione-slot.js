@@ -9,7 +9,7 @@ window.selectedTimeInizio = null;
 window.selectedTimeFine = null;
 let datePicker = null;
 
-// Nuovo Slot Manager per gestione real-time degli slot con Socket.IO
+// Gestore slot semplificato
 let slotManager = null;
 
 // Nuovo sistema di selezione con START/END
@@ -44,12 +44,12 @@ async function initializeSlotManager() {
         // PRIMA crea i bottoni degli slot con stati corretti
         await createTimeSlots();
 
-        // POI crea nuova istanza di SlotManager con Socket.IO
-        if (typeof window.SlotManagerSocketIO === 'undefined') {
-            console.error('❌ SlotManagerSocketIO non disponibile!');
+        // POI crea nuova istanza di SimpleSlotManager
+        if (typeof window.SimpleSlotManager === 'undefined') {
+            console.error('❌ SimpleSlotManager non disponibile!');
             return false;
         }
-        slotManager = new window.SlotManagerSocketIO();
+        slotManager = new window.SimpleSlotManager();
         slotManager.init(sedeId, spazioId, date);
         window.slotManager = slotManager; // Esponi globalmente
 
@@ -72,13 +72,12 @@ function getCurrentUserId() {
     return null;
 }
 
-// Verifica disponibilità (NUOVO SISTEMA)
+// Verifica disponibilità (SISTEMA SEMPLIFICATO)
 async function checkAvailability(orarioInizio, orarioFine) {
-
     try {
-        // Usa SlotManager se disponibile, altrimenti API diretta
+        // Usa SimpleSlotManager se disponibile, altrimenti API diretta
         if (window.slotManager && window.slotManager.slotsStatus.size > 0) {
-            return await checkAvailabilityFromSlotManager(orarioInizio, orarioFine);
+            return await window.slotManager.checkAvailability(orarioInizio, orarioFine);
         } else {
             return await checkAvailabilityFromAPI(orarioInizio, orarioFine);
         }
@@ -88,30 +87,7 @@ async function checkAvailability(orarioInizio, orarioFine) {
     }
 }
 
-// Verifica disponibilità usando SlotManager (NUOVO SISTEMA)
-async function checkAvailabilityFromSlotManager(orarioInizio, orarioFine) {
-    const orarioInizioHour = parseInt(orarioInizio.split(':')[0]);
-    const orarioFineHour = parseInt(orarioFine.split(':')[0]);
-
-    // Controlla se tutti gli slot nell'intervallo sono disponibili
-    for (let hour = orarioInizioHour; hour < orarioFineHour; hour++) {
-        const slotId = hour - 8; // Converti orario in slot ID (9:00 = slot 1, 10:00 = slot 2, etc.)
-        const slot = window.slotManager.slotsStatus.get(slotId);
-
-        if (!slot) {
-            return false;
-        }
-
-        // Solo slot disponibili sono considerati disponibili per prenotazione
-        if (slot.status === 'available') {
-            continue;
-        }
-
-        // Tutti gli altri stati (occupied, booked, past) non sono disponibili
-        return false;
-    }
-    return true;
-}
+// Funzione rimossa: checkAvailabilityFromSlotManager - ora gestita da SimpleSlotManager
 
 // Funzione per applicare stato corretto a uno slot
 function applySlotState(slot, status, slotData = {}) {
@@ -376,7 +352,9 @@ async function initializePage() {
         }
 
         // ✅ CONTROLLA SE CI SONO DATI PRENOTAZIONE IN ATTESA (POST-LOGIN)
-        restorePendingPrenotazione();
+        if (window.BookingOrchestrator) {
+            window.BookingOrchestrator.handlePostLogin();
+        }
 
         // Carica le sedi
         await loadSedi();
@@ -621,122 +599,19 @@ function setupEventListeners() {
                 return;
             }
 
-            // PRIMA: Occupa temporaneamente gli slot selezionati
-            const holdPromises = Array.from(selectionState.allSelected).map(async (slotId) => {
-                try {
-                    const success = await slotManager.holdSlot(slotId);
-                    if (!success) {
-                        throw new Error(`Impossibile occupare slot ${slotId}`);
-                    }
-                    return slotId;
-                } catch (error) {
-                    console.error(`❌ Errore occupazione slot ${slotId}:`, error);
-                    throw error;
-                }
-            });
-
-            try {
-                await Promise.all(holdPromises);
-            } catch (error) {
-                console.error('❌ Errore occupazione slot:', error);
-                showError('Impossibile occupare gli slot selezionati. Riprova.');
-                return;
-            }
-
-            // POI: Crea la prenotazione nel database
-            // Mantieni il timezone locale invece di convertire in UTC
-            const formatDate = (date) => {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
+            // Usa l'orchestratore per gestire il flusso di prenotazione
+            const selectionData = {
+                sede: window.selectedSede,
+                spazio: window.selectedSpazio,
+                dataInizio: window.selectedDateInizio,
+                dataFine: window.selectedDateFine,
+                orarioInizio: window.selectedTimeInizio,
+                orarioFine: window.selectedTimeFine,
+                slotSelezionati: selectionState.allSelected
             };
 
-            // Crea la prenotazione nel database con retry automatico
-            const prenotazioneData = {
-                id_spazio: window.selectedSpazio.id_spazio,
-                data_inizio: new Date(`${formatDate(window.selectedDateInizio)}T${window.selectedTimeInizio}:00`).toISOString(),
-                data_fine: new Date(`${formatDate(window.selectedDateFine)}T${window.selectedTimeFine}:00`).toISOString()
-            };
-
-
-            try {
-
-                // Usa ErrorHandler per retry automatico
-                const result = await window.ErrorHandler.withRetry(async () => {
-                    const response = await fetch(`${CONFIG.API_BASE}/prenotazioni`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify(prenotazioneData)
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({ error: 'Errore sconosciuto' }));
-                        const error = new Error(`Errore creazione prenotazione: ${errorData.error || response.status}`);
-                        error.status = response.status;
-                        error.details = errorData.details || errorData.reason || '';
-                        throw error;
-                    }
-
-                    return await response.json();
-                }, { operation: 'create_prenotazione' });
-
-
-                // Invalida cache per aggiornare disponibilità
-                const dataSelezionata = formatDate(window.selectedDateInizio);
-                window.CacheManager.invalidatePattern(`disponibilita_${window.selectedSpazio.id_spazio}_${dataSelezionata}`);
-
-                localStorage.setItem('redirectAfterLogin',`/pagamento.html?id_prenotazione=${result.id_prenotazione}`);
-
-                // Controlla se l'utente è autenticato
-                const token = localStorage.getItem('token');
-
-                if (!token) {
-                    // ✅ UTENTE NON AUTENTICATO: Mostra modal di login con riepilogo
-                    goToLogin();
-                    return;
-                }
-            } catch (error) {
-                console.error('❌ Errore creazione prenotazione:', error);
-
-                // Rilascia gli slot occupati temporaneamente in caso di errore
-                const releasePromises = Array.from(selectionState.allSelected).map(async (slotId) => {
-                    try {
-                        await slotManager.releaseSlot(slotId);
-                    } catch (releaseError) {
-                        console.error(`❌ Errore rilascio slot ${slotId}:`, releaseError);
-                    }
-                });
-                await Promise.all(releasePromises);
-
-                // Usa ErrorHandler per gestione intelligente degli errori
-                const errorInfo = await window.ErrorHandler.handlePrenotazioneError(error, {
-                    operation: 'create_prenotazione',
-                    prenotazioneData: prenotazioneData || { id_spazio: window.selectedSpazio?.id_spazio }
-                });
-
-                // Mostra messaggio specifico in base al tipo di errore
-                if (errorInfo.type === 'auth') {
-                    showError('Sessione scaduta. Effettua nuovamente il login per completare la prenotazione.');
-                    // Opzionalmente reindirizza al login
-                    setTimeout(() => {
-                        window.location.href = '/login.html';
-                    }, 2000);
-                } else if (errorInfo.type === 'validation') {
-                    showError(`Errore di validazione: ${errorInfo.message}`);
-                } else if (errorInfo.type === 'network') {
-                    showError('Problema di connessione. Verifica la tua connessione internet e riprova.');
-                } else if (error.status === 409) {
-                    // Errore di conflitto - slot non disponibili
-                    const details = error.details || 'Gli slot selezionati non sono più disponibili.';
-                    showError(`${details} Aggiorna la pagina e riprova con slot diversi.`);
-                } else {
-                    showError(`Errore durante la creazione della prenotazione: ${errorInfo.message}`);
-                }
-            }
+            // Delega all'orchestratore
+            await window.BookingOrchestrator.handleBookNow(selectionData);
         });
     }
 
@@ -784,9 +659,8 @@ async function createTimeSlots() {
     // Pulisci il container
     timeSlotsContainer.innerHTML = '';
 
-    // Gli stati degli slot verranno caricati dal SlotManagerSocketIO
+    // Gli stati degli slot verranno caricati dal SimpleSlotManager
     // Per ora creiamo tutti gli slot come "available" di default
-    let slotsStatus = []; // Array vuoto - stati gestiti da Socket.IO
 
     // Crea gli slot temporali con stati corretti
     for (let i = 0; i < orariApertura.length; i++) {
@@ -984,6 +858,18 @@ async function updateSelectionUI() {
         btnBook.disabled = false;
         btnBook.textContent = 'Prenota Ora (Login Richiesto)';
         btnBook.className = 'btn btn-warning';
+        updateSummary();
+        showSummary();
+        return;
+    }
+
+    // Se l'utente è autenticato e ci sono dati pending, nascondi il bottone
+    // perché la prenotazione verrà creata automaticamente
+    const pendingData = localStorage.getItem('pendingPrenotazione');
+    if (pendingData) {
+        btnBook.disabled = true;
+        btnBook.textContent = 'Creazione prenotazione in corso...';
+        btnBook.className = 'btn btn-info';
         updateSummary();
         showSummary();
         return;
@@ -1198,68 +1084,27 @@ function showAuthModal() {
 
 // Funzione per andare al login (VERSIONE SEMPLIFICATA)
 function goToLogin() {
-    // Salva dati selezione per post-login
-    const formatDate = (date) => {
-        if (!date) return null;
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
-    const selectionData = {
-        sede: window.selectedSede,
-        spazio: window.selectedSpazio,
-        dataInizio: formatDate(window.selectedDateInizio),
-        dataFine: formatDate(window.selectedDateFine),
-        orarioInizio: window.selectedTimeInizio,
-        orarioFine: window.selectedTimeFine
-    };
-
-    localStorage.setItem('pendingPrenotazione', JSON.stringify(selectionData));
-    localStorage.setItem('redirectAfterLogin', '/pagamento.html');
-    window.location.href = '/login.html';
-}
-
-// Funzione per ripristinare dati post-login (VERSIONE SEMPLIFICATA)
-async function restorePendingPrenotazione() {
-    const pendingData = localStorage.getItem('pendingPrenotazione');
-    const redirectUrl = localStorage.getItem('redirectAfterLogin');
-
-    if (pendingData && redirectUrl) {
-        try {
-            const data = JSON.parse(pendingData);
-            if (data.sede && data.spazio && data.dataInizio && data.orarioInizio) {
-                // Crea prenotazione
-                const prenotazioneData = {
-                    id_spazio: data.spazio,
-                    data_inizio: new Date(`${data.dataInizio}T${data.orarioInizio}:00`).toISOString(),
-                    data_fine: new Date(`${data.dataFine}T${data.orarioFine}:00`).toISOString()
-                };
-
-                const response = await fetch(`${CONFIG.API_BASE}/prenotazioni`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify(prenotazioneData)
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    localStorage.removeItem('pendingPrenotazione');
-                    localStorage.removeItem('redirectAfterLogin');
-                    window.location.href = `/pagamento.html?id_prenotazione=${result.id_prenotazione}`;
-                }
-            }
-        } catch (error) {
-            console.error('❌ Errore ripristino prenotazione:', error);
-            localStorage.removeItem('pendingPrenotazione');
-            localStorage.removeItem('redirectAfterLogin');
-        }
+    // Usa l'orchestratore per gestire il flusso
+    if (window.BookingOrchestrator) {
+        const selectionData = {
+            sede: window.selectedSede,
+            spazio: window.selectedSpazio,
+            dataInizio: window.selectedDateInizio,
+            dataFine: window.selectedDateFine,
+            orarioInizio: window.selectedTimeInizio,
+            orarioFine: window.selectedTimeFine,
+            slotSelezionati: selectionState.allSelected
+        };
+        
+        window.BookingOrchestrator.handleUnauthenticatedUser(selectionData);
+    } else {
+        // Fallback se l'orchestratore non è disponibile
+        console.error('❌ BookingOrchestrator non disponibile');
+        window.location.href = '/login.html';
     }
 }
+
+// Funzioni rimosse: ora gestite da BookingOrchestrator
 
 // Funzione per verificare accesso utente (VERSIONE SEMPLIFICATA)
 function checkUserAccess() {
@@ -1290,7 +1135,6 @@ function checkUserAccess() {
 // Rendi le funzioni disponibili globalmente
 window.showAuthModal = showAuthModal;
 window.goToLogin = goToLogin;
-window.restorePendingPrenotazione = restorePendingPrenotazione;
 window.checkUserAccess = checkUserAccess;
 
 

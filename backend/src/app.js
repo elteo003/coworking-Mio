@@ -8,7 +8,7 @@ const cors = require('cors');
 const http = require('http');
 const config = require('../config/config');
 const { authenticateToken } = require('./middleware/auth');
-const socketService = require('./services/socketService');
+// Socket.IO rimosso - sistema semplificato
 const redisService = require('./services/redisService');
 const app = express();
 const server = http.createServer(app);
@@ -93,10 +93,8 @@ require('./db');
 
 // Socket.IO verrà inizializzato nella funzione initializeServices()
 
-// Middleware per gestione timer slot automatica
-const { updateExpiredSlots, startSlotTimer } = require('./middleware/slotTimer');
-app.use(updateExpiredSlots); // Esegue ad ogni richiesta
-startSlotTimer(); // Avvia timer automatico
+// Middleware per timer slot rimosso - sistema semplificato
+// Timer automatico rimosso - sistema semplificato
 
 // Rotte di autenticazione
 const authRoutes = require('./routes/auth');
@@ -130,9 +128,7 @@ app.use('/api/scadenze', scadenzeRoutes);
 const concorrenzaRoutes = require('./routes/concorrenza');
 app.use('/api/concorrenza', concorrenzaRoutes);
 
-// Route per gestione slot con timer automatico
-const slotsRoutes = require('./routes/slots');
-app.use('/api/slots', slotsRoutes);
+// Route slot rimosse - sistema semplificato
 
 // Rotte per spazi (endpoint pubblici per disponibilità)
 const spaziRoutes = require('./routes/spazi');
@@ -147,8 +143,7 @@ const sediRoutes = require('./routes/sedi');
 app.use('/api/sedi', sediRoutes);
 
 // Rotte per A/B testing
-const abTestingRoutes = require('./routes/ab-testing');
-app.use('/api/ab-testing', abTestingRoutes);
+// Route ab-testing rimosse - sistema semplificato
 
 // Rotte per utenti (endpoint per gestori)
 const utentiRoutes = require('./routes/utenti');
@@ -388,14 +383,7 @@ async function initializeServices() {
     // Inizializza Redis
     await redisService.initialize();
 
-    // Inizializza Socket.IO
-    socketService.initialize(server);
-
-    // Configura route per Socket.IO client
-    app.get('/socket.io/socket.io.js', (req, res) => {
-      res.setHeader('Content-Type', 'application/javascript');
-      res.sendFile(path.join(__dirname, '../node_modules/socket.io/client-dist/socket.io.js'));
-    });
+    // Socket.IO rimosso - sistema semplificato
 
   } catch (error) {
     console.error('❌ Errore inizializzazione servizi:', error);

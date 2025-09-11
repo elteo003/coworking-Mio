@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Flusso Prenotazione</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test Flusso Prenotazione CoworkSpace</h1>
+    
+    <div class="test-section info">
+        <h2>Test 1: Verifica Connessione Backend</h2>
+        <button onclick="testBackendConnection()">Test Connessione</button>
+        <div id="backendResult"></div>
+    </div>
+
+    <div class="test-section info">
+        <h2>Test 2: Test Flusso Utente Non Autenticato</h2>
+        <button onclick="testUnauthenticatedFlow()">Simula Utente Non Autenticato</button>
+        <div id="unauthenticatedResult"></div>
+    </div>
+
+    <div class="test-section info">
+        <h2>Test 3: Test Flusso Utente Autenticato</h2>
+        <button onclick="testAuthenticatedFlow()">Simula Utente Autenticato</button>
+        <div id="authenticatedResult"></div>
+    </div>
+
+    <div class="test-section info">
+        <h2>Test 4: Test Ripristino Dati Post-Login</h2>
+        <button onclick="testDataRestore()">Test Ripristino Dati</button>
+        <div id="restoreResult"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3002/api';
+
+        async function testBackendConnection() {
+            const resultDiv = document.getElementById('backendResult');
+            try {
+                const response = await fetch(`${API_BASE}/ping`);
+                const data = await response.json();
+                resultDiv.innerHTML = `<div class="success">✅ Backend connesso: ${data.message}</div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Errore connessione: ${error.message}</div>`;
+            }
+        }
+
+        async function testUnauthenticatedFlow() {
+            const resultDiv = document.getElementById('unauthenticatedResult');
+            try {
+                // Simula selezione slot
+                const selectionData = {
+                    sede: { id_sede: 1, nome: "Sede Test" },
+                    spazio: { id_spazio: 1, nome: "Spazio Test" },
+                    dataInizio: "2024-12-20",
+                    dataFine: "2024-12-20",
+                    orarioInizio: "10:00",
+                    orarioFine: "12:00",
+                    slotSelezionati: [1, 2]
+                };
+
+                // Salva dati come farebbe il frontend
+                localStorage.setItem('pendingPrenotazione', JSON.stringify(selectionData));
+                localStorage.setItem('redirectAfterLogin', '/selezione-slot.html');
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ Dati salvati nel localStorage:</div>
+                    <pre>${JSON.stringify(selectionData, null, 2)}</pre>
+                    <p>Ora vai al <a href="/login.html" target="_blank">login</a> per testare il ripristino</p>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Errore: ${error.message}</div>`;
+            }
+        }
+
+        async function testAuthenticatedFlow() {
+            const resultDiv = document.getElementById('authenticatedResult');
+            try {
+                // Simula token di autenticazione
+                const mockToken = 'mock-token-123';
+                localStorage.setItem('token', mockToken);
+
+                // Prova a creare una prenotazione
+                const prenotazioneData = {
+                    id_spazio: 1,
+                    data_inizio: new Date('2024-12-20T10:00:00.000Z').toISOString(),
+                    data_fine: new Date('2024-12-20T12:00:00.000Z').toISOString()
+                };
+
+                const response = await fetch(`${API_BASE}/prenotazioni`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${mockToken}`
+                    },
+                    body: JSON.stringify(prenotazioneData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Prenotazione creata con successo!</div>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Errore creazione prenotazione: ${response.status}</div>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Errore: ${error.message}</div>`;
+            }
+        }
+
+        function testDataRestore() {
+            const resultDiv = document.getElementById('restoreResult');
+            try {
+                const pendingData = localStorage.getItem('pendingPrenotazione');
+                const redirectUrl = localStorage.getItem('redirectAfterLogin');
+
+                if (pendingData && redirectUrl) {
+                    const data = JSON.parse(pendingData);
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Dati ripristinati dal localStorage:</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                        <p>Redirect URL: ${redirectUrl}</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="info">ℹ️ Nessun dato da ripristinare</div>
+                        <p>Esegui prima il "Test 2" per salvare dei dati</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Errore: ${error.message}</div>`;
+            }
+        }
+
+        // Test automatico all'avvio
+        window.addEventListener('load', () => {
+            testBackendConnection();
+        });
+    </script>
+</body>
+</html>
