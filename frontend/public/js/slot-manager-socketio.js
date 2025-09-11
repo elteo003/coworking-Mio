@@ -317,10 +317,10 @@ class SlotManagerSocketIO {
         if (!button || button.disabled) return false;
 
         const token = localStorage.getItem('token');
-        if (!token) {
-            console.error('❌ Token mancante per occupare slot');
-            return false;
-        }
+        // if (!token) {
+        //     console.error('❌ Token mancante per occupare slot');
+        //     return false;
+        // }
 
         try {
             // Aggiornamento ottimistico UI - disabilita lo slot
