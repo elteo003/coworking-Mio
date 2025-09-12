@@ -81,6 +81,9 @@ exports.checkDisponibilita = async (req, res) => {
 
 // Crea una nuova prenotazione
 exports.creaPrenotazione = async (req, res) => {
+
+  console.log(req.body);
+
   const { id_spazio, data_inizio, data_fine } = req.body;
   // Prende l'ID utente dal middleware di autenticazione aggiornato
   const id_utente = req.user.id_utente;

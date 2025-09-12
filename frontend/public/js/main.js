@@ -353,9 +353,9 @@ async function restorePendingPrenotazione() {
         try {
             const data = JSON.parse(pendingData);
             if (data.sede && data.spazio && data.dataInizio && data.orarioInizio) {
-                // Crea prenotazione
+                // Crea oggetto prenotazione
                 const prenotazioneData = {
-                    id_spazio: data.spazio,
+                    id_spazio: data.spazio.id_spazio,
                     data_inizio: new Date(`${data.dataInizio}T${data.orarioInizio}:00`).toISOString(),
                     data_fine: new Date(`${data.dataFine}T${data.orarioFine}:00`).toISOString()
                 };
