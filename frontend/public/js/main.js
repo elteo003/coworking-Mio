@@ -311,108 +311,11 @@ window.handleLogin = function (event, email, password) {
       // Aggiorna la navbar per mostrare le informazioni dell'utente
       updateNavbar();
 
-      // Controlla se c'è un redirect specifico salvato
-      const redirectAfterLogin = localStorage.getItem('redirectAfterLogin');
-      if (redirectAfterLogin) {
-        // Rimuovi l'URL salvato e vai alla pagina originale
-        localStorage.removeItem('redirectAfterLogin');
-
-        // Se il redirect è verso selezione-slot.html, vai direttamente al pagamento con i dati salvati
-        if (redirectAfterLogin.includes('selezione-slot.html')) {
-
-          // Controlla se c'è una prenotazione in attesa
-          const pendingPrenotazione = localStorage.getItem('pendingPrenotazione');
-          if (pendingPrenotazione) {
-            try {
-              const prenotazioneData = JSON.parse(pendingPrenotazione);
-
-              // Vai direttamente al pagamento con tutti i parametri
-              const pagamentoUrl = new URL('pagamento.html', window.location.origin);
-              pagamentoUrl.searchParams.set('sede', prenotazioneData.sede);
-              pagamentoUrl.searchParams.set('spazio', prenotazioneData.spazio);
-              pagamentoUrl.searchParams.set('dal', prenotazioneData.dataInizio);
-              pagamentoUrl.searchParams.set('al', prenotazioneData.dataFine);
-              pagamentoUrl.searchParams.set('orarioInizio', prenotazioneData.orarioInizio);
-              pagamentoUrl.searchParams.set('orarioFine', prenotazioneData.orarioFine);
-
-              // Pulisci i dati temporanei
-              localStorage.removeItem('pendingPrenotazione');
-              localStorage.removeItem('redirectAfterLogin');
-
-              setTimeout(() => {
-                window.location.href = pagamentoUrl.toString();
-              }, 1000);
-              return;
-            } catch (error) {
-              console.error('handleLogin - Errore parsing prenotazione:', error);
-              // Fallback: vai alla dashboard appropriata
-              const userRole = response.ruolo;
-              setTimeout(() => {
-                window.location.href = getDashboardUrl(userRole);
-              }, 1000);
-              return;
-            }
-          } else {
-            // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (redirect fallback)
-            const userRole = response.ruolo;
-
-            // Nessuna prenotazione in attesa, vai alla dashboard appropriata
-            setTimeout(() => {
-              window.location.href = getDashboardUrl(userRole);
-            }, 1000);
-            return;
-          }
-        } else {
-          setTimeout(() => {
-            window.location.href = redirectAfterLogin;
-          }, 1000);
-        }
-        return;
-      }
-
       // Controlla se c'è una prenotazione in attesa
       const pendingPrenotazione = localStorage.getItem('pendingPrenotazione');
 
       if (pendingPrenotazione) {
-        // Controlla se l'utente è arrivato dalla home o da una prenotazione
-        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-        const isFromHome = currentPage === 'index.html' || currentPage === '';
-
-        if (isFromHome) {
-          // Se l'utente si logga dalla home, non forzare il redirect al pagamento
-          // Rimuovi i dati della prenotazione in attesa e vai alla dashboard appropriata
-          localStorage.removeItem('pendingPrenotazione');
-
-          // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (login dalla home)
-          const userRole = response.ruolo;
-
-          // Mostra messaggio informativo
-          showAlert('Login effettuato! Hai una prenotazione in attesa che puoi completare dalla dashboard.', 'info');
-
-          setTimeout(() => {
-            window.location.href = getDashboardUrl(userRole);
-          }, 1000);
-        } else {
-          // Se l'utente si logga da una pagina di prenotazione, procedi al pagamento
-
-          // Rimuovi i dati temporanei e vai direttamente al pagamento
-          localStorage.removeItem('pendingPrenotazione');
-          const prenotazioneData = JSON.parse(pendingPrenotazione);
-
-          // Vai direttamente alla pagina di pagamento con i parametri della prenotazione
-          const pagamentoUrl = new URL('pagamento.html', window.location.origin);
-          pagamentoUrl.searchParams.set('sede', prenotazioneData.sede);
-          pagamentoUrl.searchParams.set('spazio', prenotazioneData.spazio);
-          pagamentoUrl.searchParams.set('dal', prenotazioneData.dataInizio);
-          pagamentoUrl.searchParams.set('al', prenotazioneData.dataFine);
-          pagamentoUrl.searchParams.set('orarioInizio', prenotazioneData.orarioInizio);
-          pagamentoUrl.searchParams.set('orarioFine', prenotazioneData.orarioFine);
-
-
-          setTimeout(() => {
-            window.location.href = pagamentoUrl.toString();
-          }, 1000);
-        }
+        restorePendingPrenotazione();
       } else {
         // ✅ TUTTI GLI UTENTI VANNO ALLA DASHBOARD UTENTE NORMALE (se non stanno prenotando)
         const userRole = response.ruolo;
@@ -439,6 +342,46 @@ window.handleLogin = function (event, email, password) {
       submitBtn.html(originalText);
       submitBtn.prop('disabled', false);
     });
+}
+
+// Funzione per ripristinare dati post-login (VERSIONE SEMPLIFICATA)
+async function restorePendingPrenotazione() {
+    const pendingData = localStorage.getItem('pendingPrenotazione');
+    const redirectUrl = localStorage.getItem('redirectAfterLogin');
+
+    if (pendingData && redirectUrl) {
+        try {
+            const data = JSON.parse(pendingData);
+            if (data.sede && data.spazio && data.dataInizio && data.orarioInizio) {
+                // Crea prenotazione
+                const prenotazioneData = {
+                    id_spazio: data.spazio,
+                    data_inizio: new Date(`${data.dataInizio}T${data.orarioInizio}:00`).toISOString(),
+                    data_fine: new Date(`${data.dataFine}T${data.orarioFine}:00`).toISOString()
+                };
+
+                const response = await fetch(`${CONFIG.API_BASE}/prenotazioni`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(prenotazioneData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    localStorage.removeItem('pendingPrenotazione');
+                    localStorage.removeItem('redirectAfterLogin');
+                    window.location.href = `/pagamento.html?id_prenotazione=${result.id_prenotazione}`;
+                }
+            }
+        } catch (error) {
+            console.error('❌ Errore ripristino prenotazione:', error);
+            localStorage.removeItem('pendingPrenotazione');
+            localStorage.removeItem('redirectAfterLogin');
+        }
+    }
 }
 
 // Registrazione

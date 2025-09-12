@@ -617,14 +617,7 @@ function setupEventListeners() {
             const token = localStorage.getItem('token');
 
             if (!token) {
-                // ✅ UTENTE NON AUTENTICATO: Mostra modal di login con riepilogo
-                if (window.showAuthModal) {
-                    window.showAuthModal();
-                } else {
-                    // Fallback: reindirizza alla pagina di login
-                    window.location.href = '/login.html';
-                }
-                return;
+                goToLogin();
             }
 
             // Utente autenticato: procedi con la prenotazione
@@ -1204,12 +1197,6 @@ function getAuthHeaders() {
     };
 }
 
-// Funzione per mostrare il modal di autenticazione (VERSIONE SEMPLIFICATA)
-function showAuthModal() {
-    // Reindirizza direttamente al login
-    window.location.href = '/login.html';
-}
-
 // Funzione per andare al login (VERSIONE SEMPLIFICATA)
 function goToLogin() {
     // Salva dati selezione per post-login
@@ -1235,46 +1222,6 @@ function goToLogin() {
     window.location.href = '/login.html';
 }
 
-// Funzione per ripristinare dati post-login (VERSIONE SEMPLIFICATA)
-async function restorePendingPrenotazione() {
-    const pendingData = localStorage.getItem('pendingPrenotazione');
-    const redirectUrl = localStorage.getItem('redirectAfterLogin');
-
-    if (pendingData && redirectUrl) {
-        try {
-            const data = JSON.parse(pendingData);
-            if (data.sede && data.spazio && data.dataInizio && data.orarioInizio) {
-                // Crea prenotazione
-                const prenotazioneData = {
-                    id_spazio: data.spazio,
-                    data_inizio: new Date(`${data.dataInizio}T${data.orarioInizio}:00`).toISOString(),
-                    data_fine: new Date(`${data.dataFine}T${data.orarioFine}:00`).toISOString()
-                };
-
-                const response = await fetch(`${CONFIG.API_BASE}/prenotazioni`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify(prenotazioneData)
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    localStorage.removeItem('pendingPrenotazione');
-                    localStorage.removeItem('redirectAfterLogin');
-                    window.location.href = `/pagamento.html?id_prenotazione=${result.id_prenotazione}`;
-                }
-            }
-        } catch (error) {
-            console.error('❌ Errore ripristino prenotazione:', error);
-            localStorage.removeItem('pendingPrenotazione');
-            localStorage.removeItem('redirectAfterLogin');
-        }
-    }
-}
-
 // Funzione per verificare accesso utente (VERSIONE SEMPLIFICATA)
 function checkUserAccess() {
     const userStr = localStorage.getItem('user');
@@ -1296,10 +1243,6 @@ function checkUserAccess() {
     }
     return true; // Utente non loggato può accedere
 }
-
-
-
-
 
 // Rendi le funzioni disponibili globalmente
 window.showAuthModal = showAuthModal;

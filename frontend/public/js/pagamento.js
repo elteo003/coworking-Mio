@@ -19,7 +19,6 @@ $(document).ready(async function () {
     if (typeof window.initializeNavbar === 'function') {
         window.initializeNavbar();
     }
-    
 
     try {
         // Verifica se abbiamo parametri URL per la prenotazione
@@ -35,9 +34,6 @@ $(document).ready(async function () {
             showError('ID prenotazione mancante. Torna alla dashboard e riprova.');
             return;
         }
-
-        // Inizializza Stripe (per ora disabilitato per test)
-        // await initializeStripe();
         
         // Configura gli event listener per i campi manuali
         setupEventListeners();
@@ -47,6 +43,7 @@ $(document).ready(async function () {
         showError('Errore durante l\'inizializzazione: ' + error.message);
     }
 });
+
 
 // Carica i dati reali della prenotazione dal database
 async function loadPrenotazioneData(prenotazioneId) {
@@ -168,7 +165,6 @@ function populatePrenotazioneDetails() {
     if (!data) {
         return;
     }
-
 
     // Formatta le date
     const dataInizio = new Date(data.data_inizio);
