@@ -199,11 +199,6 @@ function populatePrenotazioneDetails() {
     
     document.getElementById('data-inizio-prenotazione').textContent = `${dataFormattata} dalle ${orarioInizio}`;
     
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    }), 'alle', orarioFine);
     document.getElementById('data-fine-prenotazione').textContent = `${dataFine.toLocaleDateString('it-IT', {
         weekday: 'long',
         year: 'numeric',
@@ -533,12 +528,6 @@ async function handlePaymentSubmit(event) {
     payButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Elaborazione...';
 
     try {
-        // Simulo il pagamento con i campi manuali
-            id: prenotazioneData.id_prenotazione,
-            importo: prenotazioneData.importo,
-            spazio: prenotazioneData.nome_spazio,
-            sede: prenotazioneData.nome_sede
-        });
         
         // Simula elaborazione pagamento
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -669,12 +658,6 @@ async function handlePaymentSuccess(paymentIntent) {
     try {
         // Imposta il flag che il pagamento è stato completato
         pagamentoCompletato = true;
-
-        // Salva il pagamento nel database
-            id_prenotazione: prenotazioneData.id_prenotazione,
-            payment_intent_id: paymentIntent.id,
-            method: 'carta_credito'
-        });
         
         await savePaymentToDatabase(paymentIntent);
 
@@ -691,11 +674,6 @@ async function handlePaymentSuccess(paymentIntent) {
 // Salva il pagamento nel database
 async function savePaymentToDatabase(paymentIntent) {
     try {
-            id_prenotazione: prenotazioneData.id_prenotazione,
-            payment_intent_id: paymentIntent.id,
-            method: 'carta_credito'
-        });
-
         const response = await fetch(`${CONFIG.API_BASE}/pagamenti/confirm`, {
             method: 'POST',
             headers: {
