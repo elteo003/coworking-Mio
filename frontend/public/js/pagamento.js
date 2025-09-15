@@ -1,10 +1,5 @@
-// Configurazione per PRODUZIONE - CON STRIPE (TEMPORANEA)
-// Versione ibrida: campi manuali + logica Stripe per il backend
-
-// Configurazione Stripe (per ora disabilitata)
-let stripe;
-let elements;
-let cardElement;
+// Configurazione per PRODUZIONE - Sistema semplificato
+// Versione semplificata: pagamenti mock senza Stripe
 
 // Dati della prenotazione (verranno presi dal database)
 let prenotazioneData = {};
@@ -36,8 +31,7 @@ $(document).ready(async function () {
             return;
         }
 
-        // Inizializza Stripe (per ora disabilitato per test)
-        // await initializeStripe();
+        // Sistema di pagamento semplificato
         
         // Configura gli event listener per i campi manuali
         setupEventListeners();
@@ -91,75 +85,6 @@ async function loadPrenotazioneData(prenotazioneId) {
     }
 }
 
-// Inizializza Stripe
-async function initializeStripe() {
-    try {
-
-        // Verifica se Stripe è disponibile
-        if (typeof Stripe === 'undefined') {
-            throw new Error('Libreria Stripe non caricata');
-        }
-
-        // Ottieni la chiave pubblica Stripe dal backend
-        const response = await fetch(`${CONFIG.API_BASE}/config/stripe-key`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Impossibile ottenere la chiave Stripe');
-        }
-
-        const { publishableKey } = await response.json();
-        
-        // Inizializza Stripe
-        stripe = Stripe(publishableKey);
-        
-        // Crea l'elemento carta
-        elements = stripe.elements();
-        cardElement = elements.create('card', {
-            style: {
-                base: {
-                    fontSize: '16px',
-                    color: '#424770',
-                    '::placeholder': {
-                        color: '#aab7c4',
-                    },
-                },
-                invalid: {
-                    color: '#9e2146',
-                },
-            },
-        });
-
-        // Monta l'elemento carta
-        cardElement.mount('#card-element');
-        
-        // Gestisci errori della carta
-        cardElement.on('change', function(event) {
-            const displayError = document.getElementById('card-errors');
-            if (event.error) {
-                displayError.textContent = event.error.message;
-                displayError.style.display = 'block';
-            } else {
-                displayError.textContent = '';
-                displayError.style.display = 'none';
-            }
-        });
-
-        // Configura gli event listener
-        setupEventListeners();
-        
-        
-    } catch (error) {
-        console.error('❌ Errore inizializzazione Stripe:', error);
-        showError('Errore configurazione pagamento: ' + error.message);
-        throw error;
-    }
-}
 
 // Popola i dettagli della prenotazione
 function populatePrenotazioneDetails() {

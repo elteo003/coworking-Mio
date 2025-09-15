@@ -185,21 +185,8 @@ exports.creaPrenotazione = async (req, res) => {
       [id_utente, id_spazio, data_inizio, data_fine, scadenzaSlot, durataOre]
     );
 
-    // Ottieni informazioni sulla sede per le notifiche SSE
-    const sedeInfo = await pool.query(
-      `SELECT s.id_sede, s.id_spazio FROM Spazio s WHERE s.id_spazio = $1`,
-      [id_spazio]
-    );
 
-    if (sedeInfo.rowCount > 0) {
-      const { id_sede, id_spazio: spazioId } = sedeInfo.rows[0];
-      const data = new Date(data_inizio).toISOString().split('T')[0]; // Solo la data
-
-      // Sistema semplificato - nessuna notifica real-time
-    }
-
-    // Nota: La liberazione automatica dello slot è gestita dal cron job scadenzeCron
-    // che controlla ogni 5 minuti le prenotazioni scadute
+    // Nota: La liberazione automatica dello slot è gestita dal sistema di scadenze
 
     res.status(201).json({
       message: 'Prenotazione creata',

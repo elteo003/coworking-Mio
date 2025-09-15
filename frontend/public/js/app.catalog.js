@@ -260,30 +260,7 @@ class CatalogApp {
             container.append(card);
         });
 
-        // Inizializza i caroselli immersivi per le sedi
-        setTimeout(() => {
-            const carousels = container.find('.immersive-carousel');
-
-            carousels.each((index, element) => {
-                if (window.ImmersiveCarousel) {
-                    try {
-                        new window.ImmersiveCarousel(element, {
-                            autoplay: true,
-                            autoplayDelay: 4000,
-                            showArrows: false,
-                            showDots: true,
-                            enableHover: true,
-                            enableKeyboard: true,
-                            enableTouch: true
-                        });
-                    } catch (error) {
-                        console.error(`❌ Errore inizializzazione carosello ${index + 1}:`, error);
-                    }
-                } else {
-                    console.error('❌ ImmersiveCarousel non disponibile');
-                }
-            });
-        }, 200);
+        // Carosello rimosso - le immagini vengono mostrate direttamente
     }
 
     /**
@@ -311,17 +288,13 @@ class CatalogApp {
         return $(`
             <div class="col-md-6 col-lg-4">
                 <div class="card location-card catalog-card h-100 overflow-hidden">
-                    <!-- Carosello Immersivo -->
-                    <div class="immersive-carousel" 
-                         style="height: 200px;" 
-                         data-autoplay="true" 
-                         data-autoplay-delay="4000"
-                         data-show-arrows="true" 
-                         data-show-dots="true"
-                         data-enable-hover="true"
-                         data-enable-keyboard="true"
-                         data-enable-touch="true">
-                        ${carouselHtml}
+                    <!-- Immagine singola senza carosello -->
+                    <div class="location-image-container" style="height: 200px; overflow: hidden;">
+                        <img src="${photos[0]?.url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=200&fit=crop'}" 
+                             alt="${photos[0]?.alt || location.name}" 
+                             class="img-fluid"
+                             style="width: 100%; height: 100%; object-fit: cover;"
+                             loading="lazy">
                     </div>
                     
                     <div class="card-body d-flex flex-column">
@@ -419,59 +392,34 @@ class CatalogApp {
         carouselContainer.empty();
 
         if (photos.length === 0) {
-            // Foto di default
+            // Foto di default senza carosello
             carouselContainer.html(`
-                <div class="immersive-carousel" 
-                     style="height: 400px;" 
-                     data-autoplay="true" 
-                     data-autoplay-delay="5000"
-                     data-show-arrows="true" 
-                     data-show-dots="true"
-                     data-enable-hover="true"
-                     data-enable-keyboard="true"
-                     data-enable-touch="true">
+                <div class="single-photo-container">
                     <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=400&fit=crop" 
                          alt="${this.currentLocation.name}" 
+                         class="img-fluid rounded shadow-sm"
+                         style="width: 100%; height: 400px; object-fit: cover;"
                          loading="lazy">
                 </div>
             `);
         } else {
-            // Crea il carosello immersivo con le foto senza overlay
-            const carouselHtml = photos.map((photo, index) =>
-                `<img src="${photo.url}" 
-                     alt="${photo.alt || this.currentLocation.name}" 
-                     loading="lazy">`
+            // Mostra tutte le foto in una griglia semplice senza carosello
+            const photosHtml = photos.map((photo, index) =>
+                `<div class="col-md-6 mb-3">
+                    <img src="${photo.url}" 
+                         alt="${photo.alt || this.currentLocation.name}" 
+                         class="img-fluid rounded shadow-sm"
+                         style="width: 100%; height: 250px; object-fit: cover;"
+                         loading="lazy">
+                </div>`
             ).join('');
 
             carouselContainer.html(`
-                <div class="immersive-carousel" 
-                     style="height: 400px;" 
-                     data-autoplay="true" 
-                     data-autoplay-delay="5000"
-                     data-show-arrows="true" 
-                     data-show-dots="true"
-                     data-enable-hover="true"
-                     data-enable-keyboard="true"
-                     data-enable-touch="true">
-                    ${carouselHtml}
+                <div class="row">
+                    ${photosHtml}
                 </div>
             `);
         }
-
-        // Reinizializza il carosello immersivo
-        setTimeout(() => {
-            if (window.ImmersiveCarousel) {
-                new window.ImmersiveCarousel(carouselContainer.find('.immersive-carousel')[0], {
-                    autoplay: true,
-                    autoplayDelay: 5000,
-                    showArrows: false,
-                    showDots: true,
-                    enableHover: true,
-                    enableKeyboard: true,
-                    enableTouch: true
-                });
-            }
-        }, 100);
     }
 
     /**
@@ -521,22 +469,7 @@ class CatalogApp {
             container.append(spaceCard);
         });
 
-        // Inizializza i caroselli immersivi per gli spazi
-        setTimeout(() => {
-            container.find('.immersive-carousel').each((index, element) => {
-                if (window.ImmersiveCarousel) {
-                    new window.ImmersiveCarousel(element, {
-                        autoplay: true,
-                        autoplayDelay: 3000,
-                        showArrows: false,
-                        showDots: true,
-                        enableHover: true,
-                        enableKeyboard: true,
-                        enableTouch: true
-                    });
-                }
-            });
-        }, 100);
+        // Carosello rimosso - le immagini vengono mostrate direttamente
     }
 
     /**
@@ -569,17 +502,13 @@ class CatalogApp {
         return $(`
             <div class="col-md-6 col-lg-4">
                 <div class="space-item catalog-card">
-                    <!-- Carosello Immersivo per Spazio -->
-                    <div class="immersive-carousel" 
-                         style="height: 150px; margin-bottom: 1rem;" 
-                         data-autoplay="true" 
-                         data-autoplay-delay="3000"
-                         data-show-arrows="true" 
-                         data-show-dots="true"
-                         data-enable-hover="true"
-                         data-enable-keyboard="true"
-                         data-enable-touch="true">
-                        ${carouselHtml}
+                    <!-- Immagine singola senza carosello -->
+                    <div class="space-image-container" style="height: 150px; margin-bottom: 1rem; overflow: hidden;">
+                        <img src="${photos[0]?.url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=150&fit=crop'}" 
+                             alt="${photos[0]?.alt || space.name}" 
+                             class="img-fluid"
+                             style="width: 100%; height: 100%; object-fit: cover;"
+                             loading="lazy">
                     </div>
                     
                     <div class="space-header">
@@ -699,59 +628,34 @@ class CatalogApp {
         carouselContainer.empty();
 
         if (photos.length === 0) {
-            // Foto di default
+            // Foto di default senza carosello
             carouselContainer.html(`
-                <div class="immersive-carousel" 
-                     style="height: 300px;" 
-                     data-autoplay="true" 
-                     data-autoplay-delay="4000"
-                     data-show-arrows="true" 
-                     data-show-dots="true"
-                     data-enable-hover="true"
-                     data-enable-keyboard="true"
-                     data-enable-touch="true">
+                <div class="single-photo-container">
                     <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=400&fit=crop" 
                          alt="${this.currentSpace.name}" 
+                         class="img-fluid rounded shadow-sm"
+                         style="width: 100%; height: 300px; object-fit: cover;"
                          loading="lazy">
                 </div>
             `);
         } else {
-            // Crea il carosello immersivo con le foto senza overlay
-            const carouselHtml = photos.map((photo, index) =>
-                `<img src="${photo.url}" 
-                     alt="${photo.alt || this.currentSpace.name}" 
-                     loading="lazy">`
+            // Mostra tutte le foto in una griglia semplice senza carosello
+            const photosHtml = photos.map((photo, index) =>
+                `<div class="col-md-6 mb-3">
+                    <img src="${photo.url}" 
+                         alt="${photo.alt || this.currentSpace.name}" 
+                         class="img-fluid rounded shadow-sm"
+                         style="width: 100%; height: 200px; object-fit: cover;"
+                         loading="lazy">
+                </div>`
             ).join('');
 
             carouselContainer.html(`
-                <div class="immersive-carousel" 
-                     style="height: 300px;" 
-                     data-autoplay="true" 
-                     data-autoplay-delay="4000"
-                     data-show-arrows="true" 
-                     data-show-dots="true"
-                     data-enable-hover="true"
-                     data-enable-keyboard="true"
-                     data-enable-touch="true">
-                    ${carouselHtml}
+                <div class="row">
+                    ${photosHtml}
                 </div>
             `);
         }
-
-        // Reinizializza il carosello immersivo
-        setTimeout(() => {
-            if (window.ImmersiveCarousel) {
-                new window.ImmersiveCarousel(carouselContainer.find('.immersive-carousel')[0], {
-                    autoplay: true,
-                    autoplayDelay: 4000,
-                    showArrows: false,
-                    showDots: true,
-                    enableHover: true,
-                    enableKeyboard: true,
-                    enableTouch: true
-                });
-            }
-        }, 100);
     }
 
     /**

@@ -1,0 +1,23 @@
+{
+  "name": "coworkspace-frontend-tests",
+  "version": "1.0.0",
+  "description": "Test automatici per il frontend CoworkSpace",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:booking": "jest tests/booking-flow.test.js",
+    "test:auth": "jest tests/auth-flow.test.js"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "puppeteer": "^21.5.2",
+    "@types/jest": "^29.5.5"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.js"],
+    "testTimeout": 30000,
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"]
+  }
+}

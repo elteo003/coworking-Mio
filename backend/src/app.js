@@ -8,7 +8,6 @@ const cors = require('cors');
 const http = require('http');
 const config = require('../config/config');
 const { authenticateToken } = require('./middleware/auth');
-// Socket.IO rimosso - sistema semplificato
 const redisService = require('./services/redisService');
 const app = express();
 const server = http.createServer(app);
@@ -93,10 +92,6 @@ app.get('/test', (req, res) => {
 // Connessione DB
 require('./db');
 
-// Socket.IO verrà inizializzato nella funzione initializeServices()
-
-// Middleware per timer slot rimosso - sistema semplificato
-// Timer automatico rimosso - sistema semplificato
 
 // Rotte di autenticazione
 const authRoutes = require('./routes/auth');
@@ -118,9 +113,6 @@ app.use('/api', pagamentiRoutes);
 const gestoreRoutes = require('./routes/gestore');
 app.use('/api', gestoreRoutes);
 
-// Rotte webhook Stripe
-const webhookRoutes = require('./routes/webhook');
-app.use('/webhook', webhookRoutes);
 
 // Rotte per gestione scadenze
 const scadenzeRoutes = require('./routes/scadenze');
@@ -129,8 +121,6 @@ app.use('/api/scadenze', scadenzeRoutes);
 // Rotte per gestione concorrenza real-time
 const concorrenzaRoutes = require('./routes/concorrenza');
 app.use('/api/concorrenza', concorrenzaRoutes);
-
-// Route slot rimosse - sistema semplificato
 
 // Rotte per spazi (endpoint pubblici per disponibilità)
 const spaziRoutes = require('./routes/spazi');
@@ -143,9 +133,6 @@ app.use('/api/dashboard', dashboardRoutes);
 // Rotte per sedi (endpoint pubblici per gestori)
 const sediRoutes = require('./routes/sedi');
 app.use('/api/sedi', sediRoutes);
-
-// Rotte per A/B testing
-// Route ab-testing rimosse - sistema semplificato
 
 // Rotte per utenti (endpoint per gestori)
 const utentiRoutes = require('./routes/utenti');
@@ -375,9 +362,6 @@ app.get('/api/test-token', (req, res) => {
   });
 });
 
-// Avvia il cron job per le scadenze (disabilitato temporaneamente per sviluppo locale)
-// const scadenzeCron = require('./cron/scadenzeCron');
-// scadenzeCron.start();
 
 // Inizializza servizi
 async function initializeServices() {
@@ -385,17 +369,20 @@ async function initializeServices() {
     // Inizializza Redis
     await redisService.initialize();
 
-    // Socket.IO rimosso - sistema semplificato
 
   } catch (error) {
     console.error('❌ Errore inizializzazione servizi:', error);
   }
 }
 
-// Avvia server
-server.listen(PORT, async () => {
+// Avvia server solo se non siamo in modalità test
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(PORT, async () => {
+    console.log(`🚀 Server avviato su porta ${PORT}`);
+    // Inizializza servizi
+    await initializeServices();
+  });
+}
 
-  // Inizializza servizi
-  await initializeServices();
-
-});
+// Esporta app e server per i test
+module.exports = { app, server };

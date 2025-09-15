@@ -1,23 +1,7 @@
 version: '3.8'
 services:
-  db:
-    image: postgres:15
-    restart: always
-    environment:
-      POSTGRES_DB: coworkspace
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - coworkspace-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
+  # Database locale rimosso - utilizziamo Supabase
+  coworkspace-redis:
     image: redis:7-alpine
     restart: always
     ports:
@@ -30,34 +14,42 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
+  coworkspace-backend:
     build: ../backend
+    env_file:
+      - ../backend/.env
     environment:
-      # Database
-      PGUSER: postgres
-      PGHOST: db
-      PGDATABASE: coworkspace
-      PGPASSWORD: postgres
-      PGPORT: 5432
-      # Redis
+      # Redis locale
       REDIS_ENABLED: "true"
-      REDIS_URL: "redis://redis:6379"
-      # JWT
-      JWT_SECRET: "your-super-secret-jwt-key-change-in-production"
+      REDIS_URL: "redis://coworkspace-redis:6379"
       # Server
       NODE_ENV: "development"
-      PORT: 3001
+      PORT: 3002
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
+      coworkspace-redis:
         condition: service_healthy
     ports:
-      - "3001:3001"
+      - "3002:3002"
     volumes:
       - ../backend:/app
       - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/api/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  coworkspace-frontend:
+    build: ../frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - coworkspace-backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
-  coworkspace-db-data:
   coworkspace-redis-data: 

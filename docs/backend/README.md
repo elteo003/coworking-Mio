@@ -2,26 +2,26 @@
 
 ## 📋 Panoramica
 
-Backend Node.js/Express per il sistema di gestione coworking con funzionalità real-time avanzate, caching intelligente e architettura scalabile.
+Backend Node.js/Express per il sistema di gestione coworking con caching intelligente e architettura scalabile.
 
 ## 🏗️ Architettura
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Express.js    │    │   Socket.IO     │    │   PostgreSQL    │
+│   Express.js    │    │   PostgreSQL    │    │   Redis Cache   │
 │                 │    │                 │    │                 │
-│ • REST API      │◄──►│ • Real-time     │◄──►│ • Database      │
-│ • Middleware    │    │ • Rooms         │    │ • Triggers      │
-│ • Controllers   │    │ • Events        │    │ • Functions     │
+│ • REST API      │◄──►│ • Database      │◄──►│ • Caching       │
+│ • Middleware    │    │ • Triggers      │    │ • Sessions      │
+│ • Controllers   │    │ • Functions     │    │ • Performance   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Redis Cache   │    │   JWT Auth      │    │   Stripe API    │
-│                 │    │                 │    │                 │
-│ • Caching       │    │ • Authentication│    │ • Payments      │
-│ • Pub/Sub       │    │ • Authorization │    │ • Webhooks      │
-│ • Sessions      │    │ • Middleware    │    │ • Refunds       │
+│   JWT Auth      │    │   Payment       │    │   Docker        │
+│                 │    │   System        │    │                 │
+│ • Authentication│    │ • Mock Payments │    │ • Container     │
+│ • Authorization │    │ • Simple Flow   │    │ • Orchestration │
+│ • Middleware    │    │ • Confirmation  │    │ • Deployment    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
@@ -30,9 +30,8 @@ Backend Node.js/Express per il sistema di gestione coworking con funzionalità r
 ### Core
 - **Node.js 18+** - Runtime JavaScript
 - **Express.js** - Framework web
-- **Socket.IO** - Comunicazione real-time bidirezionale
 - **PostgreSQL** - Database relazionale
-- **Redis** - Caching e Pub/Sub (opzionale)
+- **Redis** - Caching e performance (opzionale)
 
 ### Autenticazione & Sicurezza
 - **JWT** - Autenticazione stateless
@@ -41,8 +40,8 @@ Backend Node.js/Express per il sistema di gestione coworking con funzionalità r
 - **bcrypt** - Hashing password
 
 ### Pagamenti
-- **Stripe** - Gateway pagamenti
-- **Webhooks** - Notifiche real-time
+- **Sistema Semplificato** - Pagamenti mock per sviluppo
+- **Conferma Manuale** - Flusso semplificato
 
 ### DevOps
 - **Docker** - Containerizzazione

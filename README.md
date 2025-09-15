@@ -2,16 +2,16 @@
 
 ## 🚀 Panoramica
 
-CoworkSpace v2.0 è un sistema completo per la gestione di spazi di coworking con funzionalità real-time avanzate, caching intelligente e architettura scalabile.
+CoworkSpace v2.0 è un sistema completo per la gestione di spazi di coworking con architettura semplificata, caching intelligente e deployment facilitato.
 
-### ✨ Nuove Funzionalità v2.0
+### ✨ Caratteristiche Principali
 
-- **🔌 Socket.IO Real-time**: Comunicazione bidirezionale per aggiornamenti istantanei
 - **📦 Redis Caching**: Performance ottimizzate con cache intelligente
-- **⏰ Gestione Slot Automatica**: Sistema `expires_at` senza cron jobs
+- **⏰ Gestione Slot Automatica**: Sistema semplificato di gestione slot
 - **🐳 Docker Ready**: Setup completo per sviluppo e produzione
-- **🔄 Optimistic UI**: Feedback immediato per migliore UX
-- **📈 Scalabilità Multi-Server**: Supporto Redis Pub/Sub
+- **🧪 Test Automatici**: Suite completa di test per backend e frontend
+- **📚 Documentazione Completa**: API documentate con Swagger
+- **🔒 Sistema Multi-Ruolo**: Gestione utenti con ruoli diversi
 
 ## 🏗️ Architettura
 
@@ -20,9 +20,9 @@ CoworkSpace v2.0 è un sistema completo per la gestione di spazi di coworking co
 │   Frontend      │    │   Backend       │    │   Database      │
 │   (Vanilla JS)  │◄──►│   (Express.js)  │◄──►│   (PostgreSQL)  │
 │                 │    │                 │    │                 │
-│ • Socket.IO     │    │ • Socket.IO     │    │ • Slots Table   │
-│ • Optimistic UI │    │ • Redis Cache   │    │ • Expires_at    │
-│ • Real-time     │    │ • JWT Auth      │    │ • Triggers      │
+│ • Modern UI     │    │ • REST API      │    │ • Slots Table   │
+│ • Responsive    │    │ • Redis Cache   │    │ • Expires_at    │
+│ • User Friendly │    │ • JWT Auth      │    │ • Triggers      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                               │
                               ▼
@@ -30,7 +30,7 @@ CoworkSpace v2.0 è un sistema completo per la gestione di spazi di coworking co
                        │     Redis       │
                        │                 │
                        │ • Cache Layer   │
-                       │ • Pub/Sub       │
+                       │ • Performance   │
                        │ • Session Store │
                        └─────────────────┘
 ```
@@ -40,17 +40,15 @@ CoworkSpace v2.0 è un sistema completo per la gestione di spazi di coworking co
 ### Frontend
 - **HTML5/CSS3**: Interfaccia moderna e responsive
 - **Vanilla JavaScript**: Moduli modulari e performanti
-- **Socket.IO Client**: Comunicazione real-time
 - **Bootstrap 5**: UI components e grid system
 - **Font Awesome**: Icone e simboli
 
 ### Backend
 - **Node.js**: Runtime JavaScript
 - **Express.js**: Framework web
-- **Socket.IO**: Comunicazione real-time bidirezionale
-- **Redis**: Caching e Pub/Sub
+- **Redis**: Caching e performance
 - **JWT**: Autenticazione stateless
-- **Stripe**: Pagamenti online
+- **Sistema Pagamenti**: Pagamenti semplificati
 
 ### Database
 - **PostgreSQL**: Database relazionale
@@ -61,7 +59,8 @@ CoworkSpace v2.0 è un sistema completo per la gestione di spazi di coworking co
 ### DevOps
 - **Docker**: Containerizzazione
 - **Docker Compose**: Orchestrazione locale
-- **Render**: Deployment cloud
+- **Jest**: Test automatici
+- **Puppeteer**: Test end-to-end
 - **Health Checks**: Monitoraggio servizi
 
 ## 🚀 Quick Start
@@ -219,18 +218,13 @@ JWT_SECRET=your-production-secret
 - `GET /api/sedi` - Lista sedi
 - `GET /api/spazi/:id/disponibilita-slot/:date` - Disponibilità pubblica
 
-## 🔄 Real-time Events
+## 🔄 Sistema Semplificato
 
-### Socket.IO Events
-
-**Client → Server:**
-- `join_space` - Entra in room spazio
-- `leave_space` - Esce da room spazio
-
-**Server → Client:**
-- `slot_update` - Aggiornamento singolo slot
-- `slots_status_update` - Aggiornamento completo
-- `slots_freed` - Slot liberati automaticamente
+### Caratteristiche Principali
+- **API REST**: Comunicazione HTTP standard
+- **Gestione Slot**: Sistema automatico di gestione slot
+- **Cache Redis**: Performance ottimizzate
+- **Test Automatici**: Suite completa di test
 
 ## 📊 Performance
 
@@ -245,33 +239,34 @@ JWT_SECRET=your-production-secret
 
 - **Health Checks**: Docker health checks per tutti i servizi
 - **Logging**: Log strutturati con livelli
-- **Metrics**: Connessioni Socket.IO e cache hit rate
+- **Metrics**: Cache hit rate e performance API
 
 ## 🧪 Testing
 
-### Test Manuali
+### Test Automatici
 
-1. **Test Connessione Socket.IO**
-   - Apri console browser
-   - Verifica eventi `connect` e `connection_confirmed`
+1. **Test Backend**
+   ```bash
+   cd backend
+   npm test
+   npm run test:coverage
+   ```
 
-2. **Test Slot Management**
-   - Occupa slot → Verifica UI ottimistica
-   - Rilascia slot → Verifica aggiornamento real-time
+2. **Test Frontend**
+   ```bash
+   cd frontend/tests
+   npm test
+   npm run test:booking
+   ```
 
-3. **Test Cache Redis**
-   - Prima richiesta → Cache MISS
-   - Seconda richiesta → Cache HIT
+3. **Test Database**
+   ```sql
+   -- Test funzione liberazione slot
+   SELECT free_expired_slots();
 
-### Test Database
-
-```sql
--- Test funzione liberazione slot
-SELECT free_expired_slots();
-
--- Test vista disponibilità
-SELECT * FROM slot_availability WHERE slot_status = 'available';
-```
+   -- Test vista disponibilità
+   SELECT * FROM slot_availability WHERE slot_status = 'available';
+   ```
 
 ## 🚀 Deployment
 
@@ -307,15 +302,13 @@ docker run -d \
 - **[Documentazione Generale](docs/README.md)** - Panoramica documentazione
 
 ### Documentazione Tecnica
-- **[Socket.IO Migration](docs/backend/SOCKET_IO_MIGRATION.md)** - Migrazione da SSE
 - **[Slot Timer System](docs/backend/SLOT_TIMER_SYSTEM.md)** - Sistema timer automatico
-- **[Socket.IO Integration](docs/backend/SOCKET_IO_INTEGRATION.md)** - Integrazione real-time
 - **[Configuration Guide](docs/backend/CONFIGURAZIONE.md)** - Configurazione backend
 - **[Render Setup](docs/backend/RENDER_SETUP.md)** - Setup deployment
 - **[Slot Management](docs/frontend/SLOT_MANAGEMENT_SYSTEM.md)** - Sistema slot frontend
-- **[Optimistic UI](docs/frontend/OPTIMISTIC_UI_SYSTEM.md)** - Sistema optimistic UI
 - **[Database Schema](docs/database/SLOTS_SCHEMA.md)** - Schema database
 - **[Database Setup](docs/database/SETUP_DATABASE.md)** - Setup database
+- **[Docker Setup](docs/DOCKER_SETUP.md)** - Setup Docker completo
 - **[Fix Prenotazioni](docs/database/README_FIX_PRENOTAZIONE.md)** - Fix constraint prenotazioni
 
 ## 🤝 Contribuire
@@ -338,4 +331,4 @@ Questo progetto è sotto licenza MIT. Vedi `LICENSE` per dettagli.
 
 ---
 
-**CoworkSpace v2.0** - Gestione intelligente di spazi di coworking con tecnologia real-time avanzata 🚀
+**CoworkSpace v2.0** - Sistema semplificato e robusto per la gestione di spazi di coworking 🚀

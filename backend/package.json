@@ -5,9 +5,11 @@
   "scripts": {
     "start": "node src/app.js",
     "start-scadenze": "node start-scadenze-service.js",
-    "install-deps": "npm install pg bcrypt express cors stripe",
+    "install-deps": "npm install pg bcrypt express cors",
     "setup-db": "node setup-postgres.js",
-    "migrate-stripe": "node run-migration-stripe.js"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -16,8 +18,11 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.3",
-    "redis": "^4.6.10",
-    "socket.io": "^4.7.4",
-    "stripe": "^12.18.0"
+    "redis": "^4.6.10"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "@types/jest": "^29.5.5"
   }
 }

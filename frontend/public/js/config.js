@@ -19,9 +19,6 @@ const CONFIG = {
 const API_BASE_URL = CONFIG.API_BASE;
 window.API_BASE_URL = API_BASE_URL; // Esponi globalmente per compatibilità
 
-// Configurazione Socket.IO (senza /api path)
-const SOCKET_BASE_URL = CONFIG.API_BASE.replace('/api', '');
-window.SOCKET_BASE_URL = SOCKET_BASE_URL; // Esponi globalmente per Socket.IO
 
 // Debug: log della configurazione per verificare che sia caricata
 

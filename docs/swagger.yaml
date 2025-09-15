@@ -5,20 +5,17 @@ info:
     API complete per il sistema di gestione coworking CoworkSpace v2.0.
     
     ## Caratteristiche Principali
-    - **Real-time Communication**: Socket.IO per aggiornamenti istantanei
     - **Redis Caching**: Performance ottimizzate con cache intelligente
     - **Slot Management**: Sistema automatico di gestione slot con timer
-    - **Payment Integration**: Integrazione Stripe per pagamenti
+    - **Payment System**: Sistema di pagamenti semplificato
     - **Multi-role System**: Gestione utenti con ruoli diversi (utente, gestore, amministratore)
+    - **RESTful API**: API REST complete per tutte le operazioni
     
     ## Autenticazione
     L'API utilizza JWT (JSON Web Tokens) per l'autenticazione. Includi il token nel header `Authorization: Bearer <token>` per le richieste protette.
     
-    ## Real-time Events
-    Per gli aggiornamenti real-time, connettiti al server Socket.IO e ascolta gli eventi:
-    - `slot_update`: Aggiornamento singolo slot
-    - `slots_status_update`: Aggiornamento completo stato slot
-    - `slots_freed`: Slot liberati automaticamente
+    ## Sistema Semplificato
+    Il sistema è stato semplificato rimuovendo le dipendenze real-time e i pagamenti esterni per una maggiore stabilità e facilità di deployment.
     
   version: 2.0.0
   contact:
@@ -38,19 +35,17 @@ tags:
   - name: Autenticazione
     description: Endpoint per registrazione, login e gestione utenti
   - name: Slot
-    description: Gestione slot e prenotazioni real-time
+    description: Gestione slot e prenotazioni
   - name: Prenotazioni
     description: Gestione completa delle prenotazioni
   - name: Spazi
     description: Gestione spazi e sedi
   - name: Pagamenti
-    description: Integrazione pagamenti Stripe
+    description: Sistema pagamenti semplificato
   - name: Amministrazione
     description: Endpoint per amministratori e gestori
   - name: Analytics
     description: Statistiche e analisi dati
-  - name: Webhook
-    description: Webhook per integrazioni esterne
 
 components:
   securitySchemes:
@@ -990,7 +985,7 @@ paths:
       tags:
         - Pagamenti
       summary: Crea intent di pagamento
-      description: Crea un Payment Intent di Stripe per una prenotazione
+      description: Crea un intent di pagamento per una prenotazione
       security:
         - BearerAuth: []
       requestBody:
@@ -1042,45 +1037,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  # ========================================
-  # WEBHOOK
-  # ========================================
-  /webhook/stripe:
-    post:
-      tags:
-        - Webhook
-      summary: Webhook Stripe
-      description: Endpoint per ricevere webhook da Stripe per aggiornamenti pagamenti
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Payload del webhook Stripe
-      responses:
-        '200':
-          description: Webhook processato
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  received:
-                    type: boolean
-                    example: true
-        '400':
-          description: Webhook invalido
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Errore server
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
   # ========================================
   # AMMINISTRAZIONE
@@ -1211,18 +1167,3 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-# ========================================
-# SOCKET.IO EVENTS (Documentazione aggiuntiva)
-# ========================================
-# 
-# Eventi Socket.IO supportati:
-# 
-# Client → Server:
-# - join_space: { spazioId: number } - Entra in room spazio
-# - leave_space: { spazioId: number } - Esce da room spazio
-# 
-# Server → Client:
-# - slot_update: { slot: Slot } - Aggiornamento singolo slot
-# - slots_status_update: { slots: Slot[] } - Aggiornamento completo
-# - slots_freed: { slotIds: number[] } - Slot liberati automaticamente
-# - connection_confirmed: { message: string } - Conferma connessione
