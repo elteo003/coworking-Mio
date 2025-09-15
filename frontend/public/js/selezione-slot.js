@@ -92,23 +92,26 @@ async function checkAvailability(orarioInizio, orarioFine) {
 // Funzione per applicare stato corretto a uno slot
 function applySlotState(slot, status, slotData = {}) {
     // Rimuovi tutte le classi di stato precedenti
-    slot.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected', 'slot-start', 'slot-end');
+    slot.classList.remove('time-slot', 'slot-available', 'slot-booked', 'slot-occupied', 'slot-past', 'slot-selected', 'slot-start', 'slot-end', 'available', 'booked', 'occupied', 'past', 'selected');
+
+    // Applica la classe base time-slot
+    slot.classList.add('time-slot');
 
     // Applica nuovo stato
     switch (status) {
         case 'available':
-            slot.classList.add('slot-available');
+            slot.classList.add('available', 'slot-available');
             slot.disabled = false;
             slot.title = 'Disponibile';
             break;
         case 'booked':
-            slot.classList.add('slot-booked');
+            slot.classList.add('booked', 'slot-booked');
             slot.disabled = true;
             slot.title = 'Prenotato';
             break;
         case 'occupied':
             // Tutti gli slot occupati sono non cliccabili, indipendentemente dall'utente
-            slot.classList.add('slot-occupied');
+            slot.classList.add('occupied', 'slot-occupied');
             slot.disabled = true;
             slot.title = slotData.title || 'Occupato';
             break;
@@ -128,18 +131,15 @@ function applySlotState(slot, status, slotData = {}) {
 
 // Gestisce il click su uno slot
 async function handleSlotClick(slotId, slotElement) {
-
-    // Selezione visiva - NON occupare lo slot nel database
-
-    if (selectionState.startSlot === null) {
-        // Nessun slot selezionato → diventa START
-        setAsStart(slotId, slotElement);
-    } else if (selectionState.endSlot === null) {
-        // Solo START selezionato → diventa END
-        setAsEnd(slotId, slotElement);
+    // ✅ SISTEMA SEMPLIFICATO: toggle selezione singoli slot
+    const slotIdStr = slotId.toString();
+    
+    if (selectionState.allSelected.has(slotIdStr)) {
+        // Slot già selezionato → deseleziona
+        deselectSlot(slotIdStr, slotElement);
     } else {
-        // Entrambi selezionati → gestisci deselezione o nuovo START
-        handleFullSelection(slotId, slotElement);
+        // Slot non selezionato → seleziona
+        selectSingleSlot(slotIdStr, slotElement);
     }
 }
 
@@ -202,7 +202,7 @@ function setAsEnd(slotId, slotElement) {
         const element = document.querySelector(`[data-slot-id="${id}"]`);
         if (element) {
             element.classList.remove('slot-available', 'slot-booked', 'slot-occupied', 'slot-past');
-            element.classList.add('slot-selected');
+            element.classList.add('selected', 'slot-selected');
             element.title = 'Slot selezionato';
         }
     }
@@ -346,6 +346,29 @@ document.addEventListener('DOMContentLoaded', function () {
 async function initializePage() {
 
     try {
+        // ✅ RIPRISTINA SELEZIONE PENDENTE: controlla se c'è una selezione salvata dopo il login
+        const pendingSelection = localStorage.getItem('pendingSelection');
+        if (pendingSelection) {
+            try {
+                const selection = JSON.parse(pendingSelection);
+                console.log('🔄 Ripristino selezione pendente:', selection);
+                
+                // Ripristina le variabili globali
+                window.selectedSede = selection.sede;
+                window.selectedSpazio = selection.spazio;
+                window.selectedDateInizio = new Date(selection.dataInizio);
+                window.selectedDateFine = new Date(selection.dataFine);
+                window.selectedTimeInizio = selection.timeInizio;
+                window.selectedTimeFine = selection.timeFine;
+                
+                // Rimuovi la selezione pendente
+                localStorage.removeItem('pendingSelection');
+            } catch (error) {
+                console.error('❌ Errore nel ripristino selezione pendente:', error);
+                localStorage.removeItem('pendingSelection');
+            }
+        }
+
         // ✅ CONTROLLA SE L'UTENTE PUÒ ACCEDERE A QUESTA PAGINA
         if (!checkUserAccess()) {
             return;
@@ -514,19 +537,125 @@ function initializeCalendar() {
         maxDate: new Date().fp_incr(365), // 1 anno da oggi
         allowInput: true,
         clickOpens: true,
+        // ✅ NUOVO: Disabilita giorni non disponibili
+        disable: [],
+        onReady: function(selectedDates, dateStr, instance) {
+            // Quando il calendario è pronto, aggiorna i giorni disabilitati
+            updateDisabledDays();
+        },
+        onMonthChange: function(selectedDates, dateStr, instance) {
+            // Quando cambia mese, aggiorna i giorni disabilitati
+            updateDisabledDays();
+        },
+        onOpen: function(selectedDates, dateStr, instance) {
+            // Quando il calendario si apre, aggiorna i giorni disabilitati
+            setTimeout(() => {
+                updateDisabledDays();
+            }, 200);
+        },
         onChange: function (selectedDates, dateStr, instance) {
             if (selectedDates.length === 2) {
                 window.selectedDateInizio = selectedDates[0];
                 window.selectedDateFine = selectedDates[1];
 
-                // Inizializza il slot manager se tutto è pronto
-                if (window.selectedSede && window.selectedSpazio && window.selectedDateInizio) {
-                    initializeSlotManager();
+                // ✅ VERIFICA SE È UNA SELEZIONE MULTI-GIORNO
+                const giorniSelezionati = Math.ceil((selectedDates[1] - selectedDates[0]) / (1000 * 60 * 60 * 24)) + 1;
+                
+                if (giorniSelezionati > 1) {
+                    // ✅ SELEZIONE MULTI-GIORNO: prenota tutto il giorno (9:00-18:00)
+                    console.log(`📅 Selezione multi-giorno: ${giorniSelezionati} giorni`);
+                    
+                    // Imposta orari predefiniti per tutto il giorno
+                    window.selectedTimeInizio = '09:00';
+                    window.selectedTimeFine = '18:00';
+                    
+                    // Nascondi gli slot orari per selezione multi-giorno
+                    const timeSlotsContainer = document.getElementById('timeSlots');
+                    if (timeSlotsContainer) {
+                        timeSlotsContainer.innerHTML = `
+                            <div class="alert alert-info">
+                                <i class="fas fa-calendar-day me-2"></i>
+                                <strong>Prenotazione Multi-Giorno</strong><br>
+                                Hai selezionato ${giorniSelezionati} giorni consecutivi.<br>
+                                La prenotazione coprirà l'intera giornata lavorativa (9:00-18:00).
+                            </div>
+                        `;
+                        timeSlotsContainer.style.display = 'block';
+                    }
+                    
+                    // Aggiorna UI con selezione completa
+                    updateSelectionUI();
+                } else {
+                    // ✅ SELEZIONE SINGOLO GIORNO: mostra slot orari
+                    window.selectedTimeInizio = null;
+                    window.selectedTimeFine = null;
+                    
+                    // Inizializza il slot manager per selezione orari
+                    if (window.selectedSede && window.selectedSpazio && window.selectedDateInizio) {
+                        initializeSlotManager();
+                    }
                 }
             }
         }
     });
 
+}
+
+// ✅ NUOVA FUNZIONE: Aggiorna i giorni disabilitati nel calendario
+async function updateDisabledDays() {
+    if (!window.selectedSpazio || !datePicker) {
+        return;
+    }
+
+    try {
+        // ✅ CORREZIONE: Flatpickr currentMonth è un numero (0-11), currentYear è un numero
+        const mese = datePicker.currentMonth + 1; // Flatpickr usa 0-11, noi usiamo 1-12
+        const anno = datePicker.currentYear;
+        
+        console.log(`📅 Aggiornamento giorni per ${mese}/${anno}`);
+
+        // Chiama l'API per ottenere i giorni disponibili
+        const response = await fetch(`${window.CONFIG.API_BASE}/spazi/${window.selectedSpazio.id_spazio}/giorni-disponibili?mese=${mese}&anno=${anno}`);
+        
+        if (!response.ok) {
+            console.warn('⚠️ Errore nel caricamento giorni disponibili:', response.status);
+            return;
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.giorni) {
+            // Prepara array di giorni da disabilitare
+            const giorniDisabilitati = data.giorni
+                .filter(giorno => !giorno.disponibile)
+                .map(giorno => {
+                    // Crea data nel formato corretto per Flatpickr
+                    return new Date(anno, mese - 1, giorno.giorno);
+                });
+
+            // Aggiorna i giorni disabilitati nel date picker
+            datePicker.set('disable', giorniDisabilitati);
+            
+            console.log(`📅 Giorni disabilitati per ${mese}/${anno}:`, giorniDisabilitati.length);
+            
+            // ✅ FORZA la disabilitazione anche tramite CSS
+            setTimeout(() => {
+                giorniDisabilitati.forEach(data => {
+                    const dayElement = document.querySelector(`.flatpickr-day[aria-label*="${data.getDate()}"]`);
+                    if (dayElement) {
+                        dayElement.classList.add('disabled');
+                        dayElement.style.pointerEvents = 'none';
+                        dayElement.style.cursor = 'not-allowed';
+                        dayElement.style.opacity = '0.7';
+                        dayElement.style.backgroundColor = '#dc3545';
+                        dayElement.style.color = 'white';
+                    }
+                });
+            }, 100);
+        }
+    } catch (error) {
+        console.error('❌ Errore nell\'aggiornamento giorni disabilitati:', error);
+    }
 }
 
 // Configura gli event listener
@@ -564,12 +693,19 @@ function setupEventListeners() {
                 const spazio = window.spazi.find(s => s.id_spazio == spazioId);
                 window.selectedSpazio = spazio;
 
+                // ✅ AGGIORNA GIORNI DISABILITATI quando cambia spazio
+                updateDisabledDays();
+
                 // Inizializza il slot manager se tutto è pronto
                 if (window.selectedSede && window.selectedSpazio && window.selectedDateInizio) {
                     initializeSlotManager();
                 }
             } else {
                 window.selectedSpazio = null;
+                // ✅ Reset giorni disabilitati quando nessuno spazio è selezionato
+                if (datePicker) {
+                    datePicker.set('disable', []);
+                }
             }
         });
     }
@@ -583,8 +719,29 @@ function setupEventListeners() {
         btnBook.classList.add('btn-secondary');
 
         btnBook.addEventListener('click', async function () {
-
-            // Utente autenticato: procedi con la prenotazione
+            // ✅ VERIFICA AUTENTICAZIONE: controlla se l'utente è loggato
+            const isAuthenticated = await window.isAuthenticated();
+            if (!isAuthenticated) {
+                // Salva i dati della selezione per dopo il login
+                const selectionData = {
+                    sede: window.selectedSede,
+                    spazio: window.selectedSpazio,
+                    dataInizio: window.selectedDateInizio,
+                    dataFine: window.selectedDateFine,
+                    timeInizio: window.selectedTimeInizio,
+                    timeFine: window.selectedTimeFine
+                };
+                
+                localStorage.setItem('pendingSelection', JSON.stringify(selectionData));
+                
+                // Salva anche l'URL corrente per il redirect
+                localStorage.setItem('redirectAfterLogin', window.location.href);
+                
+                // Reindirizza al login
+                const loginUrl = 'login.html?message=' + encodeURIComponent('Effettua il login per completare la prenotazione.');
+                window.location.href = loginUrl;
+                return;
+            }
 
             // Verifica che tutti i campi siano selezionati
             if (!window.selectedSede || !window.selectedSpazio || !window.selectedDateInizio || !window.selectedTimeInizio || !window.selectedTimeFine) {
@@ -619,30 +776,111 @@ function setupEventListeners() {
 
 // Gestisce i parametri URL
 function handleUrlParameters() {
-
     const urlParams = new URLSearchParams(window.location.search);
-    const sedeId = urlParams.get('sede');
-    const spazioId = urlParams.get('spazio');
-    const data = urlParams.get('data');
+    let sedeId = urlParams.get('sede');
+    let spazioId = urlParams.get('spazio');
+    let dataInizio = urlParams.get('dataInizio');
+    let dataFine = urlParams.get('dataFine');
 
-    if (sedeId && spazioId && data) {
+    console.log('🔗 Parametri URL ricevuti:', { sedeId, spazioId, dataInizio, dataFine });
 
-        // Seleziona sede
+    // ✅ SALVA I PARAMETRI IN LOCALSTORAGE PER PERSISTENZA
+    if (sedeId || spazioId || dataInizio || dataFine) {
+        const bookingParams = {
+            sede: sedeId,
+            spazio: spazioId,
+            dataInizio: dataInizio,
+            dataFine: dataFine,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('bookingParams', JSON.stringify(bookingParams));
+        console.log('💾 Parametri prenotazione salvati in localStorage:', bookingParams);
+    }
+
+    // ✅ LEGGI ANCHE DAL LOCALSTORAGE (per casi di redirect post-login)
+    const savedParams = localStorage.getItem('bookingParams');
+    if (savedParams) {
+        try {
+            const parsedParams = JSON.parse(savedParams);
+            const isRecent = (Date.now() - parsedParams.timestamp) < 300000; // 5 minuti
+            
+            if (isRecent) {
+                console.log('📖 Parametri letti da localStorage:', parsedParams);
+                // Usa i parametri salvati se non ci sono parametri URL
+                if (!sedeId && parsedParams.sede) {
+                    sedeId = parsedParams.sede;
+                }
+                if (!spazioId && parsedParams.spazio) {
+                    spazioId = parsedParams.spazio;
+                }
+                if (!dataInizio && parsedParams.dataInizio) {
+                    dataInizio = parsedParams.dataInizio;
+                }
+                if (!dataFine && parsedParams.dataFine) {
+                    dataFine = parsedParams.dataFine;
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Errore nel parsing dei parametri salvati:', error);
+        }
+    }
+
+    if (sedeId) {
+        // ✅ PRESELEZIONA LA SEDE
         const sedeSelect = document.getElementById('sedeSelect');
         if (sedeSelect) {
             sedeSelect.value = sedeId;
-            sedeSelect.dispatchEvent(new Event('change'));
+            console.log(`✅ Sede preselezionata: ${sedeId}`);
+            
+            // Simula il cambio di sede per caricare gli spazi
+            setTimeout(() => {
+                sedeSelect.dispatchEvent(new Event('change'));
+                
+                // ✅ PRESELEZIONA LO SPAZIO se specificato
+                if (spazioId) {
+                    setTimeout(() => {
+                        const spazioSelect = document.getElementById('stanzaSelect');
+                        if (spazioSelect) {
+                            spazioSelect.value = spazioId;
+                            console.log(`✅ Spazio preselezionato: ${spazioId}`);
+                            spazioSelect.dispatchEvent(new Event('change'));
+                        }
+                    }, 500);
+                }
+            }, 500);
         }
-
-        // La selezione dello spazio avverrà automaticamente dopo il caricamento delle sedi
     }
 
+    // ✅ GESTISCI LE DATE se specificate
+    if (dataInizio) {
+        const dataInizioObj = new Date(dataInizio);
+        if (!isNaN(dataInizioObj.getTime())) {
+            window.selectedDateInizio = dataInizioObj;
+            console.log(`✅ Data inizio preselezionata: ${dataInizio}`);
+        }
+    }
+
+    if (dataFine) {
+        const dataFineObj = new Date(dataFine);
+        if (!isNaN(dataFineObj.getTime())) {
+            window.selectedDateFine = dataFineObj;
+            console.log(`✅ Data fine preselezionata: ${dataFine}`);
+        }
+    }
 }
+
+// ✅ FUNZIONE PER PULIRE I PARAMETRI DI PRENOTAZIONE
+function clearBookingParams() {
+    localStorage.removeItem('bookingParams');
+    console.log('🧹 Parametri prenotazione puliti dal localStorage');
+}
+
+// ✅ ESPONI LA FUNZIONE GLOBALMENTE
+window.clearBookingParams = clearBookingParams;
 
 // Crea gli slot temporali con stati corretti (VERSIONE OTTIMIZZATA)
 async function createTimeSlots() {
     const timeSlotsContainer = document.getElementById('timeSlots');
-
 
     if (!timeSlotsContainer) {
         console.error('❌ Container timeSlots non trovato!');
@@ -655,21 +893,38 @@ async function createTimeSlots() {
         orariApertura.push(`${hour.toString().padStart(2, '0')}:00`);
     }
 
-
     // Pulisci il container
     timeSlotsContainer.innerHTML = '';
 
-    // Gli stati degli slot verranno caricati dal SimpleSlotManager
-    // Per ora creiamo tutti gli slot come "available" di default
+    // ✅ CARICA DATI REALI DI DISPONIBILITÀ
+    let slotStatuses = {};
+    
+    if (window.selectedSpazio && window.selectedDateInizio) {
+        try {
+            const date = window.selectedDateInizio.toISOString().split('T')[0];
+            const response = await fetch(`${window.CONFIG.API_BASE}/spazi/${window.selectedSpazio.id_spazio}/disponibilita-slot/${date}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.slots) {
+                    // Mappa gli stati degli slot
+                    data.slots.forEach(slot => {
+                        slotStatuses[slot.orario] = slot.status;
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('❌ Errore nel caricamento disponibilità slot:', error);
+        }
+    }
 
     // Crea gli slot temporali con stati corretti
     for (let i = 0; i < orariApertura.length; i++) {
         const orario = orariApertura[i];
         const slotId = i + 1;
 
-        // Tutti gli slot iniziano come "available" - gli stati verranno aggiornati da Socket.IO
-        const status = 'available';
-
+        // ✅ USA STATO REALE o default a "available"
+        const status = slotStatuses[orario] || 'available';
 
         const slot = document.createElement('button');
         slot.className = 'btn btn-lg slot-button';
@@ -779,7 +1034,7 @@ async function selectTimeSlot(orario, slotElement, event = null) {
 function selectSingleSlot(slotId, slotElement, orario) {
     selectionState.allSelected.add(slotId);
     slotElement.classList.remove('slot-available');
-    slotElement.classList.add('slot-selected');
+    slotElement.classList.add('selected', 'slot-selected');
     slotElement.title = 'Selezionato';
 
     if (window.slotManager) {
@@ -790,9 +1045,13 @@ function selectSingleSlot(slotId, slotElement, orario) {
 // Deseleziona un slot (VERSIONE SEMPLIFICATA)
 function deselectSlot(slotId, slotElement) {
     selectionState.allSelected.delete(slotId);
-    slotElement.classList.remove('slot-selected');
-    slotElement.classList.add('slot-available');
-    slotElement.title = 'Disponibile';
+    slotElement.classList.remove('selected', 'slot-selected');
+    
+    // ✅ RIPRISTINA lo stato originale dello slot
+    if (!slotElement.disabled) {
+        slotElement.classList.add('available', 'slot-available');
+        slotElement.title = 'Disponibile';
+    }
 
     if (window.slotManager) {
         window.slotManager.deselectSlot(slotId);
@@ -812,7 +1071,7 @@ function selectSlotRange(startSlotId, endSlotId) {
         if (slotElement && !slotElement.disabled && slotElement.classList.contains('slot-available')) {
             selectionState.allSelected.add(slotId.toString());
             slotElement.classList.remove('slot-available');
-            slotElement.classList.add('slot-selected');
+            slotElement.classList.add('selected', 'slot-selected');
             slotElement.title = 'Selezionato';
 
             if (window.slotManager) {
@@ -826,7 +1085,12 @@ function selectSlotRange(startSlotId, endSlotId) {
 async function updateSelectionUI() {
     const btnBook = document.getElementById('btnBook');
 
-    if (selectionState.allSelected.size === 0) {
+    // ✅ VERIFICA SE È SELEZIONE MULTI-GIORNO (senza slot selezionati ma con orari predefiniti)
+    const isMultiDaySelection = window.selectedTimeInizio === '09:00' && window.selectedTimeFine === '18:00' && 
+                                window.selectedDateInizio && window.selectedDateFine &&
+                                window.selectedDateInizio.getTime() !== window.selectedDateFine.getTime();
+
+    if (selectionState.allSelected.size === 0 && !isMultiDaySelection) {
         hideSummary();
         hideTimeSelectionMessage();
         btnBook.disabled = true;
@@ -834,16 +1098,21 @@ async function updateSelectionUI() {
         return;
     }
 
-    // Calcola intervallo di tempo
-    const sortedSlots = Array.from(selectionState.allSelected).sort((a, b) => a - b);
-    const firstSlot = Math.min(...sortedSlots);
-    const lastSlot = Math.max(...sortedSlots);
+    if (isMultiDaySelection) {
+        // ✅ SELEZIONE MULTI-GIORNO: usa gli orari predefiniti
+        console.log('📅 Aggiornamento UI per selezione multi-giorno');
+    } else {
+        // ✅ SELEZIONE SINGOLI SLOT: calcola intervallo di tempo
+        const sortedSlots = Array.from(selectionState.allSelected).sort((a, b) => a - b);
+        const firstSlot = Math.min(...sortedSlots);
+        const lastSlot = Math.max(...sortedSlots);
 
-    const firstHour = firstSlot + 8; // slot 1 = 9:00, slot 2 = 10:00
-    const lastHour = lastSlot + 9;   // slot 1 = 10:00, slot 2 = 11:00
+        const firstHour = firstSlot + 8; // slot 1 = 9:00, slot 2 = 10:00
+        const lastHour = lastSlot + 9;   // slot 1 = 10:00, slot 2 = 11:00
 
-    window.selectedTimeInizio = `${firstHour.toString().padStart(2, '0')}:00`;
-    window.selectedTimeFine = `${lastHour.toString().padStart(2, '0')}:00`;
+        window.selectedTimeInizio = `${firstHour.toString().padStart(2, '0')}:00`;
+        window.selectedTimeFine = `${lastHour.toString().padStart(2, '0')}:00`;
+    }
 
     // Mostra messaggio appropriato
     if (selectionState.allSelected.size === 1) {
@@ -886,7 +1155,14 @@ async function updateSelectionUI() {
 
     // Slot disponibili
     btnBook.disabled = false;
-    btnBook.textContent = `Prenota Ora (${selectionState.allSelected.size} slot)`;
+    
+    // ✅ NON MOSTRARE il contatore slot per le prenotazioni multi-giorno
+    if (isMultiDaySelection) {
+        btnBook.textContent = 'Prenota Ora';
+    } else {
+        btnBook.textContent = `Prenota Ora (${selectionState.allSelected.size} slot)`;
+    }
+    
     btnBook.className = 'btn btn-success';
     updateSummary();
     showSummary();
@@ -902,7 +1178,7 @@ function clearAllSelections() {
 
     // Pulisci UI - rimuovi solo le classi di selezione
     document.querySelectorAll('.slot-button').forEach(slot => {
-        slot.classList.remove('slot-selected', 'slot-start', 'slot-end');
+        slot.classList.remove('selected', 'slot-selected', 'slot-start', 'slot-end');
         // Mantieni le classi di stato originale (available, booked, etc.)
     });
 
@@ -1007,12 +1283,31 @@ function showInfo(message) {
     }
 }
 
-// Calcola il prezzo della prenotazione (VERSIONE SEMPLIFICATA)
+// Calcola il prezzo della prenotazione (VERSIONE CORRETTA)
 function calculatePrice() {
-    if (selectionState.allSelected.size === 0) return 0;
-
     const prezzoPerOra = 10; // €10/ora
-    return selectionState.allSelected.size * prezzoPerOra;
+    
+    // ✅ VERIFICA SE È SELEZIONE MULTI-GIORNO
+    const isMultiDaySelection = window.selectedTimeInizio === '09:00' && window.selectedTimeFine === '18:00' && 
+                                window.selectedDateInizio && window.selectedDateFine &&
+                                window.selectedDateInizio.getTime() !== window.selectedDateFine.getTime();
+    
+    if (isMultiDaySelection) {
+        // ✅ CALCOLO PER PRENOTAZIONI MULTI-GIORNO
+        const giorniDiff = Math.ceil((window.selectedDateFine - window.selectedDateInizio) / (1000 * 60 * 60 * 24)) + 1;
+        const orePerGiorno = 9; // 9:00-18:00 = 9 ore
+        const oreTotali = giorniDiff * orePerGiorno;
+        console.log(`📅 Calcolo multi-giorno: ${giorniDiff} giorni × ${orePerGiorno} ore = ${oreTotali} ore totali`);
+        return oreTotali * prezzoPerOra;
+    } else if (selectionState.allSelected.size > 0) {
+        // ✅ CALCOLO PER PRENOTAZIONI SINGLE-DAY
+        const oreTotali = selectionState.allSelected.size;
+        console.log(`⏰ Calcolo single-day: ${oreTotali} slot selezionati = ${oreTotali} ore`);
+        return oreTotali * prezzoPerOra;
+    } else {
+        // ✅ NESSUNA SELEZIONE
+        return 0;
+    }
 }
 
 // Aggiorna riepilogo (VERSIONE SEMPLIFICATA)
@@ -1025,11 +1320,48 @@ function updateSummary() {
 
     if (summarySede) summarySede.textContent = window.selectedSede ? window.selectedSede.nome : '-';
     if (summaryStanza) summaryStanza.textContent = window.selectedSpazio ? window.selectedSpazio.nome : '-';
-    if (summaryData) summaryData.textContent = window.selectedDateInizio ? window.selectedDateInizio.toLocaleDateString('it-IT') : '-';
+    
+    // ✅ GESTISCI LA DATA NEL RIEPILOGO
+    if (summaryData) {
+        if (window.selectedDateInizio && window.selectedDateFine && 
+            window.selectedDateInizio.getTime() !== window.selectedDateFine.getTime()) {
+            // ✅ SELEZIONE MULTI-GIORNO: mostra range di date
+            const dataInizioStr = window.selectedDateInizio.toLocaleDateString('it-IT');
+            const dataFineStr = window.selectedDateFine.toLocaleDateString('it-IT');
+            summaryData.textContent = `${dataInizioStr} - ${dataFineStr}`;
+        } else if (window.selectedDateInizio) {
+            // ✅ SELEZIONE SINGOLO GIORNO: mostra data singola
+            summaryData.textContent = window.selectedDateInizio.toLocaleDateString('it-IT');
+        } else {
+            summaryData.textContent = '-';
+        }
+    }
 
     if (summaryOrario && window.selectedTimeInizio && window.selectedTimeFine) {
-        const oreTotali = selectionState.allSelected.size;
-        summaryOrario.textContent = `${window.selectedTimeInizio} - ${window.selectedTimeFine} (${oreTotali} ${oreTotali === 1 ? 'ora' : 'ore'})`;
+        // ✅ VERIFICA SE È SELEZIONE MULTI-GIORNO
+        const isMultiDaySelection = window.selectedTimeInizio === '09:00' && window.selectedTimeFine === '18:00' && 
+                                    window.selectedDateInizio && window.selectedDateFine &&
+                                    window.selectedDateInizio.getTime() !== window.selectedDateFine.getTime();
+        
+        if (isMultiDaySelection) {
+            // ✅ CALCOLO ORE PER MULTI-GIORNO
+            const giorniDiff = Math.ceil((window.selectedDateFine - window.selectedDateInizio) / (1000 * 60 * 60 * 24)) + 1;
+            const orePerGiorno = 9; // 9:00-18:00 = 9 ore
+            const oreTotali = giorniDiff * orePerGiorno;
+            
+            const dataInizioStr = window.selectedDateInizio.toLocaleDateString('it-IT');
+            const dataFineStr = window.selectedDateFine.toLocaleDateString('it-IT');
+            
+            if (giorniDiff === 1) {
+                summaryOrario.textContent = `${dataInizioStr} - ${window.selectedTimeInizio}/${window.selectedTimeFine} (${orePerGiorno} ore)`;
+            } else {
+                summaryOrario.textContent = `${dataInizioStr} - ${dataFineStr} (${giorniDiff} giorni × ${orePerGiorno}h = ${oreTotali} ore)`;
+            }
+        } else {
+            // ✅ CALCOLO ORE PER SINGLE-DAY
+            const oreTotali = selectionState.allSelected.size;
+            summaryOrario.textContent = `${window.selectedTimeInizio} - ${window.selectedTimeFine} (${oreTotali} ${oreTotali === 1 ? 'ora' : 'ore'})`;
+        }
     } else if (summaryOrario) {
         summaryOrario.textContent = '-';
     }

@@ -171,7 +171,6 @@ function renderRisultati(items, dal, al) {
 
   items.forEach(({ sede, spazio, disponibile }) => {
     const badge = disponibile ? '<span class="badge bg-success">Disponibile</span>' : '<span class="badge bg-secondary">Verifica</span>';
-    const linkPrenota = `selezione-slot.html?sede=${sede.id_sede}&spazio=${spazio.id_spazio}${dal && al ? `&dataInizio=${encodeURIComponent(dal)}&dataFine=${encodeURIComponent(al)}` : ''}`;
 
     grid.append(`
       <div class="col-md-6 col-lg-4">
@@ -182,11 +181,49 @@ function renderRisultati(items, dal, al) {
             <p class="card-text mb-1"><strong>Tipologia:</strong> ${spazio.tipologia}</p>
             <div class="mb-3">${badge}</div>
             <div class="mt-auto d-grid">
-              <a class="btn btn-outline-primary" href="${linkPrenota}">Prenota</a>
+              <button class="btn btn-outline-primary btn-prenota-spazio-catalogo" 
+                      data-space-id="${spazio.id_spazio}"
+                      data-location-id="${sede.id_sede}"
+                      data-space-name="${spazio.nome}">
+                Prenota
+              </button>
             </div>
           </div>
         </div>
       </div>
     `);
+  });
+  
+  // ✅ AGGIUNGI EVENT LISTENER PER I BOTTONI PRENOTA SPAZIO
+  $('.btn-prenota-spazio-catalogo').on('click', function(e) {
+    e.preventDefault();
+    const spaceId = $(this).data('space-id');
+    const locationId = $(this).data('location-id');
+    const spaceName = $(this).data('space-name');
+    
+    console.log(`🎯 Click "Prenota" card spazio catalogo - sede + spazio: ${locationId} + ${spaceId}`);
+    
+    // Verifica autenticazione
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // ✅ SALVA PARAMETRI SEDE + SPAZIO E REINDIRIZZA AL LOGIN
+      const bookingParams = {
+        sede: locationId,
+        spazio: spaceId,
+        dataInizio: null,
+        dataFine: null,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('bookingParams', JSON.stringify(bookingParams));
+      localStorage.setItem('redirectAfterLogin', 'selezione-slot.html');
+      
+      console.log('💾 Parametri sede + spazio salvati:', bookingParams);
+      window.location.href = 'login.html';
+      return;
+    }
+    
+    // ✅ UTENTE AUTENTICATO - Vai alla prenotazione con sede + spazio preselezionati
+    const bookingUrl = `selezione-slot.html?sede=${locationId}&spazio=${spaceId}`;
+    window.location.href = bookingUrl;
   });
 }

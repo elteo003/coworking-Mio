@@ -433,16 +433,24 @@ window.handleLogin = function (event, email, password) {
               return;
             }
           } else {
-            // Nessuna prenotazione in attesa, vai alla dashboard
-            const userRole = response.ruolo;
+            // ✅ Nessuna prenotazione in attesa, ma torna alla pagina di selezione slot
             setTimeout(() => {
-              window.location.href = getDashboardUrl(userRole);
+              // Aggiungi parametro per indicare che si torna dopo il login
+              const separator = redirectAfterLogin.includes('?') ? '&' : '?';
+              window.location.href = redirectAfterLogin + separator + 'fromLogin=true';
             }, 1000);
             return;
           }
         } else {
+          // ✅ GESTISCI REDIRECT PER CATALOGO E ALTRE PAGINE
           setTimeout(() => {
-            window.location.href = redirectAfterLogin;
+            // Se il redirect contiene parametri, preservali
+            if (redirectAfterLogin.includes('catalogo.html')) {
+              // Per il catalogo, assicurati di tornare alla pagina corretta
+              window.location.href = redirectAfterLogin;
+            } else {
+              window.location.href = redirectAfterLogin;
+            }
           }, 1000);
         }
         return;
@@ -655,6 +663,26 @@ window.handleRegistration = function (event, nome, cognome, email, password, tel
       submitBtn.prop('disabled', false);
     });
 }
+
+// ✅ FUNZIONE PER GESTIRE "PRENOTA ORA" DALLA NAVBAR (nessuna preselezione)
+window.handleNavbarPrenota = function() {
+  console.log('🎯 Click "Prenota Ora" dalla navbar - nessuna preselezione');
+  
+  // Pulisce eventuali parametri di prenotazione precedenti
+  localStorage.removeItem('bookingParams');
+  
+  // Verifica autenticazione
+  const token = localStorage.getItem('token');
+  if (!token) {
+    // Salva il redirect per tornare alla prenotazione senza preselezione
+    localStorage.setItem('redirectAfterLogin', 'selezione-slot.html');
+    window.location.href = 'login.html';
+    return;
+  }
+  
+  // Utente autenticato, vai direttamente alla prenotazione
+  window.location.href = 'selezione-slot.html';
+};
 
 // Funzione per pulire prenotazioni in attesa obsolete
 function cleanupPendingPrenotazioni() {

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Upload Semplice</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="frontend/public/css/card-fixes.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Test Upload Immagini</h1>
+        
+        <div class="alert alert-info">
+            <strong>Nota:</strong> Prima di testare, configura le credenziali Supabase in <code>frontend/public/js/supabase-config.js</code>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Upload</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testUploadContainer"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Console Log</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="consoleLog" style="height: 300px; overflow-y: auto; background: #f8f9fa; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.875rem;">
+                            <div>Console log apparirà qui...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Istruzioni</h5>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            <li><strong>Configura Supabase:</strong> Apri <code>frontend/public/js/supabase-config.js</code> e inserisci le tue credenziali</li>
+                            <li><strong>Esegui le query:</strong> Nel SQL Editor di Supabase, esegui le query da <code>database/supabase-images-setup.sql</code></li>
+                            <li><strong>Crea il bucket:</strong> In Storage, crea un bucket chiamato "Immagini" e rendilo pubblico</li>
+                            <li><strong>Testa l'upload:</strong> Clicca nell'area di upload o trascina un'immagine</li>
+                        </ol>
+                        
+                        <div class="alert alert-warning mt-3">
+                            <strong>Tipi supportati:</strong> JPEG, PNG, WebP<br>
+                            <strong>Dimensione massima:</strong> 5MB
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="frontend/public/js/supabase-config.js"></script>
+    <script src="frontend/public/js/image-manager.js"></script>
+    
+    <script>
+        // Override console.log per mostrare i log nella pagina
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function addToLog(message, type = 'log') {
+            const logContainer = document.getElementById('consoleLog');
+            const logEntry = document.createElement('div');
+            logEntry.className = `mb-1 ${type === 'error' ? 'text-danger' : 'text-success'}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToLog(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToLog(args.join(' '), 'error');
+        };
+        
+        // Test dell'upload quando il DOM è pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Inizializzazione test upload...');
+            
+            // Inizializza l'upload
+            if (window.imageManager) {
+                console.log('✅ ImageManager trovato');
+                
+                window.imageManager.createUploadElement('testUploadContainer', (imageData, fileName) => {
+                    console.log('✅ Immagine caricata con successo!');
+                    console.log('📁 File:', fileName);
+                    console.log('🔗 URL:', imageData.url);
+                });
+                
+                console.log('✅ Upload element creato');
+            } else {
+                console.error('❌ ImageManager non trovato');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -315,19 +315,9 @@ function isPageRequiringAuth(pageName) {
     const pagesRequiringAuth = [
         'dashboard.html',
         'pagamento.html',
-        'dashboard-responsabili.html'
+        'dashboard-responsabili.html',
+        'selezione-slot.html' // ✅ SEMPRE richiede autenticazione per prenotare
     ];
-
-    // La pagina selezione-slot.html richiede autenticazione per completare la prenotazione
-    if (pageName === 'selezione-slot.html') {
-        // Controlla se c'è una prenotazione in corso
-        const hasPrenotazioneInCorso = localStorage.getItem('selectedSede') ||
-            localStorage.getItem('selectedSpazio') ||
-            localStorage.getItem('selectedDataInizio') ||
-            localStorage.getItem('selectedDataFine');
-        // Se c'è una prenotazione in corso, richiede autenticazione
-        return hasPrenotazioneInCorso;
-    }
 
     return pagesRequiringAuth.includes(pageName);
 }
@@ -388,21 +378,11 @@ function updateNavbarUniversal() {
         try {
             const user = JSON.parse(userStr);
 
-            // ✅ Trasforma il tasto "Accedi" esistente in "Logout" mantenendo lo stesso stile
-            const accediButton = authSection.querySelector('.btn-primary');
-
-            if (accediButton) {
-                // ✅ Trasforma il tasto Accedi in Logout
-                accediButton.innerHTML = '<i class="fas fa-sign-out-alt me-1"></i>Logout';
-                accediButton.onclick = logout;
-                accediButton.href = '#';
-            } else {
-                // Fallback: crea nuovo pulsante Logout se non trova quello esistente
-                authSection.innerHTML = `
-                    <a class="nav-link btn btn-primary" href="#" onclick="logout()">
-                        <i class="fas fa-sign-out-alt me-1"></i>Logout
-                    </a>
-                `;
+            // ✅ RIMUOVI SOLO IL BOTTONE LOGOUT, MANTIENI LA SEZIONE AUTH PER IL DASHBOARD
+            // Il logout è disponibile solo nelle dashboard
+            if (authSection) {
+                // Rimuovi solo il contenuto del bottone logout, mantieni la struttura
+                authSection.innerHTML = '';
             }
 
             // ✅ Info utente rimosso per navbar più pulita
@@ -421,11 +401,11 @@ function updateNavbarUniversal() {
                         </li>
                     `;
                 } else if (user.ruolo === 'cliente') {
-                    // Per clienti: Solo Dashboard Utente
+                    // Per clienti: Solo Dashboard Utente (senza nome utente)
                     dashboardItems = `
                         <li class="nav-item dynamic-nav-item">
                             <a class="nav-link" href="dashboard.html">
-                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard (${user.nome})
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                             </a>
                         </li>
                     `;

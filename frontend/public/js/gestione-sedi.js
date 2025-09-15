@@ -362,9 +362,26 @@ class GestioneSedi {
 
     showCreaSedeModal() {
         const modal = this.createModal('Crea Nuova Sede', this.getSedeForm());
+        const form = modal.querySelector('#sedeForm');
         document.body.appendChild(modal);
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
+
+        // Inizializza l'upload delle immagini dopo che il modal è mostrato
+        bsModal._element.addEventListener('shown.bs.modal', () => {
+            if (window.s3ImageManager) {
+                window.s3ImageManager.createUploadElement('sedeImagesContainer', (imageData, fileName) => {
+                    console.log('✅ Immagine sede caricata:', imageData);
+                    // Salva l'immagine per il salvataggio finale
+                    if (!form.dataset.images) {
+                        form.dataset.images = JSON.stringify([]);
+                    }
+                    const images = JSON.parse(form.dataset.images);
+                    images.push(imageData);
+                    form.dataset.images = JSON.stringify(images);
+                });
+            }
+        });
 
         modal.addEventListener('hidden.bs.modal', () => {
             document.body.removeChild(modal);
@@ -380,6 +397,25 @@ class GestioneSedi {
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
 
+        // Inizializza l'upload delle immagini dopo che il modal è mostrato
+        bsModal._element.addEventListener('shown.bs.modal', () => {
+            if (window.s3ImageManager) {
+                // Carica le immagini esistenti
+                this.loadExistingImages('sede', sedeId, 'sedeImagesContainer');
+                
+                window.s3ImageManager.createUploadElement('sedeImagesContainer', (imageData, fileName) => {
+                    console.log('✅ Immagine sede caricata:', imageData);
+                    // Salva l'immagine per il salvataggio finale
+                    if (!form.dataset.images) {
+                        form.dataset.images = JSON.stringify([]);
+                    }
+                    const images = JSON.parse(form.dataset.images);
+                    images.push(imageData);
+                    form.dataset.images = JSON.stringify(images);
+                });
+            }
+        });
+
         modal.addEventListener('hidden.bs.modal', () => {
             document.body.removeChild(modal);
         });
@@ -387,9 +423,26 @@ class GestioneSedi {
 
     showCreaSpazioModal(sedeId) {
         const modal = this.createModal('Crea Nuovo Spazio', this.getSpazioForm(sedeId));
+        const form = modal.querySelector('#spazioForm');
         document.body.appendChild(modal);
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
+
+        // Inizializza l'upload delle immagini dopo che il modal è mostrato
+        bsModal._element.addEventListener('shown.bs.modal', () => {
+            if (window.s3ImageManager) {
+                window.s3ImageManager.createUploadElement('spazioImagesContainer', (imageData, fileName) => {
+                    console.log('✅ Immagine spazio caricata:', imageData);
+                    // Salva l'immagine per il salvataggio finale
+                    if (!form.dataset.images) {
+                        form.dataset.images = JSON.stringify([]);
+                    }
+                    const images = JSON.parse(form.dataset.images);
+                    images.push(imageData);
+                    form.dataset.images = JSON.stringify(images);
+                });
+            }
+        });
 
         modal.addEventListener('hidden.bs.modal', () => {
             document.body.removeChild(modal);
@@ -405,9 +458,78 @@ class GestioneSedi {
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
 
+        // Inizializza l'upload delle immagini dopo che il modal è mostrato
+        bsModal._element.addEventListener('shown.bs.modal', () => {
+            if (window.s3ImageManager) {
+                // Carica le immagini esistenti
+                this.loadExistingImages('spazio', spazioId, 'spazioImagesContainer');
+                
+                window.s3ImageManager.createUploadElement('spazioImagesContainer', (imageData, fileName) => {
+                    console.log('✅ Immagine spazio caricata:', imageData);
+                    // Salva l'immagine per il salvataggio finale
+                    if (!form.dataset.images) {
+                        form.dataset.images = JSON.stringify([]);
+                    }
+                    const images = JSON.parse(form.dataset.images);
+                    images.push(imageData);
+                    form.dataset.images = JSON.stringify(images);
+                });
+            }
+        });
+
         modal.addEventListener('hidden.bs.modal', () => {
             document.body.removeChild(modal);
         });
+    }
+
+    // Carica le immagini esistenti per sede o spazio
+    async loadExistingImages(type, parentId, containerId) {
+        try {
+            if (window.s3ImageManager) {
+                const images = await window.s3ImageManager.getImages(type, parentId);
+                const container = document.getElementById(containerId);
+                
+                if (images.length > 0) {
+                    // Crea la griglia delle immagini esistenti
+                    const imageGrid = document.createElement('div');
+                    imageGrid.className = 'image-grid';
+                    imageGrid.innerHTML = images.map(img => `
+                        <div class="image-grid-item">
+                            <img src="${img.url}" alt="${img.alt_text || ''}" loading="lazy">
+                            <div class="overlay">
+                                <button class="btn btn-sm" onclick="gestioneSedi.removeExistingImage('${img.id}', '${type}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    container.appendChild(imageGrid);
+                }
+            }
+        } catch (error) {
+            console.error('Errore caricamento immagini esistenti:', error);
+        }
+    }
+
+    // Rimuovi immagine esistente
+    async removeExistingImage(imageId, type) {
+        if (confirm('Sei sicuro di voler eliminare questa immagine?')) {
+            try {
+                if (window.s3ImageManager) {
+                    await window.s3ImageManager.deleteImageMetadata(imageId, type);
+                    // Ricarica la sezione immagini
+                    const container = document.getElementById(type === 'sede' ? 'sedeImagesContainer' : 'spazioImagesContainer');
+                    const imageGrid = container.querySelector('.image-grid');
+                    if (imageGrid) {
+                        imageGrid.remove();
+                    }
+                }
+            } catch (error) {
+                console.error('Errore eliminazione immagine:', error);
+                alert('Errore durante l\'eliminazione dell\'immagine');
+            }
+        }
     }
 
     getSedeForm(sede = null) {
@@ -428,6 +550,10 @@ class GestioneSedi {
         <div class="mb-3">
           <label for="descrizione" class="form-label">Descrizione</label>
           <textarea class="form-control" id="descrizione" name="descrizione" rows="3">${sede?.descrizione || ''}</textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Immagini</label>
+          <div id="sedeImagesContainer"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>

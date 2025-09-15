@@ -59,17 +59,11 @@ const getDashboardStats = async (req, res) => {
         `;
 
 
-        try {
-            const [prenotazioniResult, fatturatoResult, occupazioneResult] = await Promise.all([
-                pool.query(prenotazioniQuery, params),
-                pool.query(fatturatoQuery, params),
-                pool.query(occupazioneQuery, params)
-            ]);
-
-        } catch (queryError) {
-            console.error('❌ Dashboard Stats - Errore esecuzione query:', queryError);
-            throw queryError;
-        }
+        const [prenotazioniResult, fatturatoResult, occupazioneResult] = await Promise.all([
+            pool.query(prenotazioniQuery, params),
+            pool.query(fatturatoQuery, params),
+            pool.query(occupazioneQuery, params)
+        ]);
 
         const stats = {
             prenotazioni_oggi: parseInt(prenotazioniResult.rows[0]?.prenotazioni_oggi || 0),
@@ -192,7 +186,7 @@ const getDashboardActivity = async (req, res) => {
             SELECT 
                 'prenotazione' as tipo,
                 CONCAT('Nuova prenotazione per ', s.nome) as descrizione,
-                p.data_creazione as timestamp
+                p.data_inizio as timestamp
             FROM prenotazione p
             JOIN spazio s ON p.id_spazio = s.id_spazio
             WHERE p.stato = 'confermata'

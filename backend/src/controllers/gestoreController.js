@@ -191,11 +191,176 @@ exports.eliminaSede = async (req, res) => {
   }
 };
 
+// ===== GESTIONE IMMAGINI =====
+
+// Ottieni credenziali S3 per l'upload
+exports.getStorageCredentials = async (req, res) => {
+  try {
+    // Restituisci le credenziali S3 dal .env
+    res.json({
+      accessKeyId: process.env.STORAGE_ACCESS_KEY_ID,
+      secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY,
+      endpoint: process.env.STORAGE_ENDPOINT || 'https://czkiuvmhijhxuqzdtnmz.storage.supabase.co/storage/v1/s3',
+      bucketName: process.env.STORAGE_BUCKET_NAME || 'Immagini'
+    });
+  } catch (err) {
+    console.error('Errore caricamento credenziali storage:', err);
+    res.status(500).json({ error: 'Errore caricamento credenziali storage' });
+  }
+};
+
+// Salva metadati immagine
+exports.saveImageMetadata = async (req, res) => {
+  const { type, parentId, url, altText, fileName } = req.body;
+  const id_gestore = req.user.id_utente;
+
+  if (!id_gestore) return res.status(400).json({ error: 'Utente non autenticato' });
+
+  try {
+    const tableName = type === 'sede' ? 'sede_immagini' : 'spazio_immagini';
+    const parentField = type === 'sede' ? 'id_sede' : 'id_spazio';
+
+    // Verifica che il gestore abbia accesso alla sede/spazio
+    let checkQuery;
+    if (type === 'sede') {
+      checkQuery = 'SELECT id_sede FROM Sede WHERE id_sede = $1 AND id_gestore = $2';
+    } else {
+      checkQuery = `
+        SELECT s.id_spazio FROM Spazio s 
+        JOIN Sede se ON s.id_sede = se.id_sede 
+        WHERE s.id_spazio = $1 AND se.id_gestore = $2
+      `;
+    }
+
+    const checkResult = await pool.query(checkQuery, [parentId, id_gestore]);
+    if (checkResult.rows.length === 0) {
+      return res.status(403).json({ error: 'Accesso negato' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO ${tableName} (${parentField}, url, alt_text, sort_order)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [parentId, url, altText || '', 0]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Errore salvataggio metadati immagine:', err);
+    res.status(500).json({ error: 'Errore salvataggio metadati immagine' });
+  }
+};
+
+// Elimina metadati immagine
+exports.deleteImageMetadata = async (req, res) => {
+  const { id } = req.params;
+  const id_gestore = req.user.id_utente;
+
+  if (!id_gestore) return res.status(400).json({ error: 'Utente non autenticato' });
+
+  try {
+    // Verifica che il gestore abbia accesso all'immagine
+    const checkQuery = `
+      SELECT si.id FROM sede_immagini si
+      JOIN Sede s ON si.id_sede = s.id_sede
+      WHERE si.id = $1 AND s.id_gestore = $2
+      UNION
+      SELECT spi.id FROM spazio_immagini spi
+      JOIN Spazio sp ON spi.id_spazio = sp.id_spazio
+      JOIN Sede se ON sp.id_sede = se.id_sede
+      WHERE spi.id = $1 AND se.id_gestore = $2
+    `;
+
+    const checkResult = await pool.query(checkQuery, [id, id_gestore]);
+    if (checkResult.rows.length === 0) {
+      return res.status(403).json({ error: 'Accesso negato' });
+    }
+
+    // Elimina l'immagine
+    const deleteQuery = `
+      DELETE FROM sede_immagini WHERE id = $1
+      UNION
+      DELETE FROM spazio_immagini WHERE id = $1
+    `;
+
+    await pool.query(deleteQuery, [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Errore eliminazione metadati immagine:', err);
+    res.status(500).json({ error: 'Errore eliminazione metadati immagine' });
+  }
+};
+
+// Ottieni immagini per sede/spazio
+exports.getImages = async (req, res) => {
+  const { type, parentId } = req.query;
+  const id_gestore = req.user.id_utente;
+
+  if (!id_gestore) return res.status(400).json({ error: 'Utente non autenticato' });
+
+  try {
+    let query;
+    if (type === 'sede') {
+      query = `
+        SELECT si.* FROM sede_immagini si
+        JOIN Sede s ON si.id_sede = s.id_sede
+        WHERE si.id_sede = $1 AND s.id_gestore = $2
+        ORDER BY si.sort_order, si.created_at
+      `;
+    } else {
+      query = `
+        SELECT spi.* FROM spazio_immagini spi
+        JOIN Spazio sp ON spi.id_spazio = sp.id_spazio
+        JOIN Sede se ON sp.id_sede = se.id_sede
+        WHERE spi.id_spazio = $1 AND se.id_gestore = $2
+        ORDER BY spi.sort_order, spi.created_at
+      `;
+    }
+
+    const result = await pool.query(query, [parentId, id_gestore]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Errore caricamento immagini:', err);
+    res.status(500).json({ error: 'Errore caricamento immagini' });
+  }
+};
+
 // ===== GESTIONE SPAZI =====
+
+// Ottieni tutti gli spazi del gestore
+exports.getSpaziGestore = async (req, res) => {
+  const id_gestore = req.user.id_utente;
+
+  if (!id_gestore) return res.status(400).json({ error: 'Utente non autenticato' });
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+        s.id_spazio,
+        s.nome,
+        s.tipologia,
+        s.descrizione,
+        s.capienza,
+        s.stato,
+        s.id_sede,
+        se.nome as nome_sede,
+        se.citta as citta_sede
+       FROM Spazio s
+       JOIN Sede se ON s.id_sede = se.id_sede
+       WHERE se.id_gestore = $1
+       ORDER BY se.citta, se.nome, s.nome`,
+      [id_gestore]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Errore caricamento spazi gestore:', err);
+    res.status(500).json({ error: 'Errore server' });
+  }
+};
 
 // Crea un nuovo spazio
 exports.creaSpazio = async (req, res) => {
-  const { id_sede, nome, tipologia, descrizione, capienza } = req.body;
+  const { id_sede, nome, tipologia, descrizione, capienza, stato } = req.body;
   const id_gestore = req.user.id_utente;
 
   if (!id_sede || !nome || !tipologia) {
@@ -214,9 +379,9 @@ exports.creaSpazio = async (req, res) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO Spazio (id_sede, nome, tipologia, descrizione, capienza)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [id_sede, nome, tipologia, descrizione || null, capienza || null]
+      `INSERT INTO Spazio (id_sede, nome, tipologia, descrizione, capienza, stato)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [id_sede, nome, tipologia, descrizione || null, capienza || null, stato || 'disponibile']
     );
 
     res.status(201).json(result.rows[0]);
@@ -228,7 +393,7 @@ exports.creaSpazio = async (req, res) => {
 // Modifica un spazio esistente
 exports.modificaSpazio = async (req, res) => {
   const { id } = req.params;
-  const { nome, tipologia, descrizione, capienza } = req.body;
+  const { nome, tipologia, descrizione, capienza, stato } = req.body;
   const id_gestore = req.user.id_utente;
 
   if (!nome || !tipologia) {
@@ -249,9 +414,9 @@ exports.modificaSpazio = async (req, res) => {
     }
 
     const result = await pool.query(
-      `UPDATE Spazio SET nome = $1, tipologia = $2, descrizione = $3, capienza = $4
-       WHERE id_spazio = $5 RETURNING *`,
-      [nome, tipologia, descrizione || null, capienza || null, id]
+      `UPDATE Spazio SET nome = $1, tipologia = $2, descrizione = $3, capienza = $4, stato = $5
+       WHERE id_spazio = $6 RETURNING *`,
+      [nome, tipologia, descrizione || null, capienza || null, stato || 'disponibile', id]
     );
 
     res.json(result.rows[0]);

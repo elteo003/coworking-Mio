@@ -1,5 +1,16 @@
 const pool = require('../db');
 
+// ✅ Funzione per generare descrizioni dettagliate delle sedi
+function getDetailedDescription(nomeSede, citta) {
+  const descriptions = {
+    'Milano': `Sede moderna e funzionale nel cuore di Milano, perfetta per professionisti e startup. Offre spazi flessibili, sale riunioni attrezzate e un ambiente di lavoro stimolante. Ideale per networking e collaborazione.`,
+    'Roma': `Coworking elegante e professionale a Roma, con spazi luminosi e arredamento moderno. Ambiente perfetto per meeting importanti e lavoro produttivo. Servizi di alto livello per i nostri clienti.`,
+    'default': `Sede di coworking moderna e ben attrezzata, progettata per offrire il massimo comfort e produttività. Spazi flessibili, servizi completi e un ambiente di lavoro professionale.`
+  };
+  
+  return descriptions[citta] || descriptions.default;
+}
+
 exports.getSedi = async (req, res) => {
   const { citta } = req.query;
   const startTime = Date.now();
@@ -15,20 +26,30 @@ exports.getSedi = async (req, res) => {
 
     const duration = Date.now() - startTime;
 
-    // Aggiungi foto di fallback per ogni sede
+    // ✅ Aggiungi foto di fallback e descrizioni dettagliate per ogni sede
     const sediConFoto = result.rows.map(sede => ({
       ...sede,
+      descrizione: sede.descrizione || getDetailedDescription(sede.nome, sede.citta),
       location_photos: [
         {
-          url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=200&fit=crop',
+          url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format',
+          url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=800&fit=crop&auto=format',
           alt: sede.nome
         },
         {
-          url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=400&h=200&fit=crop',
+          url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=800&fit=crop&auto=format',
+          url: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&h=800&fit=crop&auto=format',
+          url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format',
           alt: sede.nome
         },
         {
-          url: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=400&h=200&fit=crop',
+          url: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&h=800&fit=crop&auto=format',
+          url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=800&fit=crop&auto=format',
+          url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format',
+          alt: sede.nome
+        },
+        {
+          url: 'https://www.google.com/imgres?q=offices&imgurl=http%3A%2F%2Fgustavconcept.com%2Fcdn%2Fshop%2Farticles%2FQIC_SYD_Unispace_QIC_resized_2_copy.jpg%3Fv%3D1691409476&imgrefurl=https%3A%2F%2Fgustavconcept.com%2Fblogs%2Fnews%2Fmodern-office-space%3Fsrsltid%3DAfmBOoqfePcb1oD2z3y0zy9IDUt33mOcHj0ODbeFTji7Bh5Vz4ts_sEX&docid=I2ZhEqw15B4LXM&tbnid=DzCWN39vlPVznM&vet=12ahUKEwiBh7bDjdmPAxWTXUEAHWGbDkIQM3oECBcQAA..i&w=3830&h=2554&hcb=2&ved=2ahUKEwiBh7bDjdmPAxWTXUEAHWGbDkIQM3oECBcQAA?w=1200&h=800&fit=crop&auto=format',
           alt: sede.nome
         }
       ]

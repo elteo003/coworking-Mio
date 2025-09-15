@@ -1,0 +1,24 @@
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=coworkspace
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_key_here
+
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+
+# Supabase Storage S3 Configuration
+STORAGE_ACCESS_KEY_ID=your_supabase_storage_access_key_id
+STORAGE_SECRET_ACCESS_KEY=your_supabase_storage_secret_access_key
+STORAGE_ENDPOINT=https://czkiuvmhijhxuqzdtnmz.storage.supabase.co/storage/v1/s3
+STORAGE_BUCKET_NAME=Immagini
+
+# Stripe Configuration (if using payments)
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret

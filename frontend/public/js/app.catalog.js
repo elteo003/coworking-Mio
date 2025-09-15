@@ -52,6 +52,23 @@ class CatalogApp {
             this.loadSpaceDetails(spaceId);
         });
 
+        // ✅ BOTTONI PRENOTA SPAZIO
+        $(document).on('click', '.btn-prenota-spazio', (e) => {
+            e.preventDefault();
+            const spaceId = $(e.currentTarget).data('space-id');
+            const locationId = $(e.currentTarget).data('location-id');
+            const spaceName = $(e.currentTarget).data('space-name');
+            this.handleBookingRequest(spaceId, locationId, spaceName);
+        });
+
+        // ✅ BOTTONI PRENOTA SEDE
+        $(document).on('click', '.btn-prenota-sede', (e) => {
+            e.preventDefault();
+            const locationId = $(e.currentTarget).data('location-id');
+            const locationName = $(e.currentTarget).data('location-name');
+            this.handleLocationBookingRequest(locationId, locationName);
+        });
+
         // Tab spazi
         $('#spazi-tab').on('click', () => {
             if (this.currentLocation) {
@@ -94,17 +111,43 @@ class CatalogApp {
      */
     async loadLocations() {
         try {
-            if (window.coworkspaceAPI) {
-                this.locations = await window.coworkspaceAPI.getMyLocations();
+            // ✅ CARICA LE SEDI DAL BACKEND REALE
+            const response = await fetch(`${window.CONFIG.API_BASE}/sedi`);
+            if (response.ok) {
+                const sedi = await response.json();
+                
+                // ✅ TRASFORMA I DATI DEL BACKEND NEL FORMATO ATTESO
+                this.locations = sedi.map(sede => ({
+                    id: sede.id_sede,
+                    name: sede.nome,
+                    address: `${sede.indirizzo}, ${sede.citta}`,
+                    description: sede.descrizione || 'Sede di coworking moderna e funzionale',
+                    services: ['WiFi', 'Caffè', 'Sala riunioni', 'Parcheggio'], // Servizi di default
+                    location_photos: sede.location_photos || [
+                        {
+                            url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format',
+                            alt: sede.nome
+                        },
+                        {
+                            url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=800&fit=crop&auto=format',
+                            alt: sede.nome
+                        },
+                        {
+                            url: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&h=800&fit=crop&auto=format',
+                            alt: sede.nome
+                        }
+                    ]
+                }));
+                
+                console.log(`✅ Caricate ${this.locations.length} sedi dal backend`);
             } else {
-                // Dati di fallback per demo
-                this.locations = this.getFallbackLocations();
+                throw new Error(`Errore HTTP: ${response.status}`);
             }
 
             this.renderLocations();
         } catch (error) {
-            console.error('Errore nel caricamento delle sedi:', error);
-            // Usa dati di fallback
+            console.error('❌ Errore nel caricamento delle sedi:', error);
+            // Usa dati di fallback migliorati
             this.locations = this.getFallbackLocations();
             this.renderLocations();
         }
@@ -288,12 +331,19 @@ class CatalogApp {
                         <div class="location-services mt-auto">
                             ${servicesHtml}
                         </div>
-                        <button class="btn btn-scopri mt-3" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#modalSede"
-                                data-location-id="${location.id}">
-                            <i class="fas fa-eye me-2"></i>Scopri
-                        </button>
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-outline-primary flex-fill" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#modalSede"
+                                    data-location-id="${location.id}">
+                                <i class="fas fa-eye me-2"></i>Scopri
+                            </button>
+                            <button class="btn btn-primary flex-fill btn-prenota-sede" 
+                                    data-location-id="${location.id}"
+                                    data-location-name="${location.name}">
+                                <i class="fas fa-calendar-plus me-2"></i>Prenota
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -318,11 +368,36 @@ class CatalogApp {
             $('#sedeIndirizzo').text(this.currentLocation.address || 'Indirizzo non disponibile');
             $('#sedeDescrizione').text(this.currentLocation.description || 'Nessuna descrizione disponibile');
 
-            // Renderizza i servizi
-            const servicesHtml = (this.currentLocation.services || []).map(service =>
-                `<span class="badge service-badge">${service}</span>`
-            ).join('');
-            $('#sedeServizi').html(servicesHtml);
+            // ✅ CARICA I SERVIZI REALI DAL BACKEND
+            try {
+                const serviziResponse = await fetch(`${window.CONFIG.API_BASE}/servizi`);
+                if (serviziResponse.ok) {
+                    const servizi = await serviziResponse.json();
+                    const servicesHtml = servizi.map(servizio =>
+                        `<span class="badge service-badge">${servizio.nome}</span>`
+                    ).join('');
+                    $('#sedeServizi').html(servicesHtml || '<span class="text-muted">Nessun servizio disponibile</span>');
+                } else {
+                    // Fallback ai servizi hardcoded
+                    const servicesHtml = (this.currentLocation.services || []).map(service =>
+                        `<span class="badge service-badge">${service}</span>`
+                    ).join('');
+                    $('#sedeServizi').html(servicesHtml);
+                }
+            } catch (serviziError) {
+                console.warn('Errore caricamento servizi, uso servizi di default:', serviziError);
+                const servicesHtml = (this.currentLocation.services || []).map(service =>
+                    `<span class="badge service-badge">${service}</span>`
+                ).join('');
+                $('#sedeServizi').html(servicesHtml);
+            }
+
+            // ✅ MOSTRA IL BOTTONE PRENOTA SEDE
+            const btnPrenotaSede = $('#btnPrenotaSede');
+            btnPrenotaSede.show();
+            btnPrenotaSede.off('click').on('click', () => {
+                this.handleLocationBookingRequest(locationId, this.currentLocation.name);
+            });
 
             // Carica le foto
             this.loadLocationPhotos();
@@ -523,12 +598,20 @@ class CatalogApp {
                     </div>
                     <div class="space-status">
                         <span class="status-badge available">Disponibile</span>
-                        <button class="btn btn-dettagli" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#modalSpazio"
-                                data-space-id="${space.id}">
-                            <i class="fas fa-info-circle me-1"></i>Dettagli
-                        </button>
+                        <div class="space-actions d-flex gap-2 mt-2">
+                            <button class="btn btn-outline-primary btn-sm" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#modalSpazio"
+                                    data-space-id="${space.id}">
+                                <i class="fas fa-info-circle me-1"></i>Dettagli
+                            </button>
+                            <button class="btn btn-primary btn-sm btn-prenota-spazio" 
+                                    data-space-id="${space.id}"
+                                    data-location-id="${this.currentLocation.id}"
+                                    data-space-name="${space.name}">
+                                <i class="fas fa-calendar-plus me-1"></i>Prenota
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -588,6 +671,13 @@ class CatalogApp {
                 `<span class="badge amenity-badge">${amenity}</span>`
             ).join('');
             $('#spazioAmenities').html(amenitiesHtml);
+
+            // ✅ MOSTRA IL BOTTONE PRENOTA
+            const btnPrenotaSpazio = $('#btnPrenotaSpazio');
+            btnPrenotaSpazio.show();
+            btnPrenotaSpazio.off('click').on('click', () => {
+                this.handleBookingRequest(spaceId, this.currentLocation.id, space.name);
+            });
 
             // Carica le foto
             this.loadSpacePhotos();
@@ -711,6 +801,86 @@ class CatalogApp {
     }
 
     /**
+     * ✅ Gestisce la richiesta di prenotazione per uno spazio specifico
+     */
+    async handleBookingRequest(spaceId, locationId, spaceName) {
+        try {
+            console.log(`🎯 Click "Prenota" modal spazio - sede + spazio: ${locationId} + ${spaceId}`);
+            
+            // Verifica se l'utente è autenticato
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                // ✅ SALVA PARAMETRI SEDE + SPAZIO E REINDIRIZZA AL LOGIN
+                const bookingParams = {
+                    sede: locationId,
+                    spazio: spaceId, // Spazio preselezionato
+                    dataInizio: null,
+                    dataFine: null,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('bookingParams', JSON.stringify(bookingParams));
+                localStorage.setItem('redirectAfterLogin', 'selezione-slot.html');
+                
+                console.log('💾 Parametri sede + spazio salvati:', bookingParams);
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // ✅ UTENTE AUTENTICATO - Vai alla prenotazione con sede + spazio preselezionati
+            const bookingUrl = `selezione-slot.html?sede=${locationId}&spazio=${spaceId}`;
+            this.showToast(`Reindirizzamento alla prenotazione di "${spaceName}"...`, 'success');
+            setTimeout(() => {
+                window.location.href = bookingUrl;
+            }, 1500);
+
+        } catch (error) {
+            console.error('Errore nella gestione prenotazione:', error);
+            this.showToast('Errore durante la prenotazione', 'error');
+        }
+    }
+
+    /**
+     * ✅ Gestisce la richiesta di prenotazione per una sede (senza spazio specifico)
+     */
+    async handleLocationBookingRequest(locationId, locationName) {
+        try {
+            console.log(`🎯 Click "Prenota" card catalogo - solo sede: ${locationId}`);
+            
+            // Verifica se l'utente è autenticato
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                // ✅ SALVA PARAMETRI SOLO SEDE E REINDIRIZZA AL LOGIN
+                const bookingParams = {
+                    sede: locationId,
+                    spazio: null, // Nessuno spazio preselezionato
+                    dataInizio: null,
+                    dataFine: null,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('bookingParams', JSON.stringify(bookingParams));
+                localStorage.setItem('redirectAfterLogin', 'selezione-slot.html');
+                
+                console.log('💾 Parametri solo sede salvati:', bookingParams);
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // ✅ UTENTE AUTENTICATO - Vai alla prenotazione con solo sede preselezionata
+            const bookingUrl = `selezione-slot.html?sede=${locationId}`;
+            this.showToast(`Reindirizzamento alla prenotazione nella sede "${locationName}"...`, 'success');
+            setTimeout(() => {
+                window.location.href = bookingUrl;
+            }, 1500);
+
+        } catch (error) {
+            console.error('Errore nella gestione prenotazione sede:', error);
+            this.showToast('Errore durante la prenotazione', 'error');
+        }
+    }
+
+    /**
      * Dati di fallback per le sedi
      */
     getFallbackLocations() {
@@ -722,8 +892,9 @@ class CatalogApp {
                 description: 'Sede centrale di Milano con tutti i servizi moderni per il coworking',
                 services: ['WiFi', 'Caffè', 'Parcheggio', 'Sala riunioni'],
                 location_photos: [
-                    { url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800' },
-                    { url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800' }
+                    { url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format' },
+                    { url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=800&fit=crop&auto=format' },
+                    { url: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&h=800&fit=crop&auto=format' }
                 ]
             },
             {
@@ -733,7 +904,9 @@ class CatalogApp {
                 description: 'Sede moderna nel centro di Roma con spazi flessibili',
                 services: ['WiFi', 'Caffè', 'Sala riunioni', 'Terrazza'],
                 location_photos: [
-                    { url: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800' }
+                    { url: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&h=800&fit=crop&auto=format' },
+                    { url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format' },
+                    { url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=800&fit=crop&auto=format' }
                 ]
             }
         ];

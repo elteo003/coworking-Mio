@@ -201,7 +201,35 @@
 
     <script>
         // Inizializza ModernUI per animazioni globali (incluso logo)
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
+            // ✅ CONTROLLO AUTENTICAZIONE: verifica se l'utente è loggato
+            const currentPage = window.location.pathname.split('/').pop();
+            const isAuthenticated = await window.isAuthenticated();
+            
+            if (!isAuthenticated && window.isPageRequiringAuth(currentPage)) {
+                // Salva l'URL corrente per il redirect dopo il login
+                localStorage.setItem('redirectAfterLogin', window.location.href);
+                
+                // Reindirizza al login con messaggio
+                const loginUrl = 'login.html?message=' + encodeURIComponent('Devi effettuare il login per accedere alla prenotazione.');
+                window.location.href = loginUrl;
+                return;
+            }
+            
+            // ✅ VERIFICA SE SIAMO TORNATI DOPO IL LOGIN
+            const urlParams = new URLSearchParams(window.location.search);
+            const fromLogin = urlParams.get('fromLogin');
+            if (fromLogin === 'true') {
+                console.log('🔄 Tornato dopo il login - ripristino selezione');
+                // Mostra un messaggio di conferma
+                if (typeof window.showAlert === 'function') {
+                    window.showAlert('Login effettuato con successo! Puoi continuare con la prenotazione.', 'success');
+                }
+                // Rimuovi il parametro dall'URL
+                const newUrl = window.location.pathname + window.location.hash;
+                window.history.replaceState({}, document.title, newUrl);
+            }
+            
             if (typeof ModernUI !== 'undefined') {
                 new ModernUI();
             }

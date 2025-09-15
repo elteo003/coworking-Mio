@@ -40,17 +40,17 @@
 }
 
 .slot-button.slot-selected {
-    background-color: #fd7e14;
-    border-color: #e55100;
-    color: white;
-    box-shadow: 0 0 8px rgba(253, 126, 20, 0.4);
+    background-color: #ffc107;
+    border-color: #ffca2c;
+    color: #212529;
+    box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
 }
 
 .slot-button.slot-selected:hover {
-    background-color: #e55100;
-    border-color: #cc4400;
+    background-color: #ffca2c;
+    border-color: #ffb300;
     transform: translateY(-1px);
-    box-shadow: 0 3px 12px rgba(253, 126, 20, 0.5);
+    box-shadow: 0 3px 12px rgba(255, 193, 7, 0.5);
 }
 
 /* Classe slot-occupied-temp rimossa - ora tutti gli slot occupati usano slot-occupied */
@@ -376,9 +376,11 @@ div.slot-button.slot-booked,
 }
 
 .flatpickr-day.disabled {
-    background: var(--danger);
-    color: white;
-    opacity: 0.7;
+    background: var(--danger) !important;
+    color: white !important;
+    opacity: 0.7 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
 }
 
 .flatpickr-day.available {

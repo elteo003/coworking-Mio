@@ -501,12 +501,54 @@ function getTempoRimanente(prenotazione) {
 // Visualizza prenotazioni utente
 function displayPrenotazioniUtente(prenotazioni) {
   const container = $('#prenotazioniContent');
+  
+  // ✅ AGGIUNGI FILTRI SOPRA LA TABELLA
+  const filtersHtml = `
+    <div class="filters-section mb-4">
+      <div class="row">
+        <div class="col-md-3">
+          <label for="filterStato" class="form-label">Filtra per Stato:</label>
+          <select id="filterStato" class="form-select">
+            <option value="">Tutti gli stati</option>
+            <option value="in attesa">In Attesa</option>
+            <option value="pendente">Pendente</option>
+            <option value="confermata">Confermata</option>
+            <option value="scaduta">Scaduta</option>
+            <option value="cancellata">Cancellata</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="filterDataDa" class="form-label">Data Da:</label>
+          <input type="date" id="filterDataDa" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label for="filterDataA" class="form-label">Data A:</label>
+          <input type="date" id="filterDataA" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label for="filterSede" class="form-label">Sede:</label>
+          <select id="filterSede" class="form-select">
+            <option value="">Tutte le sedi</option>
+          </select>
+        </div>
+      </div>
+      <div class="row mt-2">
+        <div class="col-12">
+          <button id="btnResetFilters" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-times me-1"></i>Rimuovi Filtri
+          </button>
+          <span id="filterResults" class="ms-3 text-muted"></span>
+        </div>
+      </div>
+    </div>
+  `;
+  
   if (prenotazioni.length === 0) {
     container.html('<p>Nessuna prenotazione trovata</p>');
     return;
   }
 
-  let html = '<div class="table-responsive"><table class="table table-striped">';
+  let html = filtersHtml + '<div class="table-responsive"><table class="table table-striped table-hover" id="prenotazioniTable">';
   html += '<thead><tr><th>Data</th><th>Sede</th><th>Via</th><th>Stato</th><th>Tempo Rimanente</th><th>Azioni</th></tr></thead><tbody>';
 
   prenotazioni.forEach(p => {
@@ -516,6 +558,10 @@ function displayPrenotazioniUtente(prenotazioni) {
     // Usa durata_ore dal database se disponibile, altrimenti calcola
     const durataOre = p.durata_ore || Math.round((dataFine - dataInizioObj) / (1000 * 60 * 60));
     const importo = durataOre * 10; // 10€/ora
+    
+    // ✅ PREPARA DATA ATTRIBUTES PER I FILTRI
+    const dataInizioDate = dataInizioObj.toISOString().split('T')[0];
+    const sedeNome = p.sede?.nome || 'N/A';
 
     // Calcola tempo rimanente
     const tempoRimanente = getTempoRimanente(p);
@@ -601,19 +647,118 @@ function displayPrenotazioniUtente(prenotazioni) {
     }
 
     html += `
-      <tr class="${rowClass}">
-        <td>${dataInizio}</td>
-        <td>${p.nome_sede || 'Sede'}</td>
-        <td>${p.indirizzo_sede || 'Via non disponibile'}</td>
+      <tr class="${rowClass}" 
+          data-stato="${p.stato}" 
+          data-data="${dataInizioDate}" 
+          data-sede="${sedeNome}">
+        <td class="fw-medium">${dataInizio}</td>
+        <td class="text-primary">${p.nome_sede || 'Sede'}</td>
+        <td class="text-muted">${p.indirizzo_sede || 'Via non disponibile'}</td>
         <td><span class="badge bg-${getStatusColor(p.stato)}">${p.stato}</span></td>
-        <td>${tempoRimanenteHtml}</td>
-        <td>${azioniHtml}</td>
+        <td class="text-center">${tempoRimanenteHtml}</td>
+        <td class="text-center">${azioniHtml}</td>
       </tr>
     `;
   });
 
   html += '</tbody></table></div>';
   container.html(html);
+  
+  // ✅ POPOLA IL DROPDOWN DELLE SEDI
+  populateSedeFilter(prenotazioni);
+  
+  // ✅ AGGIUNGI EVENT LISTENERS PER I FILTRI
+  setupFiltersEventListeners();
+}
+
+// ✅ FUNZIONE PER POPOLARE IL FILTRO SEDI
+function populateSedeFilter(prenotazioni) {
+  const sedeSelect = $('#filterSede');
+  const sediUniche = [...new Set(prenotazioni.map(p => p.nome_sede).filter(Boolean))];
+  
+  sediUniche.forEach(sede => {
+    sedeSelect.append(`<option value="${sede}">${sede}</option>`);
+  });
+}
+
+// ✅ FUNZIONE PER GESTIRE I FILTRI
+function setupFiltersEventListeners() {
+  // Filtro stato
+  $('#filterStato').on('change', applyFilters);
+  
+  // Filtro data da
+  $('#filterDataDa').on('change', applyFilters);
+  
+  // Filtro data a
+  $('#filterDataA').on('change', applyFilters);
+  
+  // Filtro sede
+  $('#filterSede').on('change', applyFilters);
+  
+  // Reset filtri
+  $('#btnResetFilters').on('click', resetFilters);
+}
+
+// ✅ APPLICA I FILTRI ALLA TABELLA
+function applyFilters() {
+  const statoFilter = $('#filterStato').val();
+  const dataDaFilter = $('#filterDataDa').val();
+  const dataAFilter = $('#filterDataA').val();
+  const sedeFilter = $('#filterSede').val();
+  
+  const rows = $('#prenotazioniTable tbody tr');
+  let visibleCount = 0;
+  
+  rows.each(function() {
+    const row = $(this);
+    const stato = row.data('stato');
+    const data = row.data('data');
+    const sede = row.data('sede');
+    
+    let showRow = true;
+    
+    // Filtro stato
+    if (statoFilter && stato !== statoFilter) {
+      showRow = false;
+    }
+    
+    // Filtro data da
+    if (dataDaFilter && data < dataDaFilter) {
+      showRow = false;
+    }
+    
+    // Filtro data a
+    if (dataAFilter && data > dataAFilter) {
+      showRow = false;
+    }
+    
+    // Filtro sede
+    if (sedeFilter && sede !== sedeFilter) {
+      showRow = false;
+    }
+    
+    if (showRow) {
+      row.show();
+      visibleCount++;
+    } else {
+      row.hide();
+    }
+  });
+  
+  // Aggiorna contatore risultati
+  $('#filterResults').text(`${visibleCount} prenotazioni mostrate`);
+}
+
+// ✅ RESET FILTRI
+function resetFilters() {
+  $('#filterStato').val('');
+  $('#filterDataDa').val('');
+  $('#filterDataA').val('');
+  $('#filterSede').val('');
+  
+  // Mostra tutte le righe
+  $('#prenotazioniTable tbody tr').show();
+  $('#filterResults').text('');
 }
 
 // Cancella una prenotazione
@@ -721,7 +866,7 @@ function displayPagamentiUtente(pagamenti) {
     return;
   }
 
-  let html = '<div class="table-responsive"><table class="table table-striped">';
+  let html = '<div class="table-responsive"><table class="table table-striped table-hover">';
   html += '<thead><tr><th>Data</th><th>Importo</th><th>Dettagli</th><th>Stato</th></tr></thead><tbody>';
 
   pagamenti.forEach(p => {
@@ -739,9 +884,9 @@ function displayPagamentiUtente(pagamenti) {
 
     html += `
       <tr>
-        <td>${dataPagamento}</td>
-        <td>€${p.importo}</td>
-        <td>${dettagli}</td>
+        <td class="fw-medium">${dataPagamento}</td>
+        <td class="text-success fw-bold">€${p.importo}</td>
+        <td class="text-primary">${dettagli}</td>
         <td><span class="badge bg-${getPaymentStatusColor(p.stato)}">${p.stato}</span></td>
       </tr>
     `;
@@ -771,7 +916,7 @@ function displayPrenotazioniScadute(prenotazioni) {
       <strong>Attenzione:</strong> Le seguenti prenotazioni sono scadute e non sono più saldabili.
     </div>
     <div class="table-responsive">
-      <table class="table table-striped">
+      <table class="table table-striped table-hover">
         <thead>
           <tr>
             <th>Data Prenotazione</th>
@@ -795,11 +940,11 @@ function displayPrenotazioniScadute(prenotazioni) {
 
     html += `
       <tr class="table-danger">
-        <td>${dataInizio}</td>
-        <td>${p.nome_spazio || 'Spazio non disponibile'}</td>
-        <td>${p.nome_sede || 'Sede non disponibile'}</td>
-        <td>${durataOre}h (€${importo.toFixed(2)})</td>
-        <td><span class="badge bg-danger">Scaduta</span></td>
+        <td class="fw-medium">${dataInizio}</td>
+        <td class="text-primary">${p.nome_spazio || 'Spazio non disponibile'}</td>
+        <td class="text-primary">${p.nome_sede || 'Sede non disponibile'}</td>
+        <td class="text-center">${durataOre}h <span class="text-muted">(€${importo.toFixed(2)})</span></td>
+        <td class="text-center"><span class="badge bg-danger">Scaduta</span></td>
         <td>
           <small class="text-muted">
             <i class="fas fa-clock me-1"></i>

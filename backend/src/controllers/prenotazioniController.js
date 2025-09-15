@@ -81,11 +81,20 @@ exports.checkDisponibilita = async (req, res) => {
 // Crea una nuova prenotazione
 exports.creaPrenotazione = async (req, res) => {
   const { id_spazio, data_inizio, data_fine } = req.body;
-  // Prende l'ID utente dal middleware di autenticazione aggiornato
-  const id_utente = req.user.id_utente;
+  // ✅ MODIFICATO: Supporta prenotazioni anonime
+  const id_utente = req.user ? req.user.id_utente : null;
 
-  if (!id_utente || !id_spazio || !data_inizio || !data_fine) {
-    return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
+  if (!id_spazio || !data_inizio || !data_fine) {
+    return res.status(400).json({ error: 'Spazio, data inizio e data fine sono obbligatori' });
+  }
+
+  // ✅ Se non c'è utente autenticato, crea una prenotazione temporanea
+  if (!id_utente) {
+    return res.status(401).json({ 
+      error: 'Autenticazione richiesta',
+      message: 'Devi effettuare il login per completare la prenotazione',
+      requiresAuth: true
+    });
   }
 
   try {
@@ -350,20 +359,34 @@ exports.confirmPrenotazione = async (req, res) => {
 
     // Aggiorna o crea il record di pagamento - logica sicura senza ON CONFLICT
     try {
+      // ✅ CALCOLA L'IMPORTO CORRETTO basato sulla durata della prenotazione
+      const prenotazioneInfo = await pool.query(
+        `SELECT COALESCE(durata_ore, 
+          EXTRACT(EPOCH FROM (data_fine - data_inizio)) / 3600
+        ) AS durata_ore FROM Prenotazione WHERE id_prenotazione = $1`,
+        [id_prenotazione]
+      );
+      
+      const durataOre = prenotazioneInfo.rows[0]?.durata_ore || 0;
+      const prezzoPerOra = 10.00; // €10/ora
+      const importo = durataOre * prezzoPerOra;
+      
+      console.log(`💰 Calcolo importo: ${durataOre} ore × €${prezzoPerOra} = €${importo}`);
+      
       // Prima prova ad inserire il nuovo record
       await pool.query(
         `INSERT INTO Pagamento (id_prenotazione, importo, data_pagamento, stato, metodo, provider, provider_payment_id, currency)
          VALUES ($1, $2, NOW(), 'pagato', $3, $3, $4, 'EUR')`,
-        [id_prenotazione, 30, method, payment_id] // 30€ come importo di default
+        [id_prenotazione, importo, method, payment_id]
       );
     } catch (insertError) {
       // Se fallisce per duplicato, aggiorna il record esistente
       if (insertError.code === '23505') { // unique_violation
         await pool.query(
           `UPDATE Pagamento SET 
-           stato = 'pagato', data_pagamento = NOW(), metodo = $2, provider_payment_id = $3
+           importo = $2, stato = 'pagato', data_pagamento = NOW(), metodo = $3, provider_payment_id = $4
            WHERE id_prenotazione = $1`,
-          [id_prenotazione, method, payment_id]
+          [id_prenotazione, importo, method, payment_id]
         );
       } else {
         // Se è un altro errore, rilancialo

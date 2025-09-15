@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Upload S3 Supabase</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="frontend/public/css/card-fixes.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Test Upload S3 Supabase</h1>
+        
+        <div class="alert alert-info">
+            <strong>Nota:</strong> Questo test usa l'endpoint S3 di Supabase Storage invece della libreria Supabase JavaScript.
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Upload S3</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testS3UploadContainer"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Console Log</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="consoleLog" style="height: 300px; overflow-y: auto; background: #f8f9fa; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.875rem;">
+                            <div>Console log apparirà qui...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Configurazione Richiesta</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>1. Variabili d'ambiente nel backend (.env):</h6>
+                        <pre class="bg-light p-3 rounded">
+STORAGE_ACCESS_KEY_ID=your_supabase_storage_access_key_id
+STORAGE_SECRET_ACCESS_KEY=your_supabase_storage_secret_access_key
+STORAGE_ENDPOINT=https://czkiuvmhijhxuqzdtnmz.storage.supabase.co/storage/v1/s3
+STORAGE_BUCKET_NAME=Immagini
+                        </pre>
+                        
+                        <h6 class="mt-3">2. Database:</h6>
+                        <p>Esegui le query in <code>database/supabase-images-setup.sql</code> per creare le tabelle delle immagini.</p>
+                        
+                        <h6 class="mt-3">3. Bucket Storage:</h6>
+                        <p>Crea un bucket chiamato "Immagini" in Supabase Storage e rendilo pubblico.</p>
+                        
+                        <div class="alert alert-warning mt-3">
+                            <strong>Tipi supportati:</strong> Solo JPG/JPEG<br>
+                            <strong>Dimensione massima:</strong> 5MB<br>
+                            <strong>Endpoint:</strong> S3 Supabase Storage<br>
+                            <strong>Cartella:</strong> public/ (richiesto dalla policy)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="frontend/public/js/config.js"></script>
+    <script src="frontend/public/js/s3-image-manager.js"></script>
+    
+    <script>
+        // Override console.log per mostrare i log nella pagina
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function addToLog(message, type = 'log') {
+            const logContainer = document.getElementById('consoleLog');
+            const logEntry = document.createElement('div');
+            logEntry.className = `mb-1 ${type === 'error' ? 'text-danger' : 'text-success'}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToLog(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToLog(args.join(' '), 'error');
+        };
+        
+        // Test dell'upload quando il DOM è pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Inizializzazione test upload S3...');
+            
+            // Inizializza l'upload
+            if (window.s3ImageManager) {
+                console.log('✅ S3ImageManager trovato');
+                
+                window.s3ImageManager.createUploadElement('testS3UploadContainer', (imageData, fileName) => {
+                    console.log('✅ Immagine caricata con successo!');
+                    console.log('📁 File:', fileName);
+                    console.log('🔗 URL:', imageData.url);
+                    console.log('📂 Path:', imageData.path);
+                });
+                
+                console.log('✅ Upload element creato');
+            } else {
+                console.error('❌ S3ImageManager non trovato');
+            }
+        });
+    </script>
+</body>
+</html>

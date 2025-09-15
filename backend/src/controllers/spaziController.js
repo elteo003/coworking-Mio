@@ -203,8 +203,102 @@ async function testSimulateBookings(req, res) {
 
 
 
+// ✅ NUOVO ENDPOINT: Ottieni giorni disponibili per un mese
+async function getGiorniDisponibili(req, res) {
+    try {
+        const { id_spazio } = req.params;
+        const { mese, anno } = req.query; // formato: mese=1-12, anno=2024
+
+        if (!id_spazio || !mese || !anno) {
+            return res.status(400).json({
+                success: false,
+                error: 'Parametri mancanti: id_spazio, mese e anno sono richiesti'
+            });
+        }
+
+        // Verifica che lo spazio esista
+        const spazioQuery = 'SELECT id_spazio, nome FROM Spazio WHERE id_spazio = $1';
+        const spazioResult = await pool.query(spazioQuery, [id_spazio]);
+
+        if (spazioResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Spazio non trovato'
+            });
+        }
+
+        // Calcola il primo e ultimo giorno del mese
+        const primoGiorno = new Date(anno, mese - 1, 1);
+        const ultimoGiorno = new Date(anno, mese, 0); // 0 = ultimo giorno del mese precedente
+
+        // Ottieni tutti i giorni del mese
+        const giorniDelMese = [];
+        const oggi = new Date();
+        oggi.setHours(0, 0, 0, 0);
+
+        for (let giorno = 1; giorno <= ultimoGiorno.getDate(); giorno++) {
+            const data = new Date(anno, mese - 1, giorno);
+            
+            // Salta giorni nel passato
+            if (data < oggi) {
+                giorniDelMese.push({
+                    giorno: giorno,
+                    data: data.toISOString().split('T')[0],
+                    disponibile: false,
+                    motivo: 'Data nel passato'
+                });
+                continue;
+            }
+
+            // Verifica se ci sono prenotazioni per questo giorno
+            const prenotazioniQuery = `
+                SELECT COUNT(*) as count
+                FROM Prenotazione 
+                WHERE id_spazio = $1 
+                AND DATE(data_inizio) = $2
+                AND stato IN ('confermata', 'in attesa')
+                AND (stato != 'in attesa' OR scadenza_slot > NOW())
+            `;
+
+            const prenotazioniResult = await pool.query(prenotazioniQuery, [
+                id_spazio, 
+                data.toISOString().split('T')[0]
+            ]);
+
+            const prenotazioniCount = parseInt(prenotazioniResult.rows[0].count);
+            
+            // Considera un giorno disponibile se ha meno di 8 ore prenotate (9-17 = 8 slot)
+            const disponibile = prenotazioniCount < 8;
+
+            giorniDelMese.push({
+                giorno: giorno,
+                data: data.toISOString().split('T')[0],
+                disponibile: disponibile,
+                prenotazioni_count: prenotazioniCount,
+                motivo: disponibile ? 'Disponibile' : 'Completamente prenotato'
+            });
+        }
+
+        res.json({
+            success: true,
+            spazio_id: id_spazio,
+            mese: parseInt(mese),
+            anno: parseInt(anno),
+            giorni: giorniDelMese
+        });
+
+    } catch (error) {
+        console.error('❌ Errore getGiorniDisponibili:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Errore server: ' + error.message
+        });
+    }
+}
+
 module.exports = {
     getDisponibilitaSlot,
+    getGiorniDisponibili,
     testEndpoint,
     testSimulateBookings
 };

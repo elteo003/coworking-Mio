@@ -18,4 +18,7 @@ router.get('/test-simulate-bookings', spaziController.testSimulateBookings);
 // Endpoint pubblico per ottenere disponibilità slot (senza autenticazione)
 router.get('/:id_spazio/disponibilita-slot/:data', spaziController.getDisponibilitaSlot);
 
+// ✅ NUOVO ENDPOINT: Ottieni giorni disponibili per un mese (senza autenticazione)
+router.get('/:id_spazio/giorni-disponibili', spaziController.getGiorniDisponibili);
+
 module.exports = router;

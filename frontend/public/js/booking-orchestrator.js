@@ -84,6 +84,7 @@ class BookingOrchestrator {
             
         } catch (error) {
             console.error('❌ Errore creazione prenotazione:', error);
+            this.hideLoadingIndicator();
             this.showError('Errore durante la creazione della prenotazione: ' + error.message);
         }
     }
@@ -177,6 +178,7 @@ class BookingOrchestrator {
             
         } catch (error) {
             console.error('❌ Errore creazione prenotazione dopo login:', error);
+            this.hideLoadingIndicator();
             this.showError('Errore durante la creazione della prenotazione: ' + error.message);
             this.cleanupPendingData();
         }
@@ -186,8 +188,12 @@ class BookingOrchestrator {
     async createPrenotazione(selectionData) {
         console.log('📝 Creazione prenotazione:', selectionData);
         
+        // ✅ MOSTRA INDICATORE DI CARICAMENTO
+        this.showLoadingIndicator();
+        
         const token = localStorage.getItem('token');
         if (!token) {
+            this.hideLoadingIndicator();
             throw new Error('Token di autenticazione non trovato');
         }
         
@@ -214,12 +220,16 @@ class BookingOrchestrator {
         });
         
         if (!response.ok) {
+            this.hideLoadingIndicator();
             const errorData = await response.json().catch(() => ({ error: 'Errore sconosciuto' }));
             throw new Error(`Errore creazione prenotazione: ${errorData.error || response.status}`);
         }
         
         const result = await response.json();
         console.log('✅ Prenotazione creata:', result);
+        
+        // ✅ NASCONDI INDICATORE DI CARICAMENTO
+        this.hideLoadingIndicator();
         
         return result;
     }
@@ -240,6 +250,12 @@ class BookingOrchestrator {
     // Reindirizza al pagamento
     redirectToPayment(prenotazioneId) {
         console.log('💳 Reindirizzamento al pagamento:', prenotazioneId);
+        
+        // ✅ PULISCI I PARAMETRI DI PRENOTAZIONE DAL LOCALSTORAGE
+        if (typeof window.clearBookingParams === 'function') {
+            window.clearBookingParams();
+        }
+        
         this.showInfo('Prenotazione creata! Reindirizzamento al pagamento...');
         setTimeout(() => {
             window.location.href = `/pagamento.html?id_prenotazione=${prenotazioneId}`;
@@ -270,6 +286,81 @@ class BookingOrchestrator {
         console.log('ℹ️ Info:', message);
         if (typeof window.showAlert === 'function') {
             window.showAlert(message, 'info');
+        }
+    }
+
+    // Mostra indicatore di caricamento
+    showLoadingIndicator() {
+        const btnBook = document.getElementById('btnBook');
+        if (btnBook) {
+            btnBook.disabled = true;
+            btnBook.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creazione prenotazione...';
+            btnBook.className = 'btn btn-info';
+        }
+        
+        // Mostra anche un overlay di caricamento
+        this.showLoadingOverlay();
+    }
+
+    // Nasconde indicatore di caricamento
+    hideLoadingIndicator() {
+        const btnBook = document.getElementById('btnBook');
+        if (btnBook) {
+            btnBook.disabled = false;
+            btnBook.innerHTML = 'Prenota Ora';
+            btnBook.className = 'btn btn-success';
+        }
+        
+        // Nasconde l'overlay di caricamento
+        this.hideLoadingOverlay();
+    }
+
+    // Mostra overlay di caricamento
+    showLoadingOverlay() {
+        // Rimuovi overlay esistente se presente
+        this.hideLoadingOverlay();
+        
+        const overlay = document.createElement('div');
+        overlay.id = 'loading-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        `;
+        
+        const spinner = document.createElement('div');
+        spinner.style.cssText = `
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        `;
+        
+        spinner.innerHTML = `
+            <div style="font-size: 2rem; margin-bottom: 1rem;">
+                <i class="fas fa-spinner fa-spin" style="color: #007bff;"></i>
+            </div>
+            <div style="font-weight: bold; color: #333;">Creazione prenotazione in corso...</div>
+            <div style="color: #666; margin-top: 0.5rem;">Attendere prego</div>
+        `;
+        
+        overlay.appendChild(spinner);
+        document.body.appendChild(overlay);
+    }
+
+    // Nasconde overlay di caricamento
+    hideLoadingOverlay() {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+            overlay.remove();
         }
     }
 }

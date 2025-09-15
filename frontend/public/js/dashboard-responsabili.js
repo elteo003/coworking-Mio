@@ -209,6 +209,12 @@ class DashboardResponsabili {
             case 'overview':
                 this.loadOverviewData();
                 break;
+            case 'sedi':
+                // La gestione sedi è già inizializzata
+                break;
+            case 'spazi':
+                // La gestione spazi è già inizializzata
+                break;
             case 'disponibilita':
                 this.loadDisponibilita();
                 break;

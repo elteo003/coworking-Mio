@@ -25,7 +25,19 @@ router.put('/gestore/sedi/:id', authenticateToken, gestoreController.modificaSed
 // Elimina una sede
 router.delete('/gestore/sedi/:id', authenticateToken, gestoreController.eliminaSede);
 
+// ===== GESTIONE IMMAGINI =====
+// Ottieni credenziali S3 per l'upload
+router.get('/config/storage-credentials', authenticateToken, gestoreController.getStorageCredentials);
+
+// Gestione metadati immagini
+router.post('/gestore/images', authenticateToken, gestoreController.saveImageMetadata);
+router.delete('/gestore/images/:id', authenticateToken, gestoreController.deleteImageMetadata);
+router.get('/gestore/images', authenticateToken, gestoreController.getImages);
+
 // ===== GESTIONE SPAZI =====
+// Ottieni tutti gli spazi del gestore
+router.get('/gestore/spazi', authenticateToken, gestoreController.getSpaziGestore);
+
 // Crea un nuovo spazio
 router.post('/gestore/spazi', authenticateToken, gestoreController.creaSpazio);
 
